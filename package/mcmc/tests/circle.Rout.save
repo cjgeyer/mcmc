@@ -1,0 +1,101 @@
+
+R : Copyright 2003, The R Development Core Team
+Version 1.7.1  (2003-06-16)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type `license()' or `licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type `contributors()' for more information.
+
+Type `demo()' for some demos, `help()' for on-line help, or
+`help.start()' for a HTML browser interface to help.
+Type `q()' to quit R.
+
+> 
+>  epsilon <- 1e-15
+> 
+>  library(mcmc)
+> 
+>  RNGkind("Marsaglia-Multicarry")
+>  set.seed(42)
+> 
+>  d <- 5
+> 
+>  logh <- function(x) {
++      if (! is.numeric(x)) stop("x not numeric")
++      if (length(x) != d) stop("length(x) != d")
++      fred <- 1 - sum(x^2)
++      if (fred > 0) return(log(fred)) else return(-Inf)
++  }
+> 
+>  out.metro <- metrop(logh, rep(0, d), 1e3, scale = 0.01)
+>  out.metro$accept
+[1] 0.979
+> 
+>  out.metro <- metrop(out.metro, scale = 0.1)
+>  out.metro$accept
+[1] 0.72
+> 
+>  out.metro <- metrop(out.metro, scale = 0.5)
+>  out.metro$accept
+[1] 0.16
+> 
+>  out.metro <- metrop(out.metro, scale = 0.4)
+>  out.metro$accept
+[1] 0.228
+> 
+>  out.metro <- metrop(out.metro, nbatch = 1e2, debug = TRUE)
+> 
+>  all(out.metro$batch[- out.metro$nbatch, ] == out.metro$current[- 1, ])
+[1] TRUE
+>  all(out.metro$current[1, ] == out.metro$initial)
+[1] TRUE
+>  all(out.metro$batch[out.metro$nbatch, ] == out.metro$final)
+[1] TRUE
+> 
+>  .Random.seed <- out.metro$initial.seed
+>  d <- ncol(out.metro$proposal)
+>  n <- nrow(out.metro$proposal)
+>  my.proposal <- matrix(NA, n, d)
+>  my.u <- double(n)
+>  ska <- out.metro$scale
+>  for (i in 1:n) {
++      my.proposal[i, ] <- out.metro$current[i, ] + ska * rnorm(d)
++      if (is.na(out.metro$u[i])) {
++          my.u[i] <- NA
++      } else {
++          my.u[i] <- runif(1)
++      }
++  }
+>  max(abs(out.metro$proposal - my.proposal)) < epsilon
+[1] TRUE
+>  all(is.na(out.metro$u) == is.na(my.u))
+[1] TRUE
+>  all(out.metro$u[!is.na(out.metro$u)] == my.u[!is.na(my.u)])
+[1] TRUE
+> 
+>  my.curr.log.green <- apply(out.metro$current, 1, logh)
+>  my.prop.log.green <- apply(out.metro$proposal, 1, logh)
+>  all(is.na(out.metro$u) == ((my.prop.log.green == -Inf) |
++      (my.prop.log.green > my.curr.log.green)))
+[1] TRUE
+>  foo <- my.prop.log.green - my.curr.log.green
+>  blurfle <- foo - out.metro$log.green
+>  blurfle[foo == -Inf & out.metro$log.green == -Inf] <- 0
+>  max(blurfle) < epsilon
+[1] TRUE
+> 
+>  my.accept <- (my.prop.log.green > -Inf) & (is.na(my.u) | my.u < exp(foo))
+>  sum(my.accept) == round(n * out.metro$accept)
+[1] TRUE
+> 
+>  my.path <- matrix(NA, n, d)
+>  my.path[my.accept, ] <- out.metro$proposal[my.accept, ]
+>  my.path[! my.accept, ] <- out.metro$current[! my.accept, ]
+> 
+>  all(my.path == out.metro$batch)
+[1] TRUE
+> 
+> 

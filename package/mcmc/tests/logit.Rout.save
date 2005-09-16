@@ -1,0 +1,173 @@
+
+R : Copyright 2004, The R Foundation for Statistical Computing
+Version 1.9.1  (2004-06-21), ISBN 3-900051-00-3
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for a HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+>  epsilon <- 1e-15
+> 
+>  library(mcmc)
+> 
+>  RNGkind("Marsaglia-Multicarry")
+>  set.seed(42)
+> 
+>  n <- 100
+>  rho <- 0.5
+>  beta0 <- 0.25
+>  beta1 <- 1
+>  beta2 <- 0.5
+> 
+>  x1 <- rnorm(n)
+>  x2 <- rho * x1 + sqrt(1 - rho^2) * rnorm(n)
+>  eta <- beta0 + beta1 * x1 + beta2 * x2
+>  p <- 1 / (1 + exp(- eta))
+>  y <- as.numeric(runif(n) < p)
+> 
+>  out <- glm(y ~ x1 + x2, family = binomial())
+>  summary(out)
+
+Call:
+glm(formula = y ~ x1 + x2, family = binomial())
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-2.0636  -0.8205  -0.2457   0.8401   2.0699  
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)    
+(Intercept)  0.05986    0.24773   0.242 0.809046    
+x1           1.36824    0.38443   3.559 0.000372 ***
+x2           0.47601    0.31346   1.519 0.128864    
+---
+Signif. codes:  0 `***' 0.001 `**' 0.01 `*' 0.05 `.' 0.1 ` ' 1 
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 138.469  on 99  degrees of freedom
+Residual deviance:  99.293  on 97  degrees of freedom
+AIC: 105.29
+
+Number of Fisher Scoring iterations: 5
+
+> 
+>  mlogl <- function(beta) {
++      if (length(beta) != 3) stop("length(beta) != 3")
++      beta0 <- beta[1]
++      beta1 <- beta[2]
++      beta2 <- beta[3]
++      eta <- beta0 + beta1 * x1 + beta2 * x2
++      p <- exp(eta) / (1 + exp(eta))
++      return(- sum(log(p[y == 1])) - sum(log(1 - p[y == 0])))
++  }
+> 
+>  out.nlm <- nlm(mlogl, coefficients(out), print.level = 2)
+iteration = 0
+Parameter:
+[1] 0.0598649 1.3682403 0.4760133
+Function Value
+[1] 49.64659
+Gradient:
+[1] 8.228085e-06 5.499507e-06 6.082246e-06
+
+Relative gradient close to zero.
+Current iterate is probably solution.
+
+> 
+>  logl <- function(beta) {
++      if (length(beta) != 3) stop("length(beta) != 3")
++      beta0 <- beta[1]
++      beta1 <- beta[2]
++      beta2 <- beta[3]
++      eta <- beta0 + beta1 * x1 + beta2 * x2
++      p <- exp(eta) / (1 + exp(eta))
++      return(sum(log(p[y == 1])) + sum(log(1 - p[y == 0])))
++  }
+> 
+>  out.metro <- metrop(logl, coefficients(out), 1e3, scale = 0.01)
+>  out.metro$accept
+[1] 0.982
+> 
+>  out.metro <- metrop(out.metro, scale = 0.1)
+>  out.metro$accept
+[1] 0.795
+> 
+>  out.metro <- metrop(out.metro, scale = 0.5)
+>  out.metro$accept
+[1] 0.264
+> 
+>  apply(out.metro$batch, 2, mean)
+[1] 0.06080257 1.42304941 0.52634149
+>  var(out.metro$batch)
+            [,1]        [,2]        [,3]
+[1,]  0.06754522 -0.01079896  0.00989332
+[2,] -0.01079896  0.17579797 -0.06154632
+[3,]  0.00989332 -0.06154632  0.10482635
+>  olbm(out.metro$batch, 25)
+              [,1]          [,2]          [,3]
+[1,]  4.538950e-04  0.0000947124 -1.922817e-05
+[2,]  9.471240e-05  0.0018397601 -6.447016e-04
+[3,] -1.922817e-05 -0.0006447016  9.088569e-04
+> 
+>  saveseed <- .Random.seed
+>  out.metro <- metrop(logl, as.numeric(coefficients(out)), 1e2,
++      scale = 0.5, debug = TRUE)
+> 
+>  all(out.metro$batch[- out.metro$nbatch, ] == out.metro$current[- 1, ])
+[1] TRUE
+>  all(out.metro$current[1, ] == out.metro$initial)
+[1] TRUE
+>  all(out.metro$batch[out.metro$nbatch, ] == out.metro$final)
+[1] TRUE
+> 
+>  .Random.seed <- saveseed
+>  d <- ncol(out.metro$proposal)
+>  n <- nrow(out.metro$proposal)
+>  my.proposal <- matrix(NA, n, d)
+>  my.u <- double(n)
+>  ska <- out.metro$scale
+>  for (i in 1:n) {
++      my.proposal[i, ] <- out.metro$current[i, ] + ska * rnorm(d)
++      if (is.na(out.metro$u[i])) {
++          my.u[i] <- NA
++      } else {
++          my.u[i] <- runif(1)
++      }
++  }
+>  max(abs(out.metro$proposal - my.proposal)) < epsilon
+[1] TRUE
+>  all(is.na(out.metro$u) == is.na(my.u))
+[1] TRUE
+>  all(out.metro$u[!is.na(out.metro$u)] == my.u[!is.na(my.u)])
+[1] TRUE
+> 
+>  my.curr.log.green <- apply(out.metro$current, 1, logl)
+>  my.prop.log.green <- apply(out.metro$proposal, 1, logl)
+>  all(is.na(out.metro$u) == (my.prop.log.green > my.curr.log.green))
+[1] TRUE
+>  foo <- my.prop.log.green - my.curr.log.green
+>  max(abs(foo - out.metro$log.green)) < epsilon
+[1] TRUE
+> 
+>  my.accept <- is.na(my.u) | my.u < exp(foo)
+>  sum(my.accept) == round(n * out.metro$accept)
+[1] TRUE
+> 
+>  my.path <- matrix(NA, n, d)
+>  my.path[my.accept, ] <- out.metro$proposal[my.accept, ]
+>  my.path[! my.accept, ] <- out.metro$current[! my.accept, ]
+> 
+>  all(my.path == out.metro$batch)
+[1] TRUE
+> 
+> 

@@ -1,0 +1,9 @@
+
+useDynLib(mcmc)
+
+export(metrop)
+export(olbm)
+
+S3method(metrop, metropolis)
+S3method(metrop, "function")
+

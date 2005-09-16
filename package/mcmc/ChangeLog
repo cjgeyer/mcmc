@@ -1,0 +1,18 @@
+
+ 0.4.1 fixed documentation for metrop
+
+ 0.5   changed licence to X11 (was AFL, which apparently sucks)
+
+       changed to NAMESPACE
+       cleaned up latex in inst/doc, added Makefile
+       removed src/Makevars
+
+       had to get rid of R_IsNaNorNA in src/metrop.c
+
+       generally, lots of changes to get ready for CRAN
+
+       all of the tests/*.Rout.save redone because the digits
+       in numerical printing seem to have changed -- cannot get
+       bit for bit identical with earlier R (even before code changes).
+
+       changed first arg of metrop from "o" to "obj"
