@@ -4,21 +4,25 @@
 \usepackage{apalike}
 \usepackage{graphics}
 \usepackage{amsmath}
+\usepackage{indentfirst}
+\usepackage[utf8]{inputenc}
 
 \DeclareMathOperator{\var}{var}
-
-\title{MCMC Package Example}
-\author{Charles J. Geyer}
 
 % \VignetteIndexEntry{MCMC Example}
 
 \begin{document}
 
-\maketitle
-
 <<foo,include=FALSE,echo=FALSE>>=
 options(keep.source = TRUE, width = 60)
+foo <- packageDescription("mcmc")
 @
+
+\title{MCMC Package Example (Version \Sexpr{foo$Version})}
+\author{Charles J. Geyer}
+\maketitle
+
+\section{The Problem}
 
 This is an example of using the \verb@mcmc@ package in R.  The problem comes
 from a take-home question on a (take-home) PhD qualifying exam
@@ -30,9 +34,7 @@ and four predictors, \verb@x1@, \verb@x2@, \verb@x3@, and \verb@x4@.
 
 A frequentist analysis for the problem is done by the following R statements
 <<frequentist>>=
-foo <- read.table(url("http://www.stat.umn.edu/geyer/PhD/F03/logit.txt"),
-    header = TRUE)
-# foo <- read.table("logit.txt", header = TRUE)
+foo <- read.table("logit.txt", header = TRUE)
 out <- glm(y ~ x1 + x2 + x3 + x4, data = foo,
     family = binomial())
 summary(out)
@@ -64,6 +66,8 @@ lupost <- function(beta, x, y) {
 }
 @
 
+\section{Beginning MCMC}
+
 With those definitions in place, the following code runs the Metropolis
 algorithm to simulate the posterior.
 <<metropolis-try-1>>=
@@ -74,6 +78,24 @@ out <- metrop(lupost, beta.init, 1e3, x = x, y = y)
 names(out)
 out$accept
 @
+
+The arguments to the \verb@metrop@ function here (there are more we don't
+use here) are
+\begin{itemize}
+\item an R function (here \verb@lupost@ that evaluates the log unnormalized
+    density of the desired stationary distribution (here a posterior
+    distribution) of the Markov chain.  Note that (although this example
+    does not exhibit the phenomenon) that the unnormalized density may
+    be zero, in which case the log unnormalized density is \verb@-Inf@.
+\item an initial state (here \verb@beta.init@) of the Markov chain.
+\item a number of batches (here \verb@1e3@) for the Markov chain.
+    This combines with batch length and spacing (both 1 by default)
+    to determine the number of iterations done.
+\item additional arguments (here \verb@x@ and \verb@y@) supplied to
+    provided functions (here \verb@lupost@).
+\item there is no ``burn-in'' argument, although burn-in is easily
+    accomplished, if desired (more on this below).
+\end{itemize}
 
 The output is in the component \verb@out$batch@ returned by the \verb@metrop@
 function.  We'll look at it presently, but first we need to adjust the
@@ -108,6 +130,27 @@ out$accept
 out <- metrop(out, scale = 0.4, x = x, y = y)
 out$accept
 @
+
+Here the first argument to each instance of the \verb@metrop@ function is
+the output of a previous invocation.  The Markov chain continues where
+the previous run stopped doing just what it would have done if it had
+kept going the initial state and random seed being the final state and
+random seed of the previous invocation.  Everything stays the same
+except for the arguments (here \verb@scale@ that are supplied).
+\begin{itemize}
+\item The argument \verb@scale@ controls the size of the Metropolis
+    ``normal random walk'' proposal.  The default is \verb@scale = 1@.
+    Big steps give lower acceptance rates.  Small steps give higher.
+    We want something about 20\%.  It is also possible to make \verb@scale@
+    a vector or a matrix.  See \verb@help(metrop)@.
+\end{itemize}
+
+Because each run starts where the last one stopped (when the first argument
+to \verb@metrop@ is the output of the previous invocation), each run serves
+as ``burn-in'' for its successor (assuming that any part of that run was
+worth anything at all).
+
+\section{Diagnostics}
 
 O.~K.  That does it for the acceptance rate.  So let's do a longer run
 and look at the results.
@@ -148,10 +191,36 @@ acf(out$batch)
 \label{fig:fig2}
 \end{figure}
 
-As with any multiplot plot, this is a bit hard to read, but all
-we are trying to see is that the autocorrelations are negligible
-after about lag 25.  Thus batches of length 25 should be sufficient.
-But let's use 100 to be safe.
+As with any multiplot plot, these are a bit hard to read.  Readers are
+invited to make the separate plots to get a better picture.
+As with all ``diagnostic'' plots in MCMC, these don't ``diagnose''
+subtle problems.  As
+\begin{verbatim}
+http://www.stat.umn.edu/~charlie/mcmc/diag.html
+\end{verbatim}
+says
+\begin{quotation}
+The purpose of regression diagnostics is to find obvious, gross,
+embarrassing problems that jump out of simple plots.
+\end{quotation}
+The time series plots will show \emph{obvious} nonstationarity.
+They will not show \emph{nonobvious} nonstationarity.  They
+provide no guarantee whatsoever that your Markov chain is sampling
+anything remotely resembling the correct stationary distribution
+(with log unnormalized density \verb@lupost@).  In this very easy
+problem, we do not expect any convergence difficulties and so believe
+what the diagnostics seem to show, but one is a fool to trust such
+diagnostics in difficult problems.
+
+The autocorrelation plots seem to show that the
+the autocorrelations are negligible after about lag 25.
+This diagnostic inference is reliable if the sampler is actually
+working (has nearly reached equilibrium) and worthless otherwise.
+Thus batches of length 25 should be sufficient, but let's use
+length 100 to be safe.
+
+\section{Monte Carlo Estimates and Standard Errors}
+
 <<label=metropolis-try-4>>=
 out <- metrop(out, nbatch = 1e2, blen = 100,
     outfun = function(z, ...) c(z, z^2), x = x, y = y)
@@ -171,6 +240,12 @@ to write variance as a function of two things that can be estimated
 by simple averages.  Hence we want to average the state itself and
 the squares of each component.  Hence our \verb@outfun@ returns
 \verb@c(z, z^2)@ for an argument (the state vector) \verb@z@.
+
+The \verb@...@ argument to \verb@outfun@ is required, since the
+function is also passed the other arguments (here \verb@x@ and \verb@y@)
+to \verb@metrop@.
+
+\subsection{Simple Means}
 
 The grand means (means of batch means) are
 <<label=metropolis-batch>>=
@@ -199,19 +274,67 @@ have variance $\sigma^2 / b$ where $b$ is the batch length, which is
 whereas the overall means \verb@mu@ have variance $\sigma^2 / n$ where
 $n$ is the total number of iterations, which is \verb@out$blen * out$nbatch@.
 
-MCSE for the posterior variances is also simple but a bit tricky.
-First note that the two calculations
-<<label=metropolis-mcse-foo>>=
-apply(out$batch[ , 6:10], 2, mean) - mu^2
-apply(sweep(out$batch[ , 6:10], 2, mu^2), 2, mean)
-@
-do the same thing.  The latter makes it clear that
+\subsection{Functions of Means}
+
+To get the MCSE for the posterior variances we apply the delta method.
+Let $u_i$ denote the sequence of batch means of the first kind for one
+parameter and $\bar{u}$ the grand mean (the estimate of the posterior mean
+of that parameter),
+let $v_i$ denote the sequence of batch means of the second kind for the
+same parameter and $\bar{v}$ the grand mean (the estimate of the posterior
+second absolute moment of that parameter), and let $\mu = E(\bar{u})$ and
+$\nu = E(\bar{v})$.  Then the delta method linearizes the nonlinear function
+$$
+   g(\mu, \nu) = \nu - \mu^2
+$$
+as
+$$
+   \Delta g(\mu, \nu) = \Delta \nu - 2 \mu \Delta \mu
+$$
+saying that
+$$
+   g(\bar{u}, \bar{v}) - g(\mu, \nu)
+$$
+has the same asymptotic normal distribution as
+$$
+   (\bar{v} - \nu) - 2 \mu (\bar{u} - \mu)
+$$
+which, of course, has variance \verb@1 / nbatch@ times that of
+$$
+   (v_i - \nu) - 2 \mu (u_i - \mu)
+$$
+and this variance is estimated by
+$$
+   \frac{1}{n_{\text{batch}}} \sum_{i = 1}^{n_{\text{batch}}}
+   \bigl[ (v_i - \bar{v}) - 2 \bar{u} (u_i - \bar{u}) \bigr]^2
+$$
+So
 <<label=metropolis-mcse-sigmasq>>=
-sigmasq.mcse <- apply(sweep(out$batch[ , 6:10], 2, mu^2), 2, sd) /
-    sqrt(out$nbatch)
+u <- out$batch[ , 1:5]
+v <- out$batch[ , 6:10]
+ubar <- apply(u, 2, mean)
+vbar <- apply(v, 2, mean)
+deltau <- sweep(u, 2, ubar)
+deltav <- sweep(v, 2, vbar)
+foo <- sweep(deltau, 2, ubar, "*")
+sigmasq.mcse <- sqrt(apply((deltav - 2 * foo)^2, 2, mean) / out$nbatch)
 sigmasq.mcse
 @
 does the MCSE for the posterior variance.
+
+Let's just check that this complicated \verb@sweep@ and \verb@apply@ stuff
+does do the right thing.
+<<label=metropolis-mcse-sigmasq-too>>=
+sqrt(mean(((v[ , 2] - vbar[2]) - 2 * ubar[2] * (u[ , 2] - ubar[2]))^2) /
+    out$nbatch)
+@
+
+\paragraph{Comment} Through version 0.5 of this vignette it contained
+an incorrect procedure for calculating this MCSE, justified by a handwave.
+Essentially, it said to use the standard deviation of the batch means called
+\verb@v@ here, which appears to be very conservative.
+
+\subsection{Functions of Functions of Means}
 
 If we are also interested in the posterior standard deviation
 (a natural question, although not asked on the exam problem),
@@ -223,6 +346,8 @@ sigma.mcse <- sigmasq.mcse / (2 * sigma)
 sigma
 sigma.mcse
 @
+
+\section{A Final Run}
 
 So that's it.  The only thing left to do is a little more precision
 (the exam problem directed ``use a long enough run of your Markov chain

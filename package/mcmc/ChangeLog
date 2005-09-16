@@ -16,3 +16,6 @@
        bit for bit identical with earlier R (even before code changes).
 
        changed first arg of metrop from "o" to "obj"
+
+ 0.5-1 changed package vignette to fix bogus MCSE calculation
+       (bogosity still admitted and explained in appendix).
