@@ -8,4 +8,4 @@ metrop.pdf : metrop.tex
 	texi2dvi --pdf metrop.tex
 
 clean :
-	rm -f *.dvi *.aux *.log demo-fig* Rplots.ps
+	rm -f *.dvi *.aux *.log demo-fig* Rplots.*
