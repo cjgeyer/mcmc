@@ -1,0 +1,87 @@
+
+R version 2.8.1 (2008-12-22)
+Copyright (C) 2008 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+>  library(mcmc)
+> 
+>  set.seed(42)
+> 
+>  n <- 1e5
+>  rho <- 0.99
+> 
+>  x <- arima.sim(model = list(ar = rho), n = n)
+>  gamma <- acf(x, lag.max = 1999, type = "covariance",
++      plot = FALSE)$acf
+>  k <- seq(along = gamma)
+>  Gamma <- gamma[k %% 2 == 1] + gamma[k %% 2 == 0]
+>  k <- min(seq(along = Gamma)[Gamma < 0])
+>  Gamma <- Gamma[1:k]
+>  Gamma[k] < 0
+[1] TRUE
+>  Gamma[k] <- 0
+> 
+>  out <- .Call("initseq", x - mean(x))
+>  names(out)
+[1] "gamma0"    "Gamma.pos" "Gamma.dec" "Gamma.con" "var.pos"   "var.dec"  
+[7] "var.con"  
+> 
+>  all.equal(gamma[1], out$gamma0)
+[1] TRUE
+> 
+>  length(out$Gamma.pos) == length(Gamma)
+[1] TRUE
+>  all.equal(out$Gamma.pos, Gamma)
+[1] TRUE
+> 
+>  Gamma.dec <- cummin(Gamma)
+>  all.equal(out$Gamma.dec, Gamma.dec)
+[1] TRUE
+>  
+> library(Iso)
+Iso 0.0-6 
+Note: A new argument "stepfun" has been added to
+pava() and pava.sa().  A new argument "type" has been
+added to ufit().  See the documentation.
+>  Gamma.con <- Gamma.dec[1] + cumsum(c(0, pava(diff(Gamma.dec))))
+>  all.equal(out$Gamma.con, Gamma.con)
+[1] TRUE
+> 
+>  all.equal(0, min(out$Gamma.pos - out$Gamma.dec))
+[1] TRUE
+>  max(diff(out$Gamma.dec)) < sqrt(.Machine$double.eps)
+[1] TRUE
+> 
+>  all.equal(0, min(out$Gamma.dec - out$Gamma.con))
+[1] TRUE
+>  min(diff(diff(out$Gamma.con))) > (- sqrt(.Machine$double.eps))
+[1] TRUE
+> 
+>  all.equal(2 * sum(out$Gamma.pos) - out$gamma0, out$var.pos)
+[1] TRUE
+>  all.equal(2 * sum(out$Gamma.dec) - out$gamma0, out$var.dec)
+[1] TRUE
+>  all.equal(2 * sum(out$Gamma.con) - out$gamma0, out$var.con)
+[1] TRUE
+> 
+>  rev(out$Gamma.pos)[1] == 0
+[1] TRUE
+>  rev(out$Gamma.dec)[1] == 0
+[1] TRUE
+>  all.equal(rev(out$Gamma.con)[1], 0)
+[1] TRUE
+> 
+> 

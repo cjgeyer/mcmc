@@ -3,6 +3,7 @@ useDynLib(mcmc)
 
 export(metrop)
 export(olbm)
+export(initseq)
 
 S3method(metrop, metropolis)
 S3method(metrop, "function")

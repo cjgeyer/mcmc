@@ -19,3 +19,5 @@
 
  0.5-1 changed package vignette to fix bogus MCSE calculation
        (bogosity still admitted and explained in appendix).
+
+ 0.6   added initseq function
