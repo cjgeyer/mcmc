@@ -4,7 +4,10 @@ useDynLib(mcmc)
 export(metrop)
 export(olbm)
 export(initseq)
+export(temper)
 
 S3method(metrop, metropolis)
 S3method(metrop, "function")
+S3method(temper, tempering)
+S3method(temper, "function")
 

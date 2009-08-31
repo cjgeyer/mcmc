@@ -1,0 +1,9 @@
+*.pdf
+*.dvi
+*.aux
+*.log
+*.o
+*.so
+notes
+mcmc.Rcheck/
+mcmc*.tar.gz

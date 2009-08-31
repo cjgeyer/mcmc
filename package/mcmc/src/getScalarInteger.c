@@ -35,12 +35,12 @@
 #include "myutil.h"
 
 int
-getScalarInteger(SEXP foo)
+getScalarInteger(SEXP foo, char *argname)
 {
     if (! isNumeric(foo))
-        error("argument must be numeric");
+        error("argument \"%s\" must be numeric", argname);
     if (LENGTH(foo)  != 1)
-        error("argument must be scalar");
+        error("argument \"%s\" must be scalar", argname);
     if (isInteger(foo)) {
         return INTEGER(foo)[0];
     } else {

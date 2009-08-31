@@ -82,11 +82,11 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
     if (! isLogical(debug))
         error("argument \"debug\" must be logical");
 
-    int_nbatch = getScalarInteger(nbatch);
-    int_blen = getScalarInteger(blen);
-    int_nspac = getScalarInteger(nspac);
+    int_nbatch = getScalarInteger(nbatch, "nbatch");
+    int_blen = getScalarInteger(blen, "blen");
+    int_nspac = getScalarInteger(nspac, "nspac");
 
-    int_debug = getScalarLogical(debug);
+    int_debug = getScalarLogical(debug, "debug");
 
     if (int_nbatch <= 0)
         error("argument \"nbatch\" must be positive");
@@ -150,8 +150,6 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
      current_log_dens = logh(func1, state, rho1);
      if (current_log_dens == R_NegInf)
          error("log unnormalized density -Inf at initial state");
-
-     /* REVISED DOWN TO HERE */
 
      for (ibatch = 0, k = 0; ibatch < int_nbatch; ibatch++) {
 
