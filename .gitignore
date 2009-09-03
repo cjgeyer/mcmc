@@ -5,5 +5,5 @@
 *.o
 *.so
 notes
-mcmc.Rcheck/
+mcmc.Rcheck
 mcmc*.tar.gz

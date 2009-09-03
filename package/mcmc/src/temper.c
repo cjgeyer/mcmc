@@ -35,7 +35,11 @@
 #include <Rmath.h>
 #include "myutil.h"
 
-static void propose(SEXP coproposal, SEXP proposal, SEXP scale);
+#ifdef BLEAT
+#include <stdio.h>
+#endif /* BLEAT */
+
+static void propose(SEXP coproposal, SEXP proposal, SEXP scale, double *z);
 
 static double logh(SEXP func, SEXP state, SEXP rho);
 
@@ -113,9 +117,6 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
         check_valid_scale(scale, -1, ncomp, nx);
     }
 
-    if (! isNumeric(scale))
-        error("argument \"scale\" must be numeric");
-
     int no_outfun = isNull(func2);
     if (! no_outfun) {
         if (! isFunction(func2))
@@ -124,32 +125,42 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
             error("argument \"rho2\" must be environment");
     }
 
-    double current_log_dens;
-    int current_i;
+    double current_log_dens[ncomp];
     if (is_parallel) {
         SEXP fred;
         PROTECT(fred = allocVector(REALSXP, nx + 1));
         for (int i = 0; i < ncomp; i++) {
-            current_i = i;
-            REAL(fred)[0] = i;
+            REAL(fred)[0] = i + 1;
             for (int j = 0; j < nx; j++)
                 REAL(fred)[j + 1] = REAL(initial)[i + ncomp * j];
-            current_log_dens = logh(func1, fred, rho1);
-            if (current_log_dens == R_NegInf)
+            current_log_dens[i] = logh(func1, fred, rho1);
+#ifdef BLATHER
+            fprintf(stderr, "current_log_dens[%d] = %e\n", i, current_log_dens[i]);
+            for (int j = 0; j < nx; j++)
+                fprintf(stderr, "    state[%d, %d] = %e\n",
+                    i, j, REAL(initial)[i + ncomp * j]);
+            for (int j = 0; j <= nx; j++)
+                fprintf(stderr, "    fred[%d] = %e\n", j, REAL(fred)[j]);
+            fprintf(stderr, "    logh(func1, fred, rho1)) = %e\n",
+                        logh(func1, fred, rho1));
+#endif /* BLATHER */
+            if (current_log_dens[i] == R_NegInf)
                 error("log unnormalized density -Inf at initial state");
         }
         UNPROTECT(1);
     } else /* serial */ {
-        current_i = REAL(initial)[0];
-        current_log_dens = logh(func1, initial, rho1);
-        if (current_log_dens == R_NegInf)
+        for (int i = 0; i < ncomp; i++)
+            current_log_dens[i] = R_NaN;
+        int i = REAL(initial)[0] - 1;
+        current_log_dens[i] = logh(func1, initial, rho1);
+        if (current_log_dens[i] == R_NegInf)
             error("log unnormalized density -Inf at initial state");
     }
 
     /* at this point, all arguments have been checked for validity */
 
-    // current_i and current_log_dens save info that cuts in half
-    // the number of invocations of log unnormalized density for serial case
+    // current_log_dens saves info that cuts in half
+    // the number of invocations of log unnormalized density
 
     SEXP state, proposal, coproposal;
     PROTECT(state = duplicate(initial));
@@ -194,6 +205,8 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
     //     log_hastings  niter vector
     //     unif_hastings niter vector (uniform for deciding acceptance)
     //     acceptd       niter vector (TRUE if accept)
+    //     norm          niter x nx matrix (std normals)
+    //     unif_choose   niter vector (uniform for choosing neighbor)
     //
     // debug output (if parallel)
     //
@@ -205,6 +218,9 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
     //     log_hastings  niter vector
     //     unif_hastings niter vector (uniform for deciding acceptance)
     //     acceptd       niter vector (TRUE if accept)
+    //     norm          niter x nx matrix (std normals)
+    //     unif_choose   niter x 2 matrix (uniforms for choosing components
+    //                       to update)
     //
     //     for within-component move coproposal and proposal have natural
     //         meaning
@@ -214,13 +230,14 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
     //         and (j, x_j) in "proposal" -- the checker can figure it out
 
     int len_result_regular = is_parallel ? 5 : 6;
-    int len_result_debug = is_debug ? 8 : 7;
+    int len_result_debug = is_debug ? 10 : 9;
     int len_result = len_result_regular + len_result_debug;
 
     SEXP result, resultnames, acceptx, accepti, batch, ibatch,
         save_initial, save_final, debug_which, debug_unif_which,
         debug_state, debug_coproposal, debug_proposal,
-        debug_log_hastings, debug_unif_hastings, debug_acceptd;
+        debug_log_hastings, debug_unif_hastings, debug_acceptd,
+        debug_norm, debug_unif_choose;
 
     PROTECT(result = allocVector(VECSXP, len_result));
     PROTECT(resultnames = allocVector(STRSXP, len_result));
@@ -270,11 +287,11 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
         PROTECT(debug_unif_which = allocVector(REALSXP, niter));
         SET_VECTOR_ELT(result, len_result_regular + 1, debug_unif_which);
         SET_STRING_ELT(resultnames, len_result_regular + 1,
-            mkChar("unifwhich"));
+            mkChar("unif.which"));
         UNPROTECT(1);
 
         if (is_parallel)
-            PROTECT(debug_state = alloc3DArray(REALSXP, niter, ncomp, nx + 1));
+            PROTECT(debug_state = alloc3DArray(REALSXP, niter, ncomp, nx));
         else
             PROTECT(debug_state = allocMatrix(REALSXP, niter, nx + 1));
         SET_VECTOR_ELT(result, len_result_regular + 2, debug_state);
@@ -284,13 +301,13 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
         PROTECT(debug_log_hastings = allocVector(REALSXP, niter));
         SET_VECTOR_ELT(result, len_result_regular + 3, debug_log_hastings);
         SET_STRING_ELT(resultnames, len_result_regular + 3,
-            mkChar("loghastings"));
+            mkChar("log.hastings"));
         UNPROTECT(1);
 
         PROTECT(debug_unif_hastings = allocVector(REALSXP, niter));
         SET_VECTOR_ELT(result, len_result_regular + 4, debug_unif_hastings);
         SET_STRING_ELT(resultnames, len_result_regular + 4,
-            mkChar("unifhastings"));
+            mkChar("unif.hastings"));
         UNPROTECT(1);
 
         PROTECT(debug_proposal = allocMatrix(REALSXP, niter, nx + 1));
@@ -299,10 +316,31 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
             mkChar("proposal"));
         UNPROTECT(1);
 
+        PROTECT(debug_acceptd = allocVector(LGLSXP, niter));
+        SET_VECTOR_ELT(result, len_result_regular + 6, debug_acceptd);
+        SET_STRING_ELT(resultnames, len_result_regular + 6,
+            mkChar("acceptd"));
+        UNPROTECT(1);
+
+        PROTECT(debug_norm = allocMatrix(REALSXP, niter, nx));
+        SET_VECTOR_ELT(result, len_result_regular + 7, debug_norm);
+        SET_STRING_ELT(resultnames, len_result_regular + 7,
+            mkChar("norm"));
+        UNPROTECT(1);
+
+        if (is_parallel)
+            PROTECT(debug_unif_choose = allocMatrix(REALSXP, niter, 2));
+        else
+            PROTECT(debug_unif_choose = allocVector(REALSXP, niter));
+        SET_VECTOR_ELT(result, len_result_regular + 8, debug_unif_choose);
+        SET_STRING_ELT(resultnames, len_result_regular + 8,
+            mkChar("unif.choose"));
+        UNPROTECT(1);
+
         if (is_parallel) {
             PROTECT(debug_coproposal = allocMatrix(REALSXP, niter, nx + 1));
-            SET_VECTOR_ELT(result, len_result_regular + 5, debug_coproposal);
-            SET_STRING_ELT(resultnames, len_result_regular + 5,
+            SET_VECTOR_ELT(result, len_result_regular + 9, debug_coproposal);
+            SET_STRING_ELT(resultnames, len_result_regular + 9,
                 mkChar("coproposal"));
             UNPROTECT(1);
         }
@@ -344,6 +382,34 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
 
             for (int ispac = 0; ispac < int_nspac; ispac++, iiter++) {
 
+#ifdef EXTRA_CHECK
+                if (is_parallel) {
+                    for (int i = 0; i < ncomp; i++) {
+                        REAL(proposal)[0] = i + 1;
+                        for (int j = 0; j < nx; j++)
+                            REAL(proposal)[j + 1] = REAL(state)[i + ncomp * j];
+#ifdef BLATHER
+            fprintf(stderr, "current_log_dens[%d] = %e\n", i, current_log_dens[i]);
+            for (int j = 0; j < nx; j++)
+                fprintf(stderr, "    state[%d, %d] = %e\n",
+                    i, j, REAL(state)[i + ncomp * j]);
+            for (int j = 0; j <= nx; j++)
+                fprintf(stderr, "    proposal[%d] = %e\n", j, REAL(proposal)[j]);
+            fprintf(stderr, "    logh(func1, proposal, rho1)) = %e\n",
+                        logh(func1, proposal, rho1));
+#endif /* BLATHER */
+                        if (current_log_dens[i] != logh(func1, proposal, rho1))
+                            error("current_log_dens[%d] bogus\n", i);
+                    }
+                } else /* serial */ {
+                    for (int j = 0; j <= nx; j++)
+                        REAL(proposal)[j + 1] = REAL(state)[j];
+                        int i = REAL(proposal)[0] - 1;
+                        if (current_log_dens[i] != logh(func1, proposal, rho1))
+                            error("current_log_dens[%d] bogus\n", i);
+                }
+#endif /* EXTRA_CHECK */
+
                 if (is_debug) {
                     int len_state = is_parallel ? ncomp * nx : nx + 1;
                     for (int j = 0; j < len_state; j++)
@@ -362,21 +428,45 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
 
                     if (is_parallel) {
 
-                        int my_i = trunc(ncomp * unif_rand());
-                        if (my_i == ncomp) my_i--;
-                        if (my_i < 0 || my_i >= ncomp)
+                        // note: my_i and my_j are 1-origin indexing (for R)
+                        //         go from 1, ..., ncomp
+                        // everything else 0-origin indexing (for C)
+
+                        double unif_choose = unif_rand();
+
+                        int my_i = trunc(ncomp * unif_choose) + 1;
+                        if (my_i > ncomp) my_i--;
+                        if (my_i <= 0 || my_i > ncomp)
                             error("Can't happen: my_i out of range");
 
                         REAL(coproposal)[0] = my_i;
                         for (int j = 0; j < nx; j++)
                             REAL(coproposal)[j + 1] =
-                                REAL(state)[my_i + ncomp * j];
+                                REAL(state)[(my_i - 1) + ncomp * j];
 
-                        propose(coproposal, proposal, scale);
+                        double z[nx];
+                        propose(coproposal, proposal, scale, z);
 
-                        double my_coproposal_log_dens = current_i == my_i ?
-                            current_log_dens : logh(func1, coproposal, rho1);
+                        double my_coproposal_log_dens =
+                            current_log_dens[my_i - 1];
 
+#ifdef EXTRA_CHECK
+                        if (my_coproposal_log_dens != logh(func1, coproposal, rho1)) {
+                            fprintf(stderr, "with-in component update (parallel)\n");
+                            error("saving logh didn't work right (coproposal)");
+                        }
+#endif /* EXTRA_CHECK */
+#ifdef BLEAT
+                        if (my_coproposal_log_dens == R_NegInf) {
+                            fprintf(stderr, "Oopsie #1!\n");
+                            fprintf(stderr, "    my_i = %d\n", my_i);
+                            fprintf(stderr, "    current_log_dens[my_i] = %e\n", current_log_dens[my_i - 1]);
+                            fprintf(stderr, "    my_coproposal_log_dens = %e\n", my_coproposal_log_dens);
+                            for (int j = 0; j <= nx; j++)
+                                fprintf(stderr, "    coproposal[%d] = %e\n", j + 1, REAL(coproposal)[j]);
+                            fprintf(stderr, "    logh(coproposal) = %e\n", logh(func1, coproposal, rho1));
+                        }
+#endif /* BLEAT */
                         if (my_coproposal_log_dens == R_NegInf)
                             error("Can't happen: log density -Inf at current state");
 
@@ -388,7 +478,7 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         double my_unif_hastings = R_NaReal;
                         if (my_log_hastings < 0.0) {
                             my_unif_hastings = unif_rand();
-                            my_accept = exp(my_log_hastings) < my_unif_hastings;
+                            my_accept = my_unif_hastings < exp(my_log_hastings);
                         }
 
                         if (is_debug) {
@@ -401,44 +491,58 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                             REAL(debug_log_hastings)[iiter] = my_log_hastings;
                             REAL(debug_unif_hastings)[iiter] = my_unif_hastings;
                             LOGICAL(debug_acceptd)[iiter] = my_accept;
+                            for (int j = 0; j < nx; j++)
+                                REAL(debug_norm)[iiter + niter * j] = z[j];
+                            REAL(debug_unif_choose)[iiter] = unif_choose;
+                            REAL(debug_unif_choose)[iiter + niter] = R_NaReal;
                         }
 
                         if (my_accept) {
-                            for (int j = 0; j <= nx; j++)
-                                REAL(state)[my_i + ncomp * j] =
+                            for (int j = 0; j < nx; j++)
+                                REAL(state)[(my_i - 1) + ncomp * j] =
                                     REAL(proposal)[j + 1];
-                            current_i = REAL(proposal)[0];
-                            current_log_dens = my_new_log_dens;
-                            acceptx_numer[my_i]++;
+                            current_log_dens[my_i - 1] = my_new_log_dens;
+                            acceptx_numer[my_i - 1]++;
                         }
-                        acceptx_denom[my_i]++;
+                        acceptx_denom[my_i - 1]++;
 
                     } else /* serial */ {
 
                         int my_i = REAL(state)[0];
-                        if (my_i < 0 || my_i >= ncomp)
+                        if (my_i <= 0 || my_i > ncomp)
                             error("Can't happen: my_i out of range");
 
                         REAL(coproposal)[0] = my_i;
                         for (int j = 0; j < nx; j++)
                             REAL(coproposal)[j + 1] = REAL(state)[j + 1];
 
-                        propose(coproposal, proposal, scale);
-
-                        if (current_i != my_i)
-                            error("Can't happen: current_i != my_i");
-                        if (current_log_dens == R_NegInf)
-                            error("Can't happen: log density -Inf at current state");
-
+                        double z[nx];
+                        propose(coproposal, proposal, scale, z);
                         double my_new_log_dens = logh(func1, proposal, rho1);
-                        double my_log_hastings = my_new_log_dens -
-                            current_log_dens;
+                        double my_old_log_dens = current_log_dens[my_i - 1];
+
+#ifdef BLEAT
+                        if (my_old_log_dens == R_NegInf) {
+                            fprintf(stderr, "Oopsie #2!\n");
+                        }
+#endif /* BLEAT */
+                        if (my_old_log_dens == R_NegInf)
+                            error("Can't happen: log density -Inf at current state");
+#ifdef EXTRA_CHECK
+                        if (my_old_log_dens != logh(func1, coproposal, rho1)) {
+                            fprintf(stderr, "with-in component update (serial)\n");
+                            error("saving logh didn't work right (coproposal)");
+                        }
+#endif /* EXTRA_CHECK */
+
+                        double my_log_hastings =
+                            my_new_log_dens - my_old_log_dens;
 
                         int my_accept = 1;
                         double my_unif_hastings = R_NaReal;
                         if (my_log_hastings < 0.0) {
                             my_unif_hastings = unif_rand();
-                            my_accept = exp(my_log_hastings) < my_unif_hastings;
+                            my_accept = my_unif_hastings < exp(my_log_hastings);
                         }
 
                         if (is_debug) {
@@ -448,16 +552,18 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                             REAL(debug_log_hastings)[iiter] = my_log_hastings;
                             REAL(debug_unif_hastings)[iiter] = my_unif_hastings;
                             LOGICAL(debug_acceptd)[iiter] = my_accept;
+                            for (int j = 0; j < nx; j++)
+                                REAL(debug_norm)[iiter + niter * j] = z[j];
+                            REAL(debug_unif_choose)[iiter] = R_NaReal;
                         }
 
                         if (my_accept) {
                             for (int j = 0; j <= nx; j++)
                                 REAL(state)[j] = REAL(proposal)[j];
-                            current_i = REAL(state)[0];
-                            current_log_dens = my_new_log_dens;
-                            acceptx_numer[my_i]++;
+                            current_log_dens[my_i - 1] = my_new_log_dens;
+                            acceptx_numer[my_i - 1]++;
                         }
-                        acceptx_denom[my_i]++;
+                        acceptx_denom[my_i - 1]++;
 
                     }
 
@@ -465,47 +571,84 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
 
                     if (is_parallel) {
 
-                        int my_i = trunc(ncomp * unif_rand());
-                        if (my_i == ncomp) my_i--;
-                        if (my_i < 0 || my_i >= ncomp)
+                        double unif_choose_one = unif_rand();
+                        double unif_choose_two = unif_rand();
+
+                        int my_i = trunc(ncomp * unif_choose_one) + 1;
+                        if (my_i > ncomp) my_i--;
+                        if (my_i <= 0 || my_i > ncomp)
                             error("Can't happen: my_i out of range");
 
                         REAL(coproposal)[0] = my_i;
                         for (int j = 0; j < nx; j++)
                             REAL(coproposal)[j + 1] =
-                                REAL(state)[my_i + ncomp * j];
+                                REAL(state)[(my_i - 1) + ncomp * j];
 
                         int my_i_neighbors = 0;
                         for (int j = 0; j < ncomp; j++)
                             my_i_neighbors +=
-                                LOGICAL(neighbors)[my_i + ncomp * j];
+                                LOGICAL(neighbors)[(my_i - 1) + ncomp * j];
 
-                        int foo = trunc(my_i_neighbors * unif_rand());
-                        if (foo == my_i_neighbors) foo--;
+                        int foo = trunc(my_i_neighbors * unif_choose_two) + 1;
+                        if (foo > my_i_neighbors) foo--;
 
-                        int my_j;
-                        int bar = 0;
-                        for (my_j = 0; my_j < ncomp; my_j++) {
-                            bar += LOGICAL(neighbors)[my_i + ncomp * my_j];
-                            if (bar == foo) break;
+                        int my_j = 0;
+                        for (int j = 0, bar = 0; j < ncomp; j++) {
+                            bar += LOGICAL(neighbors)[(my_i - 1) + ncomp * j];
+                            if (bar == foo) {
+                                my_j = j + 1;
+                                break;
+                            }
                         }
-                        if (my_j < 0 || my_j >= ncomp)
+#ifdef BLEAT
+                        fprintf(stderr, "my_i = %d, my_i_neighbors = %d, foo = %d\n", my_i, my_i_neighbors, foo);
+                        fprintf(stderr, "(parallel) ncomp = %d, my_j = %d\n", ncomp, my_j);
+#endif /* BLEAT */
+                        if (my_j <= 0 || my_j > ncomp)
                             error("Can't happen: my_j out of range");
 
                         REAL(proposal)[0] = my_j;
                         for (int j = 0; j < nx; j++)
                             REAL(proposal)[j + 1] =
-                                REAL(state)[my_j + ncomp * j];
+                                REAL(state)[(my_j - 1) + ncomp * j];
 
-                        double my_coproposal_log_dens = current_i == my_i ?
-                            current_log_dens : logh(func1, coproposal, rho1);
+                        double my_coproposal_log_dens =
+                            current_log_dens[my_i - 1];
 
+#ifdef EXTRA_CHECK
+                        if (my_coproposal_log_dens != logh(func1, coproposal, rho1)) {
+                            fprintf(stderr, "swap component update (parallel)\n");
+                            error("saving logh didn't work right (coproposal)");
+                        }
+#endif /* EXTRA_CHECK */
+#ifdef BLEAT
+                        if (my_coproposal_log_dens == R_NegInf) {
+                            fprintf(stderr, "Oopsie #3!\n");
+                            fprintf(stderr, "    my_i = %d\n", my_i);
+                            fprintf(stderr, "    current_log_dens[my_i] = %e\n", current_log_dens[my_i - 1]);
+                            fprintf(stderr, "    my_coproposal_log_dens = %e\n", my_coproposal_log_dens);
+                            for (int j = 0; j <= nx; j++)
+                                fprintf(stderr, "    coproposal[%d] = %e\n", j + 1, REAL(coproposal)[j]);
+                            fprintf(stderr, "    logh(coproposal) = %e\n", logh(func1, coproposal, rho1));
+                        }
+#endif /* BLEAT */
                         if (my_coproposal_log_dens == R_NegInf)
                             error("Can't happen: log density -Inf at current state");
 
-                        double my_proposal_log_dens = current_i == my_j ?
-                            current_log_dens : logh(func1, proposal, rho1);
+                        double my_proposal_log_dens =
+                            current_log_dens[my_j - 1];
 
+#ifdef EXTRA_CHECK
+                        if (my_proposal_log_dens != logh(func1, proposal, rho1)) {
+                            fprintf(stderr, "swap component update (parallel)\n");
+                            error("saving logh didn't work right (proposal)");
+                        }
+#endif /* EXTRA_CHECK */
+#ifdef BLEAT
+                        if (my_proposal_log_dens == R_NegInf) {
+                            fprintf(stderr, "Oopsie #4!\n");
+                        }
+#endif /* BLEAT */
                         if (my_proposal_log_dens == R_NegInf)
                             error("Can't happen: log density -Inf at current state");
 
@@ -528,39 +671,46 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         double my_swapped_proposal_log_dens =
                             logh(func1, proposal, rho1);
                         double my_log_hastings = my_swapped_proposal_log_dens +
-                            my_swapped_proposal_log_dens - my_proposal_log_dens
-                            - my_coproposal_log_dens;
+                            my_swapped_coproposal_log_dens -
+                            my_proposal_log_dens - my_coproposal_log_dens;
 
                         int my_accept = 1;
                         double my_unif_hastings = R_NaReal;
                         if (my_log_hastings < 0.0) {
                             my_unif_hastings = unif_rand();
-                            my_accept = exp(my_log_hastings) < my_unif_hastings;
+                            my_accept = my_unif_hastings < exp(my_log_hastings);
                         }
 
                         if (is_debug) {
                             REAL(debug_log_hastings)[iiter] = my_log_hastings;
                             REAL(debug_unif_hastings)[iiter] = my_unif_hastings;
                             LOGICAL(debug_acceptd)[iiter] = my_accept;
+                            for (int j = 0; j < nx; j++)
+                                REAL(debug_norm)[iiter + niter * j] = R_NaReal;
+                            REAL(debug_unif_choose)[iiter] = unif_choose_one;
+                            REAL(debug_unif_choose)[iiter + niter] =
+                                unif_choose_two;
                         }
 
                         if (my_accept) {
-                            for (int j = 0; j <= nx; j++)
-                                REAL(state)[my_i + ncomp * j] =
+                            for (int j = 0; j < nx; j++)
+                                REAL(state)[(my_j - 1) + ncomp * j] =
                                     REAL(coproposal)[j + 1];
                             for (int j = 0; j < nx; j++)
-                                REAL(state)[my_j + ncomp * j] =
+                                REAL(state)[(my_i - 1) + ncomp * j] =
                                     REAL(proposal)[j + 1];
-                            current_i = my_i;
-                            current_log_dens = my_swapped_proposal_log_dens;
-                            accepti_numer[my_i][my_j]++;
+                            current_log_dens[my_i - 1] =
+                                my_swapped_proposal_log_dens;
+                            current_log_dens[my_j - 1] =
+                                my_swapped_coproposal_log_dens;
+                            accepti_numer[my_i - 1][my_j - 1]++;
                         }
-                        accepti_denom[my_i][my_j]++;
+                        accepti_denom[my_i - 1][my_j - 1]++;
 
                     } else /* serial */ {
 
                         int my_i = REAL(state)[0];
-                        if (my_i < 0 || my_i >= ncomp)
+                        if (my_i <= 0 || my_i > ncomp)
                             error("Can't happen: my_i out of range");
 
                         int my_i_neighbors = 0;
@@ -568,36 +718,55 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                             my_i_neighbors +=
                                 LOGICAL(neighbors)[my_i + ncomp * j];
 
-                        int foo = trunc(my_i_neighbors * unif_rand());
-                        if (foo == my_i_neighbors) foo--;
+                        double unif_choose = unif_rand();
+                        int foo = trunc(my_i_neighbors * unif_choose) + 1;
+                        if (foo > my_i_neighbors) foo--;
 
-                        int my_j;
-                        int bar = 0;
-                        for (my_j = 0; my_j < ncomp; my_j++) {
-                            bar += LOGICAL(neighbors)[my_i + ncomp * my_j];
-                            if (bar == foo) break;
+                        int my_j = 0;
+                        for (int j = 0, bar = 0; j < ncomp; j++) {
+                            bar += LOGICAL(neighbors)[(my_i - 1) + ncomp * j];
+                            if (bar == foo) {
+                                my_j = j + 1;
+                                break;
+                            }
                         }
-                        if (my_j < 0 || my_j >= ncomp)
+
+#ifdef BLEAT
+                        fprintf(stderr, "(serial) ncomp = %d, my_j = %d\n", ncomp, my_j);
+#endif /* BLEAT */
+                        if (my_j <= 0 || my_j > ncomp)
                             error("Can't happen: my_j out of range");
 
                         REAL(proposal)[0] = my_j;
                         for (int j = 0; j < nx; j++)
                             REAL(proposal)[j + 1] = REAL(state)[j + 1];
 
-                        if (current_i != my_i)
-                            error("Can't happen: current_i != my_i");
-                        if (current_log_dens == R_NegInf)
+                        double my_new_log_dens = logh(func1, proposal, rho1);
+                        double my_old_log_dens = current_log_dens[my_i - 1];
+#ifdef BLEAT
+                        if (my_old_log_dens == R_NegInf) {
+                            fprintf(stderr, "Oopsie #5!\n");
+                        }
+#endif /* BLEAT */
+#ifdef EXTRA_CHECK
+                        for (int j = 0; j <= nx; j++)
+                            REAL(coproposal)[j + 1] = REAL(state)[j];
+                        if (my_old_log_dens != logh(func1, coproposal, rho1)) {
+                            fprintf(stderr, "swap component update (serial)\n");
+                            error("saving logh didn't work right (coproposal)");
+                        }
+#endif /* EXTRA_CHECK */
+                        if (my_old_log_dens == R_NegInf)
                             error("Can't happen: log density -Inf at current state");
 
-                        double my_new_log_dens = logh(func1, proposal, rho1);
-                        double my_log_hastings = my_new_log_dens -
-                            current_log_dens;
+                        double my_log_hastings =
+                            my_new_log_dens - my_old_log_dens;
 
                         int my_accept = 1;
                         double my_unif_hastings = R_NaReal;
                         if (my_log_hastings < 0.0) {
                             my_unif_hastings = unif_rand();
-                            my_accept = exp(my_log_hastings) < my_unif_hastings;
+                            my_accept = my_unif_hastings < exp(my_log_hastings);
                         }
 
                         if (is_debug) {
@@ -607,16 +776,18 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                             REAL(debug_log_hastings)[iiter] = my_log_hastings;
                             REAL(debug_unif_hastings)[iiter] = my_unif_hastings;
                             LOGICAL(debug_acceptd)[iiter] = my_accept;
+                            for (int j = 0; j < nx; j++)
+                                REAL(debug_norm)[iiter + niter * j] = R_NaReal;
+                            REAL(debug_unif_choose)[iiter] = unif_choose;
                         }
 
                         if (my_accept) {
                             for (int j = 0; j <= nx; j++)
                                 REAL(state)[j] = REAL(proposal)[j];
-                            current_i = REAL(state)[0];
-                            current_log_dens = my_new_log_dens;
-                            accepti_numer[my_i][my_j]++;
+                            current_log_dens[my_i - 1] = my_new_log_dens;
+                            accepti_numer[my_i - 1][my_j - 1]++;
                         }
-                        accepti_denom[my_i][my_j]++;
+                        accepti_denom[my_i - 1][my_j - 1]++;
 
                     }
                 }
@@ -626,20 +797,20 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
             if (no_outfun) {
                 if (is_parallel)
                    for (int i = 0; i < nout; i++)
-                       batch_buff[i] = REAL(state)[i];
+                       batch_buff[i] += REAL(state)[i];
                 else
                    for (int i = 0; i < nout; i++)
-                       batch_buff[i] = REAL(state)[i + 1];
+                       batch_buff[i] += REAL(state)[i + 1];
             } else /* has outfun */ {
                 SEXP fred = outfun(func2, state, rho2);
                 if (LENGTH(fred) != nout)
                     error("function outfun returns results of different lengths");
                 for (int i = 0; i < nout; i++)
-                    batch_buff[i] = REAL(fred)[i];
+                    batch_buff[i] += REAL(fred)[i];
             }
 
             if (! is_parallel)
-                ibatch_buff[(int) REAL(state)[0]]++;
+                ibatch_buff[((int) REAL(state)[0]) - 1]++;
 
         } /* end of middle loop (one batch) */
 
@@ -647,16 +818,16 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
             for (int i = 0; i < ncomp; i++)
                 for (int j = 0; j < nx; j++)
                     REAL(batch)[kbatch + int_nbatch * (i + ncomp * j)] =
-                        batch_buff[i + ncomp * j] / int_nbatch;
+                        batch_buff[i + ncomp * j] / int_blen;
         else
             for (int i = 0; i < nout; i++)
                 REAL(batch)[kbatch + int_nbatch * i] =
-                    batch_buff[i] / int_nbatch;
+                    batch_buff[i] / int_blen;
 
         if (! is_parallel)
             for (int i = 0; i < ncomp; i++)
                 REAL(ibatch)[kbatch + int_nbatch * i] =
-                    ibatch_buff[i] / int_nbatch;
+                    ibatch_buff[i] / int_blen;
 
     } /* end of outer loop */
 
@@ -666,9 +837,9 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
     for (int i = 0; i < ncomp; i++)
         for (int j = 0; j < ncomp; j++)
             if (LOGICAL(neighbors)[i + ncomp * j])
-                REAL(accepti)[i] = accepti_numer[i][j] / accepti_denom[i][j];
+                REAL(accepti)[i + ncomp * j] = accepti_numer[i][j] / accepti_denom[i][j];
             else
-                REAL(accepti)[i] = R_NaReal;
+                REAL(accepti)[i + ncomp * j] = R_NaReal;
 
     PutRNGstate();
 
@@ -681,33 +852,41 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
 
 static void check_valid_scale(SEXP scale, int i, int ncomp, int nx)
 {
-    if (! isReal(scale))
+    if (i > ncomp)
+        error("check_valid_scale: i = %d, ncomp = %d, invalid\n", i, ncomp);
+
+    if (! isReal(scale)) {
         if (i >= 0)
             error("component %d of scale not type double", i + 1);
         else
             error("scale not type double");
-    if (! isAllFinite(scale))
+    }
+    if (! isAllFinite(scale)) {
         if (i >= 0)
             error("component %d of scale has non-finite element", i + 1);
         else
             error("scale has non-finite element");
+    }
     if (isMatrix(scale)) {
-        if (nrows(scale) != nx)
+        if (nrows(scale) != nx) {
             if (i >= 0)
                 error("component %d of scale matrix with wrong row dim", i + 1);
             else
                 error("scale matrix with wrong row dim");
-        if (ncols(scale) != nx)
+        }
+        if (ncols(scale) != nx) {
             if (i >= 0)
                 error("component %d of scale matrix with wrong col dim", i + 1);
             else
                 error("scale matrix with wrong col dim");
+        }
     } else /* scale not matrix */ {
-        if (! (LENGTH(scale) == 1 && LENGTH(scale) == nx))
+        if (! (LENGTH(scale) == 1 || LENGTH(scale) == nx)) {
             if (i >= 0)
                 error("component %d of scale not matrix, scalar, or vector of length k", i + 1);
             else
-                error("scale not matrix, scalar, or vector of length k", i + 1);
+                error("scale not matrix, scalar, or vector of length k");
+        }
     }
 }
 
@@ -746,35 +925,39 @@ static SEXP outfun(SEXP func, SEXP state, SEXP rho)
      return foo;
 }
 
-static void propose(SEXP coproposal, SEXP proposal, SEXP scale)
+static void propose(SEXP coproposal, SEXP proposal, SEXP scale, double *z)
 {
-    int i = REAL(coproposal)[0];
-    int p = LENGTH(coproposal) - 1;
+    int my_i = REAL(coproposal)[0];
+    int nx = LENGTH(coproposal) - 1;
+
+    for (int j = 0; j < nx; j++)
+        z[j] = norm_rand();
 
     if (isNewList(scale))
-        scale = VECTOR_ELT(scale, i - 1);
+        scale = VECTOR_ELT(scale, my_i - 1);
 
-    REAL(proposal)[0] = i;
+    REAL(proposal)[0] = my_i;
+
     if (LENGTH(scale) == 1) {
 
-        for (int j = 0; j < p; j++)
+        for (int j = 0; j < nx; j++)
             REAL(proposal)[j + 1] = REAL(coproposal)[j + 1] +
-                REAL(scale)[0] * norm_rand();
+                REAL(scale)[0] * z[j];
 
-    } else if (LENGTH(scale) == p) {
+    } else if (LENGTH(scale) == nx) {
 
-        for (int j = 0; j < p; j++)
+        for (int j = 0; j < nx; j++)
             REAL(proposal)[j + 1] = REAL(coproposal)[j + 1] +
-                REAL(scale)[j] * norm_rand();
+                REAL(scale)[j] * z[j];
 
-    } else /* scale is p by p matrix */ {
+    } else /* scale is nx by nx matrix */ {
 
-        for (int j = 0; j < p; j++)
+        for (int j = 0; j < nx; j++)
             REAL(proposal)[j + 1] = REAL(coproposal)[j + 1];
 
-        for (int j = 0, m = 0; j < p; j++) {
-                double u = norm_rand();
-                for (int k = 0; k < p; k++)
+        for (int j = 0, m = 0; j < nx; j++) {
+                double u = z[j];
+                for (int k = 0; k < nx; k++)
                     REAL(proposal)[k + 1] += REAL(scale)[m++] * u;
             }
     }

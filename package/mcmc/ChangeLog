@@ -21,3 +21,23 @@
        (bogosity still admitted and explained in appendix).
 
  0.6   added initseq function
+
+ 0.7   added temper function -- not tested yet
+
+ 0.7-1 fix bug && to ||
+       much confusion about whether my_i and my_j were 0-origin or 1-origin
+       forgot to allocate debug_acceptd
+       confusion about dimension of state (nx + 1 vector if serial,
+           ncomp x nx matrix if parallel) and <= nx versus < nx in loop bounds
+       bug where my_swapped_proposal_log_dens was used twice when one should
+           have been my_swapped_coproposal_log_dens
+       bug in dimension of debug_state when parallel (last dim nx not nx + 1) 
+       accepted swap didn't actually swap, fixed
+       all the accept decisions when log_hastings_ratio < 0 were backwards
+       batch means accumulation has = instead of +=
+       batch means divided by nbatch rather than blen
+       accepti entries stored in wrong places in output structure
+       ripped out old system for caching lud values, put in new that caches all
+           (more efficient, but real reason was old was broken somehow)
+           of course, its first implementation had 0-origin vs 1-origin confuse
+

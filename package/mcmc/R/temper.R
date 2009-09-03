@@ -63,16 +63,11 @@ temper.function <- function(obj, initial, neighbors, nbatch, blen = 1,
     out <- .Call("temper", func1, initial, neighbors, nbatch, blen, nspac,
         scale, func2, debug, parallel, env1, env2)
     )
-    out$initial.seed <- saveseed
-    out$final.seed <- .Random.seed
-    out$time <- out.time
-    out$lud <- obj
-    out$nbatch <- nbatch
-    out$blen <- blen
-    out$nspac <- nspac
-    out$scale <- scale
-    out$outfun <- outfun
-    class(out) <- c("mcmc", "tempering")
-    return(out)
+    result <- structure(c(list(lud = obj, initial = initial,
+        neighbors = neighbors, nbatch = nbatch, blen = blen, nspac = nspac,
+        scale = scale, outfun = outfun, debug = debug, parallel = parallel,
+        initial.seed = saveseed, final.seed = .Random.seed, time = out.time),
+        out), class = c("mcmc", "tempering"))
+    return(result)
 }
 
