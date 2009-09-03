@@ -1,0 +1,71 @@
+
+R version 2.9.0 (2009-04-17)
+Copyright (C) 2009 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+>  library(mcmc)
+>  library(MASS)
+> 
+>  set.seed(42)
+> 
+>  d <- 9
+>  witch.which <- c(0.1, 0.3, 0.5, 0.7, 1.0)
+>  ncomp <- length(witch.which)
+> 
+>  neighbors <- matrix(FALSE, ncomp, ncomp)
+>  neighbors[row(neighbors) == col(neighbors) + 1] <- TRUE
+>  neighbors[row(neighbors) == col(neighbors) - 1] <- TRUE
+> 
+>  ludfun <- function(state) {
++      stopifnot(is.numeric(state))
++      stopifnot(length(state) == d + 1)
++      icomp <- state[1]
++      stopifnot(icomp == as.integer(icomp))
++      stopifnot(1 <= icomp && icomp <= ncomp)
++      theta <- state[-1]
++      if (any(theta > 1.0)) return(-Inf)
++      bnd <- witch.which[icomp]
++      if (any(theta > bnd)) return(1)
++      return(1 / bnd^d)
++  }
+> 
+>  thetas <- matrix(0.5, ncomp, d)
+>  out <- temper(ludfun, initial = thetas, neighbors = neighbors, nbatch = 20,
++      blen = 10, nspac = 5, scale = 0.56789, parallel = TRUE, debug = TRUE)
+> 
+>  names(out)
+ [1] "lud"           "initial"       "neighbors"     "nbatch"       
+ [5] "blen"          "nspac"         "scale"         "outfun"       
+ [9] "debug"         "parallel"      "initial.seed"  "final.seed"   
+[13] "time"          "batch"         "acceptx"       "accepti"      
+[17] "initial"       "final"         "which"         "unif.which"   
+[21] "state"         "log.hastings"  "unif.hastings" "proposal"     
+[25] "acceptd"       "norm"          "unif.choose"   "coproposal"   
+> 
+>  out$acceptx
+[1] 0.40740741 0.21739130 0.07058824 0.24000000 0.40776699
+> 
+>  out$accepti
+          [,1]      [,2]     [,3]      [,4]      [,5]
+[1,]        NA 0.3675214       NA        NA        NA
+[2,] 0.4186047        NA 0.100000        NA        NA
+[3,]        NA 0.1600000       NA 0.6111111        NA
+[4,]        NA        NA 0.440678        NA 0.4259259
+[5,]        NA        NA       NA 0.4823529        NA
+> 
+>  ### seems to be o. k.
+> 
+> 
