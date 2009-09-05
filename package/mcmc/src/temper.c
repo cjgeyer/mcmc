@@ -230,8 +230,13 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
     //         and (j, x_j) in "proposal" -- the checker can figure it out
 
     int len_result_regular = is_parallel ? 5 : 6;
-    int len_result_debug = is_debug ? 10 : 9;
-    int len_result = len_result_regular + len_result_debug;
+    int len_result_debug = is_parallel ? 10 : 9;
+    int len_result = len_result_regular;
+    len_result += is_debug ? len_result_debug : 0;
+
+#ifdef BLEAT
+    fprintf(stderr, "len_result = %d\n", len_result);
+#endif /* BLEAT */
 
     SEXP result, resultnames, acceptx, accepti, batch, ibatch,
         save_initial, save_final, debug_which, debug_unif_which,
@@ -383,6 +388,9 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
             for (int ispac = 0; ispac < int_nspac; ispac++, iiter++) {
 
 #ifdef EXTRA_CHECK
+#ifdef WOOF
+                fprintf(stderr, "Check for validity of current_log_dens at top of inner loop\n");
+#endif /* WOOF */
                 if (is_parallel) {
                     for (int i = 0; i < ncomp; i++) {
                         REAL(proposal)[0] = i + 1;
@@ -403,10 +411,16 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                     }
                 } else /* serial */ {
                     for (int j = 0; j <= nx; j++)
-                        REAL(proposal)[j + 1] = REAL(state)[j];
-                        int i = REAL(proposal)[0] - 1;
-                        if (current_log_dens[i] != logh(func1, proposal, rho1))
-                            error("current_log_dens[%d] bogus\n", i);
+                        REAL(proposal)[j] = REAL(state)[j];
+                    int i = REAL(proposal)[0] - 1;
+                    double my_actual_logh = logh(func1, proposal, rho1);
+                    double my_stored_logh = current_log_dens[i];
+#ifdef WOOF
+                    fprintf(stderr, "icomp = %d, stored logh = %e, actual logh = %e\n",
+                        i + 1, my_stored_logh, my_actual_logh);
+#endif /* WOOF */
+                    if (my_stored_logh != my_actual_logh)
+                        error("current_log_dens[%d] bogus\n", i);
                 }
 #endif /* EXTRA_CHECK */
 
@@ -460,7 +474,7 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         if (my_coproposal_log_dens == R_NegInf) {
                             fprintf(stderr, "Oopsie #1!\n");
                             fprintf(stderr, "    my_i = %d\n", my_i);
-                            fprintf(stderr, "    current_log_dens[my_i] = %e\n", current_log_dens[my_i - 1]);
+                            fprintf(stderr, "    current_log_dens[my_i - 1] = %e\n", current_log_dens[my_i - 1]);
                             fprintf(stderr, "    my_coproposal_log_dens = %e\n", my_coproposal_log_dens);
                             for (int j = 0; j <= nx; j++)
                                 fprintf(stderr, "    coproposal[%d] = %e\n", j + 1, REAL(coproposal)[j]);
@@ -473,6 +487,10 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         double my_new_log_dens = logh(func1, proposal, rho1);
                         double my_log_hastings = my_new_log_dens -
                             my_coproposal_log_dens;
+
+                        if (isnan(my_log_hastings) ||
+                            (isinf(my_log_hastings) && my_log_hastings > 0))
+                            error("Can't happen: log hastings ratio +Inf or NaN\n");
 
                         int my_accept = 1;
                         double my_unif_hastings = R_NaReal;
@@ -537,6 +555,16 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
 
                         double my_log_hastings =
                             my_new_log_dens - my_old_log_dens;
+
+                        if (isnan(my_log_hastings) ||
+                            (isinf(my_log_hastings) && my_log_hastings > 0)) {
+#ifdef WOOF
+                                fprintf(stderr, "my_old_log_dens = %e\n", my_old_log_dens);
+                                fprintf(stderr, "my_new_log_dens = %e\n", my_old_log_dens);
+                                fprintf(stderr, "my_i = %d\n", my_i);
+#endif /* WOOF */
+                                error("Can't happen: log hastings ratio +Inf or NaN\n");
+                        }
 
                         int my_accept = 1;
                         double my_unif_hastings = R_NaReal;
@@ -625,7 +653,7 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         if (my_coproposal_log_dens == R_NegInf) {
                             fprintf(stderr, "Oopsie #3!\n");
                             fprintf(stderr, "    my_i = %d\n", my_i);
-                            fprintf(stderr, "    current_log_dens[my_i] = %e\n", current_log_dens[my_i - 1]);
+                            fprintf(stderr, "    current_log_dens[my_i - 1] = %e\n", current_log_dens[my_i - 1]);
                             fprintf(stderr, "    my_coproposal_log_dens = %e\n", my_coproposal_log_dens);
                             for (int j = 0; j <= nx; j++)
                                 fprintf(stderr, "    coproposal[%d] = %e\n", j + 1, REAL(coproposal)[j]);
@@ -674,6 +702,10 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                             my_swapped_coproposal_log_dens -
                             my_proposal_log_dens - my_coproposal_log_dens;
 
+                        if (isnan(my_log_hastings) ||
+                            (isinf(my_log_hastings) && my_log_hastings > 0))
+                            error("Can't happen: log hastings ratio +Inf or NaN\n");
+
                         int my_accept = 1;
                         double my_unif_hastings = R_NaReal;
                         if (my_log_hastings < 0.0) {
@@ -716,7 +748,7 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         int my_i_neighbors = 0;
                         for (int j = 0; j < ncomp; j++)
                             my_i_neighbors +=
-                                LOGICAL(neighbors)[my_i + ncomp * j];
+                                LOGICAL(neighbors)[(my_i - 1) + ncomp * j];
 
                         double unif_choose = unif_rand();
                         int foo = trunc(my_i_neighbors * unif_choose) + 1;
@@ -732,7 +764,10 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         }
 
 #ifdef BLEAT
-                        fprintf(stderr, "(serial) ncomp = %d, my_j = %d\n", ncomp, my_j);
+                        fprintf(stderr, "(serial) ncomp = %d, my_j = %d, my_i_neighbors = %d, foo = %d\n", ncomp, my_j, my_i_neighbors, foo);
+                        fprintf(stderr, "    unif_choose = %f\n", unif_choose);
+                        for (int j = 0; j < ncomp; j++)
+                            fprintf(stderr, "    LOGICAL(neighbors)[(my_i - 1) + ncomp * %d] = %d\n", j, LOGICAL(neighbors)[(my_i - 1) + ncomp * j]);
 #endif /* BLEAT */
                         if (my_j <= 0 || my_j > ncomp)
                             error("Can't happen: my_j out of range");
@@ -740,6 +775,11 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         REAL(proposal)[0] = my_j;
                         for (int j = 0; j < nx; j++)
                             REAL(proposal)[j + 1] = REAL(state)[j + 1];
+
+#ifdef WOOF
+                        fprintf(stderr, "got to here, about to call logh\n");
+                        fprintf(stderr, "    REAL(proposal)[0] = %e\n", REAL(proposal)[0]);
+#endif /* WOOF */
 
                         double my_new_log_dens = logh(func1, proposal, rho1);
                         double my_old_log_dens = current_log_dens[my_i - 1];
@@ -750,7 +790,7 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
 #endif /* BLEAT */
 #ifdef EXTRA_CHECK
                         for (int j = 0; j <= nx; j++)
-                            REAL(coproposal)[j + 1] = REAL(state)[j];
+                            REAL(coproposal)[j] = REAL(state)[j];
                         if (my_old_log_dens != logh(func1, coproposal, rho1)) {
                             fprintf(stderr, "swap component update (serial)\n");
                             error("saving logh didn't work right (coproposal)");
@@ -761,6 +801,10 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
 
                         double my_log_hastings =
                             my_new_log_dens - my_old_log_dens;
+
+                        if (isnan(my_log_hastings) ||
+                            (isinf(my_log_hastings) && my_log_hastings > 0))
+                            error("Can't happen: log hastings ratio +Inf or NaN\n");
 
                         int my_accept = 1;
                         double my_unif_hastings = R_NaReal;
@@ -781,10 +825,15 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                             REAL(debug_unif_choose)[iiter] = unif_choose;
                         }
 
+#ifdef WOOF_WOOF
+                        fprintf(stderr, "unif_choose = %f, ", unif_choose);
+                        fprintf(stderr, "REAL(debug_unif_choose)[iiter] = %f\n", REAL(debug_unif_choose)[iiter]);
+#endif /* WOOF_WOOF */
+
                         if (my_accept) {
                             for (int j = 0; j <= nx; j++)
                                 REAL(state)[j] = REAL(proposal)[j];
-                            current_log_dens[my_i - 1] = my_new_log_dens;
+                            current_log_dens[my_j - 1] = my_new_log_dens;
                             accepti_numer[my_i - 1][my_j - 1]++;
                         }
                         accepti_denom[my_i - 1][my_j - 1]++;

@@ -12,22 +12,28 @@
  neighbors[row(neighbors) == col(neighbors) + 1] <- TRUE
  neighbors[row(neighbors) == col(neighbors) - 1] <- TRUE
 
- ludfun <- function(state) {
+ ludfun <- function(state, log.pseudo.prior) {
      stopifnot(is.numeric(state))
      stopifnot(length(state) == d + 1)
      icomp <- state[1]
      stopifnot(icomp == as.integer(icomp))
      stopifnot(1 <= icomp && icomp <= ncomp)
+     stopifnot(is.numeric(log.pseudo.prior))
+     stopifnot(length(log.pseudo.prior) == ncomp)
      theta <- state[-1]
      if (any(theta > 1.0)) return(-Inf)
      bnd <- witch.which[icomp]
-     if (any(theta > bnd)) return(0)
-     return(- d * log(bnd))
+     lpp <- log.pseudo.prior[icomp]
+     if (any(theta > bnd)) return(lpp)
+     return(- d * log(bnd) + lpp)
  }
 
- thetas <- matrix(0.5, ncomp, d)
- out <- temper(ludfun, initial = thetas, neighbors = neighbors, nbatch = 20,
-     blen = 10, nspac = 5, scale = 0.56789, parallel = TRUE, debug = TRUE)
+ theta.initial <- c(1, rep(0.5, d))
+ qux <- c(0, 9.179, 13.73, 16.71, 20.56)
+
+ out <- temper(ludfun, initial = theta.initial, neighbors = neighbors,
+     nbatch = 50, blen = 30, nspac = 2, scale = 0.56789,
+     parallel = FALSE, debug = FALSE, log.pseudo.prior = qux)
 
  names(out)
 

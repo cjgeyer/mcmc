@@ -40,4 +40,9 @@
        ripped out old system for caching lud values, put in new that caches all
            (more efficient, but real reason was old was broken somehow)
            of course, its first implementation had 0-origin vs 1-origin confuse
-
+       yet another instance 0-origin vs 1-origin confusion (my_i should be
+           my_i - 1
+       length of output structure (len_result) determined incorrectly, fixed
+       caching of current lud value broken in serial case (stored in i not j)
+       after all that, everything now checked even with --use-valgrind and
+           --use-gct
