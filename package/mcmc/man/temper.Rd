@@ -147,6 +147,34 @@ That is, the initial state must have positive probability.
   \item{nspac}{the argument \code{nspac} or \code{obj$nspac}.}
   \item{outfun}{the argument \code{outfun} or \code{obj$outfun}.}
 }
+\section{Warning}{
+If \code{outfun} is missing or not a function, then the log unnormalized
+density can be defined without a \ldots argument and that works fine.
+One can define it starting \code{ludfun <- function(state)} and that works
+or \code{ludfun <- function(state, foo, bar)}, where \code{foo} and \code{bar}
+are supplied as additional arguments to \code{temper}.
+
+If \code{outfun} is a function, then both it and the log unnormalized
+density function can be defined without \ldots arguments \emph{if they
+have exactly the same arguments list} and that works fine.  Otherwise it
+doesn't work.  Start the definitions \code{ludfun <- function(state, foo)}
+and \code{outfun <- function(state, bar)} and you get an error about
+unused arguments.  Instead start the definitions
+\code{ludfun <- function(state, foo, \ldots)}
+and \code{outfun <- function(state, bar, \ldots)}, supply
+\code{foo} and \code{bar} as additional arguments to \code{temper},
+and that works fine.
+
+In short, the log unnormalized density function and \code{outfun} need
+to have \ldots in their arguments list to be safe.  Sometimes it works
+when \ldots is left out and sometimes it doesn't.
+
+Of course, one can avoid this whole issue by always defining the log
+unnormalized density function and \code{outfun} to have only one argument
+\code{state} and use global variables (objects in the R global environment) to
+specify any other information these functions need to use.  That too
+follows the R way.  But some people consider that bad programming practice.
+}
 \examples{
 h <- function(x) if (all(x >= 0) && sum(x) <= 1) return(1) else return(-Inf)
 out <- metrop(h, rep(0, 5), 1000)

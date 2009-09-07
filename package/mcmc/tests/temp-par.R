@@ -56,7 +56,7 @@
      }
  }
 
- ludfun <- function(state) {
+ ludfun <- function(state, ...) {
      stopifnot(is.numeric(state))
      stopifnot(length(state) == ncol(models) + 2)
      stopifnot(length(state) == ncol(models) + 2)
@@ -293,44 +293,26 @@
 
  ### check outfun
 
- outfun <- function(state, icomp) {
-     stopifnot(is.matrix(state))
-     stopifnot(is.numeric(state))
-     nx <- ncol(initial)
-     ncomp <- nrow(initial)
-     stopifnot(ncol(state) == nx)
-     stopifnot(nrow(state) == ncomp)
-     stopifnot(1 <= icomp & icomp <= ncomp)
-     foo <- state[icomp, ]
-     bar <- foo^2
-     return(c(foo, bar))
- }
-
- # want to use this but it doesn't work
- # out <- temper(out, icomp = 4, outfun = outfun)
-
- icomp <- 4
-
- outfun <- function(state) {
+ outfun <- function(state, icomp, ...) {
      stopifnot(is.matrix(state))
      stopifnot(is.numeric(state))
      nx <- ncol(betas)
      ncomp <- nrow(betas)
      stopifnot(ncol(state) == nx)
      stopifnot(nrow(state) == ncomp)
-     stopifnot(1 <= icomp & icomp <= ncomp)
+     stopifnot(1 <= icomp && icomp <= ncomp)
      foo <- state[icomp, ]
      bar <- foo^2
      return(c(foo, bar))
  }
 
- out <- temper(out, outfun = outfun)
+ out <- temper(out, outfun = outfun, icomp = 4)
 
  before <- out$state
  after <- before
  after[- dim(after)[1], , ] <- before[-1, , ]
  after[dim(after)[1], , ] <- out$final
- outies <- apply(after, 1, outfun)
+ outies <- apply(after, 1, outfun, icomp = 4)
  outies <- t(outies)
 
  foo <- outies[seq(1, niter) %% out$nspac == 0, ]

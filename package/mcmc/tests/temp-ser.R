@@ -48,7 +48,7 @@
  }
  neighbors
 
- ludfun <- function(state, log.pseudo.prior) {
+ ludfun <- function(state, log.pseudo.prior, ...) {
      stopifnot(is.numeric(state))
      stopifnot(length(state) == ncol(models) + 2)
      stopifnot(length(state) == ncol(models) + 2)
@@ -264,20 +264,16 @@
      return(c(foo, bar))
  }
 
- # want to use this but it doesn't work
- # out <- temper(out, icomp = 4, outfun = outfun, log.pseudo.prior = qux)
-
- icomp <- 4
  ncomp <- nrow(models)
  nx <- length(beta.initial) - 1
 
- outfun <- function(state) {
+ outfun <- function(state, icomp, ...) {
      stopifnot(is.numeric(state))
      stopifnot(length(state) == nx + 1)
      istate <- state[1]
      stopifnot(istate == as.integer(istate))
-     stopifnot(1 <= istate & istate <= ncomp)
-     stopifnot(1 <= icomp & icomp <= ncomp)
+     stopifnot(1 <= istate && istate <= ncomp)
+     stopifnot(1 <= icomp && icomp <= ncomp)
      if (istate == icomp) {
          foo <- state[-1]
      } else {
@@ -287,38 +283,15 @@
      return(c(foo, bar))
  }
 
- log.pseudo.prior <- qux
-
- ludfun <- function(state) {
-     stopifnot(is.numeric(state))
-     stopifnot(length(state) == ncol(models) + 2)
-     stopifnot(length(state) == ncol(models) + 2)
-     icomp <- state[1]
-     stopifnot(icomp == as.integer(icomp))
-     stopifnot(1 <= icomp && icomp <= nrow(models))
-     stopifnot(is.numeric(log.pseudo.prior))
-     stopifnot(length(log.pseudo.prior) == nrow(models))
-     beta <- state[-1]
-     inies <- c(TRUE, as.logical(models[icomp, ]))
-     beta.logl <- beta
-     beta.logl[! inies] <- 0
-     eta <- as.numeric(modmat %*% beta.logl)
-     logp <- ifelse(eta < 0, eta - log1p(exp(eta)), - log1p(exp(- eta)))
-     logq <- ifelse(eta < 0, - log1p(exp(eta)), - eta - log1p(exp(- eta)))
-     logl <- sum(logp[y == 1]) + sum(logq[y == 0])
-     val <- logl - sum(beta^2) / 2 + log.pseudo.prior[icomp]
-     return(val)
- }
-
  out <- temper(ludfun, initial = out$final, neighbors = neighbors,
      nbatch = 25, blen = 20, nspac = 5, scale = 0.56789, debug = TRUE,
-     outfun = outfun)
+     outfun = outfun, log.pseudo.prior = qux, icomp = 4)
 
  before <- out$state
  after <- before
  after[- dim(after)[1], ] <- before[-1, ]
  after[dim(after)[1], ] <- out$final
- outies <- apply(after, 1, outfun)
+ outies <- apply(after, 1, outfun, icomp = 4)
  outies <- t(outies)
 
  foo <- outies[seq(1, niter) %% out$nspac == 0, ]
