@@ -148,11 +148,11 @@ That is, the initial state must have positive probability.
   \item{outfun}{the argument \code{outfun} or \code{obj$outfun}.}
 }
 \section{Warning}{
-If \code{outfun} is missing or not a function, then the log unnormalized
-density can be defined without a \ldots argument and that works fine.
+If \code{outfun} is missing, then the log unnormalized
+density function can be defined without a \ldots argument and that works fine.
 One can define it starting \code{ludfun <- function(state)} and that works
 or \code{ludfun <- function(state, foo, bar)}, where \code{foo} and \code{bar}
-are supplied as additional arguments to \code{temper}.
+are supplied as additional arguments to \code{temper} and that works too.
 
 If \code{outfun} is a function, then both it and the log unnormalized
 density function can be defined without \ldots arguments \emph{if they

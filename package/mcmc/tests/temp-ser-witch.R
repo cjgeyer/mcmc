@@ -1,6 +1,5 @@
 
  library(mcmc)
- library(MASS)
 
  set.seed(42)
 

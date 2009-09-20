@@ -5,7 +5,7 @@ Title: Markov Chain Monte Carlo
 Author: Charles J. Geyer <charlie@stat.umn.edu>.
 Maintainer: Charles J. Geyer <charlie@stat.umn.edu>
 Depends: R (>= 2.6.0)
-Suggests: xtable, Iso, MASS
+Suggests: xtable, Iso
 Description: functions for Markov chain Monte Carlo (MCMC).
 License: X11
 URL: http://www.stat.umn.edu/geyer/mcmc/
