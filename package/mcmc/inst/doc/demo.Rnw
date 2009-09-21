@@ -29,14 +29,15 @@ This is an example of using the \verb@mcmc@ package in R.  The problem comes
 from a take-home question on a (take-home) PhD qualifying exam
 (School of Statistics, University of Minnesota).
 
-Simulated data for the problem are in the file \verb@logit.txt@.
+Simulated data for the problem are in the dataset \verb@logit@.
 There are five variables in the data set, the response \verb@y@
 and four predictors, \verb@x1@, \verb@x2@, \verb@x3@, and \verb@x4@.
 
 A frequentist analysis for the problem is done by the following R statements
 <<frequentist>>=
-foo <- read.table("logit.txt", header = TRUE)
-out <- glm(y ~ x1 + x2 + x3 + x4, data = foo,
+library(mcmc)
+data(logit)
+out <- glm(y ~ x1 + x2 + x3 + x4, data = logit,
     family = binomial())
 summary(out)
 @
@@ -51,13 +52,13 @@ The log unnormalized posterior (log likelihood plus log prior) density
 for this model is calculated by
 the following R function (given the preceding data definitions)
 <<log.unnormalized.posterior>>=
-x <- foo
+x <- logit
 x$y <- NULL
 x <- as.matrix(x)
 x <- cbind(1, x)
 dimnames(x) <- NULL
 
-y <- foo$y
+y <- logit$y
 
 lupost <- function(beta, x, y) {
     eta <- x %*% beta
@@ -72,7 +73,6 @@ lupost <- function(beta, x, y) {
 With those definitions in place, the following code runs the Metropolis
 algorithm to simulate the posterior.
 <<metropolis-try-1>>=
-library(mcmc)
 set.seed(42)    # to get reproducible results
 beta.init <- as.numeric(coefficients(out))
 out <- metrop(lupost, beta.init, 1e3, x = x, y = y)

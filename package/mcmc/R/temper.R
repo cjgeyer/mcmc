@@ -14,7 +14,7 @@ temper.tempering <- function(obj, initial, neighbors, nbatch, blen = 1,
     if (missing(scale)) scale <- obj$scale
     if (missing(debug)) debug <- obj$debug
     if (missing(parallel)) parallel <- obj$parallel
-    .Random.seed <- obj$final.seed
+    assign(".Random.seed", obj$final.seed, .GlobalEnv)
     if (missing(outfun)) {
         if (is.null(obj$outfun)) {
             temper.function(obj$lud, initial, neighbors, nbatch, blen,

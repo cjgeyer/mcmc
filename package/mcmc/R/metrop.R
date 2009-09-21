@@ -10,7 +10,8 @@ metrop.metropolis <- function(obj, initial, nbatch, blen = 1,
     if (missing(blen)) blen <- obj$blen
     if (missing(nspac)) nspac <- obj$nspac
     if (missing(scale)) scale <- obj$scale
-    .Random.seed <- obj$final.seed
+    if (missing(debug)) debug <- obj$debug
+    assign(".Random.seed", obj$final.seed, .GlobalEnv)
     if (missing(outfun)) {
         if (is.null(obj$outfun)) {
             metrop.function(obj$lud, obj$final, nbatch, blen,
@@ -58,6 +59,7 @@ metrop.function <- function(obj, initial, nbatch, blen = 1,
     out$scale <- scale
     out$outfun <- outfun
     out$batch <- t(out$batch)
+    out$debug <- debug
     if (! is.null(out$current)) out$current <- t(out$current)
     if (! is.null(out$proposal)) out$proposal <- t(out$proposal)
     class(out) <- c("mcmc", "metropolis")
