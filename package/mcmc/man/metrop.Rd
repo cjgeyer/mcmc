@@ -22,7 +22,7 @@ metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1, outfun,
       previous run can be supplied, in which case any missing arguments
       (including the log unnormalized density function) are taken from
       this object (up until version 0.7-2 this was incorrect with respect
-      to the \code{debug} argument, not it applies to it too).}
+      to the \code{debug} argument, now it applies to it too).}
   \item{initial}{a real vector, the initial state of the Markov chain.}
   \item{nbatch}{the number of batches.}
   \item{blen}{the length of batches.}
@@ -46,6 +46,9 @@ producing a Markov chain with equilibrium distribution having a specified
 unnormalized density.  Distribution must be continuous.  Support of the
 distribution is the support of the density specified by argument \code{obj}.
 The initial state must satisfy \code{obj(state, ...) > 0}.
+Description of a complete MCMC analysis (Bayesian logistic regression)
+using this function can be found in the vignette \code{demo}
+(\url{../doc/demo.pdf}).
 }
 \value{
   an object of class \code{"mcmc"}, subclass \code{"metropolis"},
@@ -67,6 +70,8 @@ The initial state must satisfy \code{obj(state, ...) > 0}.
   \item{blen}{the argument \code{blen} or \code{obj$blen}.}
   \item{nspac}{the argument \code{nspac} or \code{obj$nspac}.}
   \item{outfun}{the argument \code{outfun} or \code{obj$outfun}.}
+  Description of additional output when \code{debug = TRUE} can be
+  found in the vignette \code{debug} (\url{../doc/debug.pdf}).
 }
 \section{Warning}{
 If \code{outfun} is missing or not a function, then the log unnormalized

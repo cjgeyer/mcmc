@@ -46,3 +46,8 @@
        caching of current lud value broken in serial case (stored in i not j)
        after all that, everything now checked even with --use-valgrind and
            --use-gct
+
+ 0.7-3 add bugs section to initseq.Rd
+       fix example in temper.Rd to actually be for temper rather than metrop
+       fix comment in temper.c
+       add inst/doc/debug.Rnw a vignette about debugging and debug output

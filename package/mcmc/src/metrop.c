@@ -37,7 +37,7 @@
 
 static void proposal_setup(SEXP scale, int d);
 
-static void propose(SEXP state, SEXP proposal);
+static void propose(SEXP state, SEXP proposal, double *z);
 
 static double logh(SEXP func, SEXP state, SEXP rho);
 
@@ -111,8 +111,8 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
          PROTECT(result = allocVector(VECSXP, 4));
          PROTECT(resultnames = allocVector(STRSXP, 4));
      } else {
-         PROTECT(result = allocVector(VECSXP, 8));
-         PROTECT(resultnames = allocVector(STRSXP, 8));
+         PROTECT(result = allocVector(VECSXP, 10));
+         PROTECT(resultnames = allocVector(STRSXP, 10));
      }
      PROTECT(acceptance_rate = allocVector(REALSXP, 1));
      SET_VECTOR_ELT(result, 0, acceptance_rate);
@@ -126,7 +126,7 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
      SET_STRING_ELT(resultnames, 2, mkChar("initial"));
      SET_STRING_ELT(resultnames, 3, mkChar("final"));
      if (int_debug) {
-         SEXP spath, ppath, gpath, upath;
+         SEXP spath, ppath, gpath, upath, zpath, apath;
          int nn = int_nbatch * int_blen * int_nspac;
          PROTECT(spath = allocMatrix(REALSXP, dim_state, nn));
          SET_VECTOR_ELT(result, 4, spath);
@@ -136,11 +136,17 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
          SET_VECTOR_ELT(result, 6, gpath);
          PROTECT(upath = allocVector(REALSXP, nn));
          SET_VECTOR_ELT(result, 7, upath);
-         UNPROTECT(4);
+         PROTECT(zpath = allocMatrix(REALSXP, dim_state, nn));
+         SET_VECTOR_ELT(result, 8, zpath);
+         PROTECT(apath = allocVector(LGLSXP, nn));
+         SET_VECTOR_ELT(result, 9, apath);
+         UNPROTECT(6);
          SET_STRING_ELT(resultnames, 4, mkChar("current"));
          SET_STRING_ELT(resultnames, 5, mkChar("proposal"));
          SET_STRING_ELT(resultnames, 6, mkChar("log.green"));
          SET_STRING_ELT(resultnames, 7, mkChar("u"));
+         SET_STRING_ELT(resultnames, 8, mkChar("z"));
+         SET_STRING_ELT(resultnames, 9, mkChar("debug.accept"));
      }
      namesgets(result, resultnames);
      UNPROTECT(1);
@@ -166,12 +172,13 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
 
                  int accept;
                  double u = -1.0; /* impossible return from unif_rand() */
+                 double z[dim_state]; /* buffer for output of norm_rand() */
 
                  /* Note: should never happen! */
                  if (current_log_dens == R_NegInf)
                      error("log density -Inf at current state");
 
-                 propose(state, proposal);
+                 propose(state, proposal, z);
 
                  proposal_log_dens = logh(func1, proposal, rho1);
 
@@ -194,16 +201,20 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
                      SEXP ppath = VECTOR_ELT(result, 5);
                      SEXP gpath = VECTOR_ELT(result, 6);
                      SEXP upath = VECTOR_ELT(result, 7);
+                     SEXP zpath = VECTOR_ELT(result, 8);
+                     SEXP apath = VECTOR_ELT(result, 9);
                      int lj;
                      for (lj = 0; lj < dim_state; lj++) {
                          REAL(spath)[lbase + lj] = REAL(state)[lj];
                          REAL(ppath)[lbase + lj] = REAL(proposal)[lj];
+                         REAL(zpath)[lbase + lj] = z[lj];
                      }
                      REAL(gpath)[l] = proposal_log_dens - current_log_dens;
                      if (u == -1.0)
                          REAL(upath)[l] = NA_REAL;
                      else
                          REAL(upath)[l] = u;
+                     LOGICAL(apath)[l] = accept;
                  }
 
                  if (accept) {
@@ -304,7 +315,7 @@ static void proposal_setup(SEXP scale, int d)
     UNPROTECT(1);
 }
 
-static void propose(SEXP state, SEXP proposal)
+static void propose(SEXP state, SEXP proposal, double *z)
 {
     int d = state_dimension;
     int i, j, k;
@@ -315,23 +326,26 @@ static void propose(SEXP state, SEXP proposal)
     if (LENGTH(state) != d || LENGTH(proposal) != d)
         error("State or proposal length different from initialization\n");
 
+    for (j = 0; j < d; j++)
+        z[j] = norm_rand();
+
     switch (scale_option) {
         case CONSTANT:
             for (j = 0; j < d; j++)
                 REAL(proposal)[j] = REAL(state)[j]
-                    + scale_factor[0] * norm_rand();
+                    + scale_factor[0] * z[j];
             break;
         case DIAGONAL:
             for (j = 0; j < d; j++)
                 REAL(proposal)[j] = REAL(state)[j]
-                    + scale_factor[j] * norm_rand();
+                    + scale_factor[j] * z[j];
             break;
         case FULL:
             for (j = 0; j < d; j++)
                 REAL(proposal)[j] = REAL(state)[j];
 
             for (i = 0, k = 0; i < d; i++) {
-                double u = norm_rand();
+                double u = z[i];
                 for (j = 0; j < d; j++)
                     REAL(proposal)[j] += scale_factor[k++] * u;
             }

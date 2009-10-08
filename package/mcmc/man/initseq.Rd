@@ -66,6 +66,11 @@ a list containing the following components:
   the asymptotic variance in the Markov chain CLT.  Divide by \code{length(x)}
   to get the approximate variance of the sample mean of \code{x}.}
 }
+\section{Bugs}{
+Not precisely a bug, but \code{var.pos}, \code{var.dec}, and \code{var.con}
+can be negative.  This happens only when the chain is way too short to estimate
+the variance, and even then rarely.  But it does happen.
+}
 \references{
 Geyer, C. J. (1992)
 Practical Markov Chain Monte Carlo.

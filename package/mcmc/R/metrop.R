@@ -62,6 +62,7 @@ metrop.function <- function(obj, initial, nbatch, blen = 1,
     out$debug <- debug
     if (! is.null(out$current)) out$current <- t(out$current)
     if (! is.null(out$proposal)) out$proposal <- t(out$proposal)
+    if (! is.null(out$z)) out$z <- t(out$z)
     class(out) <- c("mcmc", "metropolis")
     return(out)
 }

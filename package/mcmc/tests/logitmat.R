@@ -1,5 +1,5 @@
 
- # test vector (diag(foo)) scaling
+ # test matrix scaling
 
  epsilon <- 1e-15
 
@@ -51,6 +51,7 @@
 
  out.metro <- metrop(logl, as.numeric(coefficients(out)), 1e2,
      scale = sally, debug = TRUE)
+ names(out.metro)
 
  niter <- out.metro$nbatch * out.metro$blen * out.metro$nspac
  niter == nrow(out.metro$current)
@@ -64,19 +65,23 @@
  n <- nrow(out.metro$proposal)
  my.proposal <- matrix(NA, n, d)
  my.u <- double(n)
+ my.z <- matrix(NA, n, d)
  ska <- out.metro$scale
  for (i in 1:n) {
-     my.proposal[i, ] <- out.metro$current[i, ] + ska %*% rnorm(d)
+     zed <- rnorm(d)
+     my.proposal[i, ] <- out.metro$current[i, ] + ska %*% zed
      if (is.na(out.metro$u[i])) {
          my.u[i] <- NA
      } else {
          my.u[i] <- runif(1)
      }
+     my.z[i, ] <- zed
  }
  max(abs(out.metro$proposal - my.proposal)) < epsilon
 
  all(is.na(out.metro$u) == is.na(my.u))
  all(out.metro$u[!is.na(out.metro$u)] == my.u[!is.na(my.u)])
+ identical(out.metro$z, my.z)
 
  my.curr.log.green <- apply(out.metro$current, 1, logl)
  my.prop.log.green <- apply(out.metro$proposal, 1, logl)
@@ -91,6 +96,7 @@
  } else {
      all(out.metro$current[niter, ] == out.metro$final)
  }
+ identical(my.accept, out.metro$debug.accept)
 
  my.current <- out.metro$current
  my.current[my.accept, ] <- my.proposal[my.accept, ]

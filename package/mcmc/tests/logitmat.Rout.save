@@ -1,6 +1,7 @@
 
-R : Copyright 2004, The R Foundation for Statistical Computing
-Version 1.9.1  (2004-06-21), ISBN 3-900051-00-3
+R version 2.9.2 (2009-08-24)
+Copyright (C) 2009 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -8,14 +9,14 @@ Type 'license()' or 'licence()' for distribution details.
 
 R is a collaborative project with many contributors.
 Type 'contributors()' for more information and
-'citation()' on how to cite R in publications.
+'citation()' on how to cite R or R packages in publications.
 
 Type 'demo()' for some demos, 'help()' for on-line help, or
-'help.start()' for a HTML browser interface to help.
+'help.start()' for an HTML browser interface to help.
 Type 'q()' to quit R.
 
 > 
->  # test vector (diag(foo)) scaling
+>  # test matrix scaling
 > 
 >  epsilon <- 1e-15
 > 
@@ -73,6 +74,11 @@ Type 'q()' to quit R.
 > 
 >  out.metro <- metrop(logl, as.numeric(coefficients(out)), 1e2,
 +      scale = sally, debug = TRUE)
+>  names(out.metro)
+ [1] "accept"       "batch"        "initial"      "final"        "current"     
+ [6] "proposal"     "log.green"    "u"            "z"            "debug.accept"
+[11] "initial.seed" "final.seed"   "time"         "lud"          "nbatch"      
+[16] "blen"         "nspac"        "scale"        "debug"       
 > 
 >  niter <- out.metro$nbatch * out.metro$blen * out.metro$nspac
 >  niter == nrow(out.metro$current)
@@ -90,14 +96,17 @@ Type 'q()' to quit R.
 >  n <- nrow(out.metro$proposal)
 >  my.proposal <- matrix(NA, n, d)
 >  my.u <- double(n)
+>  my.z <- matrix(NA, n, d)
 >  ska <- out.metro$scale
 >  for (i in 1:n) {
-+      my.proposal[i, ] <- out.metro$current[i, ] + ska %*% rnorm(d)
++      zed <- rnorm(d)
++      my.proposal[i, ] <- out.metro$current[i, ] + ska %*% zed
 +      if (is.na(out.metro$u[i])) {
 +          my.u[i] <- NA
 +      } else {
 +          my.u[i] <- runif(1)
 +      }
++      my.z[i, ] <- zed
 +  }
 >  max(abs(out.metro$proposal - my.proposal)) < epsilon
 [1] TRUE
@@ -105,6 +114,8 @@ Type 'q()' to quit R.
 >  all(is.na(out.metro$u) == is.na(my.u))
 [1] TRUE
 >  all(out.metro$u[!is.na(out.metro$u)] == my.u[!is.na(my.u)])
+[1] TRUE
+>  identical(out.metro$z, my.z)
 [1] TRUE
 > 
 >  my.curr.log.green <- apply(out.metro$current, 1, logl)
@@ -123,6 +134,8 @@ Type 'q()' to quit R.
 +  } else {
 +      all(out.metro$current[niter, ] == out.metro$final)
 +  }
+[1] TRUE
+>  identical(my.accept, out.metro$debug.accept)
 [1] TRUE
 > 
 >  my.current <- out.metro$current

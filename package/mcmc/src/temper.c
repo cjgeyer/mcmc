@@ -212,7 +212,7 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
     //
     //     which         vector of length niter (TRUE if within-component)
     //     unif_which    vector of length niter (uniform for deciding which)
-    //     state         niter x ncomp x (nx + 1) array (state before)
+    //     state         niter x ncomp x nx array (state before)
     //     coproposal    niter x (nx + 1) matrix
     //     proposal      niter x (nx + 1) matrix
     //     log_hastings  niter vector
