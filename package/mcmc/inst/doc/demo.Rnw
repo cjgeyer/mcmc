@@ -38,7 +38,7 @@ A frequentist analysis for the problem is done by the following R statements
 library(mcmc)
 data(logit)
 out <- glm(y ~ x1 + x2 + x3 + x4, data = logit,
-    family = binomial())
+    family = binomial(), x = TRUE)
 summary(out)
 @
 
@@ -52,21 +52,46 @@ The log unnormalized posterior (log likelihood plus log prior) density
 for this model is calculated by
 the following R function (given the preceding data definitions)
 <<log.unnormalized.posterior>>=
-x <- logit
-x$y <- NULL
-x <- as.matrix(x)
-x <- cbind(1, x)
-dimnames(x) <- NULL
-
-y <- logit$y
+x <- out$x
+y <- out$y
 
 lupost <- function(beta, x, y) {
-    eta <- x %*% beta
-    p <- 1 / (1 + exp(- eta))   # note: works even when eta is Inf or -Inf
-    logl <- sum(log(p[y == 1])) + sum(log(1 - p[y == 0]))
-    return(logl + sum(dnorm(beta, 0, 2, log = TRUE)))
+    eta <- as.numeric(x %*% beta)
+    logp <- ifelse(eta < 0, eta - log1p(exp(eta)), - log1p(exp(- eta)))
+    logq <- ifelse(eta < 0, - log1p(exp(eta)), - eta - log1p(exp(- eta)))
+    logl <- sum(logp[y == 1]) + sum(logq[y == 0])
+    return(logl - sum(beta^2) / 8)
 }
 @
+The tricky calculation of the log likelihood avoids overflow and catastrophic
+cancellation in calculation of $\log(p)$ and $\log(q)$ where
+\begin{align*}
+   p & = \frac{\exp(\eta)}{1 + \exp(\eta)} = \frac{1}{1 + \exp(- \eta)}
+   \\
+   q & = \frac{1}{1 + \exp(\eta)} = \frac{\exp(- \eta)}{1 + \exp(- \eta)}
+\end{align*}
+so taking logs gives
+\begin{align*}
+   \log(p) & = \eta - \log(1 + \exp(\eta)) = - \log(1 + \exp(- \eta))
+   \\
+   \log(q) & = - \log(1 + \exp(\eta)) = - \eta - \log(1 + \exp(- \eta))
+\end{align*}
+To avoid overflow, we always chose the case where the argument of $\exp$
+is negative.  We have also avoided catastrophic cancellation when
+$\lvert\eta\rvert$ is large.  If $\eta$ is large and positive, then
+\begin{align*}
+   p & \approx 1
+   \\
+   q & \approx 0
+   \\
+   \log(p) & \approx - \exp(- \eta)
+   \\
+   \log(q) & \approx - \eta - \exp(- \eta)
+\end{align*}
+and our use of the R function \texttt{log1p}, which calculates the
+function $x \mapsto \log(1 + x)$
+correctly for small $x$ avoids all problems.  The case where $\eta$ is large
+and negative is similar.
 
 \section{Beginning MCMC}
 
@@ -80,12 +105,12 @@ names(out)
 out$accept
 @
 
-The arguments to the \verb@metrop@ function here (there are more we don't
-use here) are
+The arguments to the \verb@metrop@ function used here (there are others
+we don't use) are
 \begin{itemize}
-\item an R function (here \verb@lupost@ that evaluates the log unnormalized
-    density of the desired stationary distribution (here a posterior
-    distribution) of the Markov chain.  Note that (although this example
+\item an R function (here \verb@lupost@) that evaluates the log unnormalized
+    density of the desired stationary distribution of the Markov chain
+    (here a posterior distribution).  Note that (although this example
     does not exhibit the phenomenon) that the unnormalized density may
     be zero, in which case the log unnormalized density is \verb@-Inf@.
 \item an initial state (here \verb@beta.init@) of the Markov chain.
@@ -134,10 +159,10 @@ out$accept
 
 Here the first argument to each instance of the \verb@metrop@ function is
 the output of a previous invocation.  The Markov chain continues where
-the previous run stopped doing just what it would have done if it had
-kept going the initial state and random seed being the final state and
+the previous run stopped, doing just what it would have done if it had
+kept going, the initial state and random seed being the final state and
 random seed of the previous invocation.  Everything stays the same
-except for the arguments (here \verb@scale@ that are supplied).
+except for the arguments supplied (here \verb@scale@).
 \begin{itemize}
 \item The argument \verb@scale@ controls the size of the Metropolis
     ``normal random walk'' proposal.  The default is \verb@scale = 1@.
@@ -254,7 +279,7 @@ apply(out$batch, 2, mean)
 @
 The first 5 numbers are the Monte Carlo estimates of the posterior means.
 The second 5 numbers are the Monte Carlo estimates of the posterior
-absolute second moments.  We get the posterior variances by
+ordinary second moments.  We get the posterior variances by
 <<label=metropolis-batch-too>>=
 foo <- apply(out$batch, 2, mean)
 mu <- foo[1:5]
@@ -331,7 +356,8 @@ sqrt(mean(((v[ , 2] - vbar[2]) - 2 * ubar[2] * (u[ , 2] - ubar[2]))^2) /
 @
 
 \paragraph{Comment} Through version 0.5 of this vignette it contained
-an incorrect procedure for calculating this MCSE, justified by a handwave.
+an incorrect procedure for calculating this MCSE, justified by a handwave
+(which was incorrect).
 Essentially, it said to use the standard deviation of the batch means called
 \verb@v@ here, which appears to be very conservative.
 
@@ -500,9 +526,9 @@ Dotted line, initial monotone sequence estimator.
 Dashed line, initial convex sequence estimator.}
 \label{fig:gamma}
 \end{figure}
-One can use whichever curve one chooses, but there is no reason, now that
-the \texttt{initseq} function makes the computation trivial, to use the
-initial convex sequence.
+One can use whichever curve one chooses, but now that
+the \texttt{initseq} function makes the computation trivial, it makes
+sense to use the initial convex sequence.
 
 Of course, one is not interested in Figure~\ref{fig:gamma}, except
 perhaps when explaining the methodology.  What is actually important
