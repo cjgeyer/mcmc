@@ -371,9 +371,28 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
         }
     }
 
+    // need neighbor counts and neighbors
+    // note: the_neighbors uses zero-origin indexing both for indexing
+    //     and values
+
+    double n_neighbors[ncomp];
+    for (int i = 0; i < ncomp; i++) {
+        n_neighbors[i] = 0;
+        for (int j = 0; j < ncomp; j++)
+            n_neighbors[i] += LOGICAL(neighbors)[i + ncomp * j];
+    }
+
+    double the_neighbors[ncomp][ncomp];
+    for (int i = 0; i < ncomp; i++) {
+        for (int j = 0, k = 0; j < ncomp; j++) {
+            if (LOGICAL(neighbors)[i + ncomp * j])
+                the_neighbors[i][k++] = j;
+        }
+    }
+
     // need buffers for batch means
 
-    double *batch_buff = (double *) R_alloc(nout, sizeof(double));
+    double batch_buff[nout];
     double ibatch_buff[ncomp];
 
     for (int kbatch = 0, iiter = 0; kbatch < int_nbatch; kbatch++) {
@@ -612,22 +631,12 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                             REAL(coproposal)[j + 1] =
                                 REAL(state)[(my_i - 1) + ncomp * j];
 
-                        int my_i_neighbors = 0;
-                        for (int j = 0; j < ncomp; j++)
-                            my_i_neighbors +=
-                                LOGICAL(neighbors)[(my_i - 1) + ncomp * j];
+                        int my_i_neighbors = n_neighbors[my_i - 1];
 
                         int foo = trunc(my_i_neighbors * unif_choose_two) + 1;
                         if (foo > my_i_neighbors) foo--;
 
-                        int my_j = 0;
-                        for (int j = 0, bar = 0; j < ncomp; j++) {
-                            bar += LOGICAL(neighbors)[(my_i - 1) + ncomp * j];
-                            if (bar == foo) {
-                                my_j = j + 1;
-                                break;
-                            }
-                        }
+                        int my_j = the_neighbors[my_i - 1][foo - 1] + 1;
 #ifdef BLEAT
                         fprintf(stderr, "my_i = %d, my_i_neighbors = %d, foo = %d\n", my_i, my_i_neighbors, foo);
                         fprintf(stderr, "(parallel) ncomp = %d, my_j = %d\n", ncomp, my_j);
@@ -745,23 +754,14 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         if (my_i <= 0 || my_i > ncomp)
                             error("Can't happen: my_i out of range");
 
-                        int my_i_neighbors = 0;
-                        for (int j = 0; j < ncomp; j++)
-                            my_i_neighbors +=
-                                LOGICAL(neighbors)[(my_i - 1) + ncomp * j];
+                        int my_i_neighbors = n_neighbors[my_i - 1];
 
                         double unif_choose = unif_rand();
                         int foo = trunc(my_i_neighbors * unif_choose) + 1;
                         if (foo > my_i_neighbors) foo--;
 
-                        int my_j = 0;
-                        for (int j = 0, bar = 0; j < ncomp; j++) {
-                            bar += LOGICAL(neighbors)[(my_i - 1) + ncomp * j];
-                            if (bar == foo) {
-                                my_j = j + 1;
-                                break;
-                            }
-                        }
+                        int my_j = the_neighbors[my_i - 1][foo - 1] + 1;
+                        int my_j_neighbors = n_neighbors[my_j - 1];
 
 #ifdef BLEAT
                         fprintf(stderr, "(serial) ncomp = %d, my_j = %d, my_i_neighbors = %d, foo = %d\n", ncomp, my_j, my_i_neighbors, foo);
@@ -800,7 +800,8 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                             error("Can't happen: log density -Inf at current state");
 
                         double my_log_hastings =
-                            my_new_log_dens - my_old_log_dens;
+                            my_new_log_dens - my_old_log_dens +
+                            log(my_i_neighbors) - log(my_j_neighbors);
 
                         if (isnan(my_log_hastings) ||
                             (isinf(my_log_hastings) && my_log_hastings > 0))

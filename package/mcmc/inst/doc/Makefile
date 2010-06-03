@@ -13,5 +13,8 @@ temper.pdf : temper.tex
 debug.pdf : debug.tex
 	texi2dvi --pdf debug.tex
 
+bfst.pdf : bfst.tex
+	texi2dvi --pdf bfst.tex
+
 clean :
 	rm -f *.dvi *.aux *.log demo-fig* Rplots.*

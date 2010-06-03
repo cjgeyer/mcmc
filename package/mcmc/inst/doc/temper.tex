@@ -141,7 +141,7 @@ estimates of Bayes factors and other normalizing constants.
 Traditionally, tempering makes two kinds of elementary updates, one changes
 only $x$ in serial tempering or one $x_i$ in parallel tempering.  We call
 them within-component updates, and will use normal random walk Metropolis
-updates analogous to those used by the \emph{metrop} function.  The other
+updates analogous to those used by the \texttt{metrop} function.  The other
 kind changes $i$ in serial tempering or swaps $x_i$ and $x_j$ in parallel
 tempering.  We call them jump/swap updates (jump in serial tempering, swap
 in parallel tempering).
@@ -186,14 +186,11 @@ This is valid because the proposal is symmetric by symmetry of the normal
 distribution.  A swap update chooses $i$ uniformly at random in
 $\{ 1, \ldots, k \}$ and then $j$, which is chosen uniformly at
 random from the neighbors of $i$.
-This proposal need not be symmetric,
-because $i$ and $j$ need not have the same number of neighbors.
+This proposal is automatically symmetric, because a swap move is its own
+inverse.
 Hence the appropriate Hastings ratio for Metropolis-Hastings rejection is
 $$
-   \frac{h(i, x_j) h(j, x_i) / n(j)}{h(i, x_i) h(j, x_j) / n(i)}
-   =
-   \frac{h(i, x_j) h(j, x_i)}{h(i, x_i) h(j, x_j)} \cdot
-   \frac{n(i)}{n(j)}
+   \frac{h(i, x_j) h(j, x_i)}{h(i, x_i) h(j, x_j)}
 $$
 
 \section{Acceptance Rates}

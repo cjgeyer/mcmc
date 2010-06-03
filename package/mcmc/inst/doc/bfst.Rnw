@@ -145,8 +145,7 @@ It was originally invented with the primary aim of speeding up MCMC
 convergence, but was also recognized to be useful for sampling multiple
 distributions \citep{geyer-thompson}.  In the latter role it is sometimes
 referred to as ``umbrella sampling'' which is a term coined
-by \citet{torrie-valleau} for sampling multiple distributions not necessarily
-via MCMC or simulated tempering (which was invented long after they wrote).
+by \citet{torrie-valleau} for sampling multiple distributions via MCMC.
 
 We have a finite set of unnormalized distributions we want to sample,
 all related in some way.  The R function \texttt{temper}
@@ -690,7 +689,7 @@ more on this issue.''  The first was about within model priors for the
 ``padding'' components of within model parameter vectors
 $g_{\text{pad}}(\theta_{\text{pad}} \mid m)$ in
 the notation in \eqref{eq:unnormalized-bayes-factors}.
-Rather that choose these so that they do not depend on the data (as we did),
+Rather than choose these so that they do not depend on the data (as we did),
 it would be better (if more trouble) to choose them differently for each
 ``padding'' component, centering $g_{\text{pad}}(\theta_{\text{pad}} \mid m)$
 so the distribution of a component of $\theta_{\text{pad}}$ is near to the
@@ -700,7 +699,7 @@ the \texttt{neighbors} argument of the \texttt{temper} function).
 The other remaining issue is adjusting acceptance rates for jumps.  There
 is no way to adjust this other than by changing the number of models and
 their definitions.  But the models we have cannot be changed; if we are
-to calculate Bayes factors form them, then we must sample them as they are.
+to calculate Bayes factors for them, then we must sample them as they are.
 But we can insert new models between old models.  For example,
 if the acceptance for swaps between model $i$ and model $j$ is too low, then
 we can insert distribution $k$ between them that has unnormalized density
