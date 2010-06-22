@@ -1,6 +1,6 @@
 
-R version 2.9.2 (2009-08-24)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -20,36 +20,41 @@ Type 'q()' to quit R.
 > 
 >  set.seed(42)
 > 
->  d <- 9
->  witch.which <- c(0.1, 0.3, 0.5, 0.7, 1.0)
+>  d <- 3
+>  witch.which <- 1 - (1 / 2)^(1 / d) * (1 / 4)^(seq(0, 5) / d)
+>  witch.which
+[1] 0.2062995 0.5000000 0.6850197 0.8015749 0.8750000 0.9212549
+> 
 >  ncomp <- length(witch.which)
 > 
 >  neighbors <- matrix(FALSE, ncomp, ncomp)
 >  neighbors[row(neighbors) == col(neighbors) + 1] <- TRUE
 >  neighbors[row(neighbors) == col(neighbors) - 1] <- TRUE
+>  neighbors[row(neighbors) == col(neighbors) + 2] <- TRUE
+>  neighbors[row(neighbors) == col(neighbors) - 2] <- TRUE
 > 
->  ludfun <- function(state, log.pseudo.prior) {
+>  ludfun <- function(state) {
 +      stopifnot(is.numeric(state))
 +      stopifnot(length(state) == d + 1)
 +      icomp <- state[1]
 +      stopifnot(icomp == as.integer(icomp))
 +      stopifnot(1 <= icomp && icomp <= ncomp)
-+      stopifnot(is.numeric(log.pseudo.prior))
-+      stopifnot(length(log.pseudo.prior) == ncomp)
 +      theta <- state[-1]
-+      if (any(theta > 1.0)) return(-Inf)
++      if (any(abs(theta) > 1.0)) return(-Inf)
 +      bnd <- witch.which[icomp]
-+      lpp <- log.pseudo.prior[icomp]
-+      if (any(theta > bnd)) return(lpp)
-+      return(- d * log(bnd) + lpp)
++      if(bnd >= 1.0)
++          stop(sprintf("witch.which[%d] >= 1.0", icomp))
++      if(bnd <= 0.0)
++          stop(sprintf("witch.which[%d] <= 0.0", icomp))
++      if (all(abs(theta) > bnd))
++          return(- (d + 1) * log(2) - d * log(1 - bnd))
++      return(- (d + 1) * log(2) - log1p(- (1 - bnd)^d))
 +  }
 > 
->  theta.initial <- c(1, rep(0.5, d))
->  qux <- c(0, 9.179, 13.73, 16.71, 20.56)
+>  initial <- c(1, rep(0, d))
 > 
->  out <- temper(ludfun, initial = theta.initial, neighbors = neighbors,
-+      nbatch = 50, blen = 30, nspac = 2, scale = 0.56789,
-+      parallel = FALSE, debug = FALSE, log.pseudo.prior = qux)
+>  out <- temper(ludfun, initial = initial, neighbors = neighbors,
++      nbatch = 50, blen = 13, nspac = 7, scale = 0.3456789)
 > 
 >  names(out)
  [1] "lud"          "initial"      "neighbors"    "nbatch"       "blen"        
@@ -58,16 +63,86 @@ Type 'q()' to quit R.
 [16] "accepti"      "initial"      "final"        "ibatch"      
 > 
 >  out$acceptx
-[1] 0.9417040 0.9025424 0.8168498 0.7914110 0.6820175
+[1] 0.6388889 0.4385246 0.3631714 0.4885246 0.4709677 0.4735516
 > 
 >  out$accepti
-          [,1]      [,2]      [,3]      [,4] [,5]
-[1,]        NA 0.4813084        NA        NA   NA
-[2,] 0.8512397        NA 0.9310345        NA   NA
-[3,]        NA 0.7883212        NA 0.9542484   NA
-[4,]        NA        NA 0.9012346        NA    1
-[5,]        NA        NA        NA 0.3750000   NA
+          [,1]      [,2]      [,3]      [,4]      [,5]      [,6]
+[1,]        NA 0.5071770 0.2727273        NA        NA        NA
+[2,] 0.7070064        NA 0.4355828 0.4186047        NA        NA
+[3,] 0.5816327 0.8039216        NA 0.5888889 0.5662651        NA
+[4,]        NA 0.7415730 0.8571429        NA 0.7857143 0.6626506
+[5,]        NA        NA 0.5204082 0.6516854        NA 0.8378378
+[6,]        NA        NA        NA 0.3515152 0.5056818        NA
 > 
->  ### seems to be o. k.
+>  colMeans(out$ibatch)
+[1] 0.1830769 0.2153846 0.1630769 0.1369231 0.1353846 0.1661538
+> 
+>  ### check that have prob 1 / 2 for corners
+> 
+>  outfun <- function(state) {
++      stopifnot(is.numeric(state))
++      icomp <- state[1]
++      stopifnot(icomp == as.integer(icomp))
++      stopifnot(1 <= icomp && icomp <= length(witch.which))
++      theta <- state[-1]
++      foo <- all(abs(theta) > witch.which[icomp])
++      bar <- rep(0, length(witch.which))
++      baz <- rep(0, length(witch.which))
++      bar[icomp] <- as.numeric(foo)
++      baz[icomp] <- 1
++      return(c(bar, baz))
++  }
+> 
+>  out <- temper(out, blen = 103, outfun = outfun, debug = TRUE)
+> 
+>  eta.batch <- out$batch[ , seq(1, ncomp)]
+>  noo.batch <- out$batch[ , seq(ncomp + 1, ncomp + ncomp)]
+>  eta <- colMeans(eta.batch)
+>  noo <- colMeans(noo.batch)
+>  mu <- eta / noo
+>  eta
+[1] 0.06660194 0.06388350 0.05766990 0.06563107 0.10368932 0.22912621
+>  noo
+[1] 0.1365049 0.1258252 0.1293204 0.1370874 0.1716505 0.2996117
+>  mu
+[1] 0.4879090 0.5077160 0.4459459 0.4787535 0.6040724 0.7647440
+> 
+>  eta.batch.rel <- sweep(eta.batch, 2, eta, "/")
+>  noo.batch.rel <- sweep(noo.batch, 2, noo, "/")
+>  mu.batch.rel <- eta.batch.rel - noo.batch.rel
+> 
+>  mu.mcse.rel <- apply(mu.batch.rel, 2, sd) / sqrt(out$nbatch)
+>  mu.mcse.rel
+[1] 0.05010927 0.07897321 0.09678339 0.12636113 0.11261781 0.07082685
+> 
+>  foo <- cbind(mu, mu * mu.mcse.rel)
+>  colnames(foo) <- c("means", "MCSE")
+>  foo
+         means       MCSE
+[1,] 0.4879090 0.02444876
+[2,] 0.5077160 0.04009596
+[3,] 0.4459459 0.04316016
+[4,] 0.4787535 0.06049584
+[5,] 0.6040724 0.06802931
+[6,] 0.7647440 0.05416441
+> 
+>  ### check decision about within-component or jump/swap
+> 
+>  identical(out$unif.which < 0.5, out$which)
+[1] TRUE
+> 
+>  identical(out$which, out$proposal[ , 1] == out$state[ , 1])
+[1] TRUE
+> 
+>  ### check hastings ratio calculated correctly
+> 
+>  n <- apply(neighbors, 1, sum)
+>  i <- out$state[ , 1]
+>  istar <- out$proposal[ , 1]
+>  foo <- apply(out$state, 1, ludfun)
+>  bar <- apply(out$proposal, 1, ludfun)
+>  my.log.hastings <- bar - foo - log(n[istar]) + log(n[i])
+>  all.equal(my.log.hastings, out$log.hastings)
+[1] TRUE
 > 
 > 

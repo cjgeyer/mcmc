@@ -1,6 +1,6 @@
 Package: mcmc
 Version: 0.8
-Date: 2010-06-01
+Date: 2010-06-22
 Title: Markov Chain Monte Carlo
 Author: Charles J. Geyer <charlie@stat.umn.edu>.
 Maintainer: Charles J. Geyer <charlie@stat.umn.edu>

@@ -1,6 +1,6 @@
 
-R version 2.9.2 (2009-08-24)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -20,13 +20,18 @@ Type 'q()' to quit R.
 > 
 >  set.seed(42)
 > 
->  d <- 9
->  witch.which <- c(0.1, 0.3, 0.5, 0.7, 1.0)
+>  d <- 3
+>  witch.which <- 1 - (1 / 2)^(1 / d) * (1 / 4)^(seq(0, 5) / d)
+>  witch.which
+[1] 0.2062995 0.5000000 0.6850197 0.8015749 0.8750000 0.9212549
+> 
 >  ncomp <- length(witch.which)
 > 
 >  neighbors <- matrix(FALSE, ncomp, ncomp)
 >  neighbors[row(neighbors) == col(neighbors) + 1] <- TRUE
 >  neighbors[row(neighbors) == col(neighbors) - 1] <- TRUE
+>  neighbors[row(neighbors) == col(neighbors) + 2] <- TRUE
+>  neighbors[row(neighbors) == col(neighbors) - 2] <- TRUE
 > 
 >  ludfun <- function(state) {
 +      stopifnot(is.numeric(state))
@@ -35,36 +40,71 @@ Type 'q()' to quit R.
 +      stopifnot(icomp == as.integer(icomp))
 +      stopifnot(1 <= icomp && icomp <= ncomp)
 +      theta <- state[-1]
-+      if (any(theta > 1.0)) return(-Inf)
++      if (any(abs(theta) > 1.0)) return(-Inf)
 +      bnd <- witch.which[icomp]
-+      if (any(theta > bnd)) return(0)
-+      return(- d * log(bnd))
++      if(bnd >= 1.0)
++          stop(sprintf("witch.which[%d] >= 1.0", icomp))
++      if(bnd <= 0.0)
++          stop(sprintf("witch.which[%d] <= 0.0", icomp))
++      if (all(abs(theta) > bnd))
++          return(- (d + 1) * log(2) - d * log(1 - bnd))
++      return(- (d + 1) * log(2) - log1p(- (1 - bnd)^d))
 +  }
 > 
->  thetas <- matrix(0.5, ncomp, d)
->  out <- temper(ludfun, initial = thetas, neighbors = neighbors, nbatch = 20,
-+      blen = 10, nspac = 5, scale = 0.56789, parallel = TRUE, debug = TRUE)
+>  thetas <- matrix(0, ncomp, d)
+>  out <- temper(ludfun, initial = thetas, neighbors = neighbors, nbatch = 50,
++      blen = 13, nspac = 7, scale = 0.3456789, parallel = TRUE)
 > 
 >  names(out)
- [1] "lud"           "initial"       "neighbors"     "nbatch"       
- [5] "blen"          "nspac"         "scale"         "outfun"       
- [9] "debug"         "parallel"      "initial.seed"  "final.seed"   
-[13] "time"          "batch"         "acceptx"       "accepti"      
-[17] "initial"       "final"         "which"         "unif.which"   
-[21] "state"         "log.hastings"  "unif.hastings" "proposal"     
-[25] "acceptd"       "norm"          "unif.choose"   "coproposal"   
+ [1] "lud"          "initial"      "neighbors"    "nbatch"       "blen"        
+ [6] "nspac"        "scale"        "outfun"       "debug"        "parallel"    
+[11] "initial.seed" "final.seed"   "time"         "batch"        "acceptx"     
+[16] "accepti"      "initial"      "final"       
 > 
 >  out$acceptx
-[1] 0.2666667 0.2527473 0.1935484 0.2549020 0.2586207
+[1] 0.6335878 0.4974359 0.3245383 0.6022099 0.6129870 0.5913706
 > 
 >  out$accepti
-          [,1]      [,2]      [,3]      [,4]      [,5]
-[1,]        NA 0.2520325        NA        NA        NA
-[2,] 0.2432432        NA 0.2894737        NA        NA
-[3,]        NA 0.3278689        NA 0.5581395        NA
-[4,]        NA        NA 0.6382979        NA 0.3275862
-[5,]        NA        NA        NA 0.3372093        NA
+          [,1]      [,2]      [,3]      [,4]      [,5]      [,6]
+[1,]        NA 0.7050691 0.5497382        NA        NA        NA
+[2,] 0.7522936        NA 0.5547445 0.6287879        NA        NA
+[3,] 0.5794393 0.5865385        NA 0.5308642 0.5476190        NA
+[4,]        NA 0.6666667 0.5505618        NA 0.8271605 0.6836735
+[5,]        NA        NA 0.5438596 0.8925620        NA 0.8373984
+[6,]        NA        NA        NA 0.8390805 0.9022989        NA
 > 
->  ### seems to be o. k.
+>  ### check that have prob 1 / 2 for corners
+> 
+>  outfun <- function(state) {
++      stopifnot(is.matrix(state))
++      ncomp <- nrow(state)
++      d <- ncol(state)
++      foo <- sweep(abs(state), 1, witch.which)
++      bar <- apply(foo > 0, 1, all) 
++      return(as.numeric(bar))
++  }
+> 
+>  out <- temper(out, outfun = outfun)
+> 
+>  colMeans(out$batch)
+[1] 0.54923077 0.40923077 0.39538462 0.09692308 0.12923077 0.60000000
+>  apply(out$batch, 2, sd) / sqrt(out$nbatch)
+[1] 0.03482043 0.04817350 0.05463694 0.02855536 0.02113093 0.05130821
+> 
+>  ### try again
+> 
+>  out <- temper(out, blen = 103, outfun = outfun)
+> 
+>  foo <- cbind(colMeans(out$batch),
++      apply(out$batch, 2, sd) / sqrt(out$nbatch))
+>  colnames(foo) <- c("means", "MCSE")
+>  foo
+         means       MCSE
+[1,] 0.5231068 0.01389634
+[2,] 0.5361165 0.02213288
+[3,] 0.4904854 0.03961204
+[4,] 0.5652427 0.04909165
+[5,] 0.4056311 0.05106757
+[6,] 0.2450485 0.05108284
 > 
 > 

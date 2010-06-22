@@ -26,8 +26,6 @@
 
 <<foo,include=FALSE,echo=FALSE>>=
 options(keep.source = TRUE, width = 65)
-ps.options(pointsize = 15)
-pdf.options(pointsize = 15)
 @
 
 \section{Introduction}

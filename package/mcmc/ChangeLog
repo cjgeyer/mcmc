@@ -56,3 +56,7 @@
 
  0.7-5 add inst/doc/bfst.Rnw a vignette about Bayes factors and serial tempering
 
+ 0.8   earlier versions calculated the Hastings ratio wrong in doing serial
+       tempering, ignoring the number of neighbors each component had, hence
+       computing wrong answers when components differed in number of neighbors
+
