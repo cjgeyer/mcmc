@@ -1,3 +1,9 @@
+The PDF's for the vignettes are not in the git repo.
+In order to avoid errors in check must first do
+
+    cd package/mcmc/inst/doc
+    make R_HOME=`R RHOME`
+
 To check do
 
     cd package
@@ -6,13 +12,8 @@ To check do
 
 Since one of the vignettes takes a long time, probably want
 
+    rm -rf mcmc/src/*.{o,so}
     R CMD check --no-vignettes mcmc
 
 except for one last check before push
-
-The PDF's for the vignettes are not in the git repo.
-In order to avoid errors in check must first do
-
-    cd package/mcmc/inst/doc
-    make
 
