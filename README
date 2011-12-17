@@ -1,8 +1,17 @@
+This is the source tree for the R contributed package mcmc.
+The version for users is at CRAN (http://cran.r-project.org/package=mcmc)
+
+This package suggests packages Iso and xtable.  So if don't have need to
+add to R.  In R do
+
+    install.packages(c("Iso", "xtable"))
+
 The PDF's for the vignettes are not in the git repo.
 In order to avoid errors in check must first do
 
-    cd package/mcmc/inst/doc
+    pushd package/mcmc/inst/doc
     make R_HOME=`R RHOME`
+    popd
 
 To check do
 
