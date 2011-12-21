@@ -2,6 +2,7 @@
 useDynLib(mcmc)
 
 export(metrop)
+export(morph)
 export(olbm)
 export(initseq)
 export(temper)
