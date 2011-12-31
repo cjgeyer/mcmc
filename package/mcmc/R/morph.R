@@ -1,12 +1,29 @@
-isotropic <- function(f, center) {
+euclid.norm <- function(x) {
+  sqrt(sum(x * x))
+}
+
+isotropic <- function(f) {
   f(1); # force evaluation of f
   function(x) {
-    x <- x + center
-    x.norm <- sqrt(sum(x * x))
+    x.norm <- euclid.norm(x)
     if (x.norm == 0)
       rep(0, length(x))
     else
       f(x.norm) * x / x.norm
+  }
+}
+
+isotropic.logjacobian <- function(f.inv, d.f.inv) {
+  f.inv(1); # force evaluation of components
+  d.f.inv(1);
+  function(x) {
+    x.norm <- euclid.norm(x)
+    k <- length(x)
+    if (x.norm == 0) {
+      k * log(d.f.inv(x.norm))
+    } else {
+      log(d.f.inv(x.norm)) + (k - 1) * (log(f.inv(x.norm)) - log(x.norm))
+    }
   }
 }
 
@@ -60,16 +77,16 @@ exponential <- function(r=1, p=3) {
   return(list(f=f, f.inv=f.inv, d.f.inv=d.f.inv))
 }
 
-morph <- function(f=NULL, f.inv=NULL, logdetdeeh=NULL,
+morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
                   r=NULL, p=NULL, b=NULL,
                   center=0) {
-  first.set <- c(is.null(f), is.null(f.inv), is.null(logdetdeeh))
+  first.set <- c(is.null(f), is.null(f.inv), is.null(logjacobian))
   second.set <- c(is.null(r), is.null(p), is.null(b))
   if (!xor(any(first.set), any(second.set))) {
-    stop("Exactly one of the sets of arguments (f, f.inv, logdetdeeh) and (r, p, b) should be non NULL.")
+    stop("Exactly one of the sets of arguments (f, f.inv, logjacobian) and (r, p, b) should be non NULL.")
   }
   if (any(first.set) & !all(first.set)) {
-    stop("f, f.inv and logdetdeeh must all be specified.")
+    stop("f, f.inv and logjacobian must all be specified.")
   }
   if (any(second.set)) {
     exp.f <- NULL
@@ -84,18 +101,18 @@ morph <- function(f=NULL, f.inv=NULL, logdetdeeh=NULL,
       f <- function(x) isotropic(sub.f$f)(isotropic(exp.f$f)(x))
       f.inv <-
         function(x) isotropic(sub.f$f.inv)(isotropic(exp.f$f.inv)(x))
-      logdetdeeh <-
+      logjacobian <-
         function(x)
-          isotropic.logdetdeeh(sub.f$f.inv, sub.f$d.f.inv)(exp.f$f.inv(x)) +
-            isotropic.logdetdeeh(exp.f$f.inv, exp.f$d.f.inv)(x)
+          isotropic.logjacobian(sub.f$f.inv, sub.f$d.f.inv)(exp.f$f.inv(x)) +
+            isotropic.logjacobian(exp.f$f.inv, exp.f$d.f.inv)(x)
     } else if (!is.null(exp.f)) {
       f <- isotropic(exp.f$f)
       f.inv <- isotropic(exp.f$f.inv)
-      logdetdeeh <- isotropic.logdetdeeh(exp.f$f.inv, exp.f$d.f.inv)
+      logjacobian <- isotropic.logjacobian(exp.f$f.inv, exp.f$d.f.inv)
     } else if (!is.null(sub.f)) {
       f <- isotropic(sub.f$f)
       f.inv <- isotropic(sub.f$f.inv)
-      logdetdeeh <- isotropic.logdetdeeh(sub.f$f.inv, sub.f$d.f.inv)
+      logjacobian <- isotropic.logjacobian(sub.f$f.inv, sub.f$d.f.inv)
     }
   }
   # is forcing f, f.inv, logdeeh necessary?
@@ -113,7 +130,7 @@ morph <- function(f=NULL, f.inv=NULL, logdetdeeh=NULL,
   out$transform <- function(x) f(x - center)
   out$inverse <- function(x) f.inv(x) + center
   out$lud <- function(lud) {
-    function(lud, ...) lud(f.inv(x) + center, ...) + logdetdeeh(x)
+    function(lud, ...) lud(f.inv(x) + center, ...) + logjacobian(x)
   }
 
   return(out)
