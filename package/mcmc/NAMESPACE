@@ -5,6 +5,9 @@ export(metrop)
 export(olbm)
 export(initseq)
 export(temper)
+export(isotropic)
+export(isotropic.logjacobian)
+
 
 S3method(metrop, metropolis)
 S3method(metrop, "function")

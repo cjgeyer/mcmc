@@ -1,79 +1,45 @@
 
 metrop <- function(obj, initial, nbatch, blen = 1,
-    nspac = 1, scale = 1, outfun, morph, debug = FALSE, ...)
+    nspac = 1, scale = 1, outfun, transform, debug = FALSE, ...)
 UseMethod("metrop")
 
 metrop.metropolis <- function(obj, initial, nbatch, blen = 1,
-    nspac = 1, scale = 1, outfun, morph, debug = FALSE, ...)
+    nspac = 1, scale = 1, outfun, transform, debug = FALSE, ...)
 {
     if (missing(nbatch)) nbatch <- obj$nbatch
     if (missing(blen)) blen <- obj$blen
     if (missing(nspac)) nspac <- obj$nspac
     if (missing(scale)) scale <- obj$scale
     if (missing(debug)) debug <- obj$debug
-    if (missing(morph)) morph <- obj$morph
-    lud <- obj$lud
-    if (!is.null(morph)) {
-      if (missing(outfun)) {
-        outfun <- obj$outfun
-      }
-      obj$final <- morph$transform(obj$final)
-      scale     <- morph$transform(scale)
-      outfun    <- morph$outfun(outfun)
-      lud       <- morph$lud(lud)
-    }
+    if (missing(transform)) transform <- obj$transform
+    if (missing(outfun)) outfun <- obj$outfun
+
     assign(".Random.seed", obj$final.seed, .GlobalEnv)
-    out <- NULL
-    if (missing(outfun)) {
-        if (is.null(obj$outfun)) {
-            out <- metrop.function(obj$lud, obj$final, nbatch, blen,
-                                   nspac, scale, debug = debug, ...)
-        } else {
-            out <- metrop.function(obj$lud, obj$final, nbatch, blen,
-                                   nspac, scale, obj$outfun, debug, ...)
-        }
-    } else {
-        out <- metrop.function(obj$lud, obj$final, nbatch, blen,
-                               nspac, scale, outfun, debug, ...)
-    }
-    if (!is.null(morph)) {
-      out <- morph.set.object(out, morph)
-    }
+    out <- metrop.function(obj$lud, obj$final, nbatch, blen,
+                           nspac, scale, outfun, transform, debug, ...)
     return(out)
 }
 
 metrop.function <- function(obj, initial, nbatch, blen = 1,
-    nspac = 1, scale = 1, outfun, morph, debug = FALSE, ...)
+    nspac = 1, scale = 1, outfun, transform,
+    debug = FALSE, ...)
 {
     if (! exists(".Random.seed")) runif(1)
     saveseed <- .Random.seed
-    func1 <- function(state) obj(state, ...)
-    env1 <- environment(fun = func1)
-    if (missing(outfun)) {
-        func2 <- NULL
-        env2 <- NULL
-        outfun <- NULL
-    } else if (is.function(outfun)) {
-        func2 <- function(state) outfun(state, ...)
-        env2 <- environment(fun = func2)
-    } else {
-        func2 <- outfun
-        env2 <- NULL
-    }
-    if (missing(morph)) {
-        morph <- NULL
-    } else {
-      func1 <- morph$lud(obj)
-      env1 <- environment(fun = func1)
-      func2 <- morph$outfun(outfun)
-      env2 <- enviornment(fun = func2)
-      scale <- morph$transform(scale)
-      initial <- morph$transform(initial)
-    }
 
+    if (missing(transform)) transform <- morph.identity()
+    if (missing(outfun)) outfun <- NULL
+    
+    func1 <- transform$lud(obj, ...)
+    env1 <- environment(fun = func1)
+    func2 <- transform$outfun(outfun, ...)
+    env2 <- environment(fun = func2)
+    scale <- transform$transform(scale)
+    initial <- transform$transform(initial)
+  
     out.time <- system.time(
     out <- .Call("metrop", func1, initial, nbatch, blen, nspac,
-        scale, func2, debug, env1, env2)
+      scale, func2, debug, env1, env2)
     )
     out$initial.seed <- saveseed
     out$final.seed <- .Random.seed
@@ -84,13 +50,15 @@ metrop.function <- function(obj, initial, nbatch, blen = 1,
     out$nspac <- nspac
     out$scale <- scale
     out$outfun <- outfun
-    out$morph <- morph
+    out$transform <- transform
     out$batch <- t(out$batch)
     out$debug <- debug
+    
     if (! is.null(out$current)) out$current <- t(out$current)
     if (! is.null(out$proposal)) out$proposal <- t(out$proposal)
     if (! is.null(out$z)) out$z <- t(out$z)
-    if (! is.null(out$morph)) out <- morph.set.object(out, morph)
+    if (! is.null(out$transform)) out <- morph.set.object(out, transform)
+    
     class(out) <- c("mcmc", "metropolis")
     return(out)
 }

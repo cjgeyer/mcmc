@@ -13,16 +13,16 @@ isotropic <- function(f) {
   }
 }
 
-isotropic.logjacobian <- function(f.inv, d.f.inv) {
-  f.inv(1); # force evaluation of components
-  d.f.inv(1);
+isotropic.logjacobian <- function(f, d.f) {
+  f(1); # force evaluation of components
+  d.f(1);
   function(x) {
     x.norm <- euclid.norm(x)
     k <- length(x)
     if (x.norm == 0) {
-      k * log(d.f.inv(x.norm))
+      k * log(d.f(x.norm))
     } else {
-      log(d.f.inv(x.norm)) + (k - 1) * (log(f.inv(x.norm)) - log(x.norm))
+      log(d.f(x.norm)) + (k - 1) * (log(f(x.norm)) - log(x.norm))
     }
   }
 }
@@ -70,11 +70,20 @@ exponential <- function(r=1, p=3) {
     }
     f <- function(x) ifelse(x < r, x, g(x))
   } else {
-    # No general closed form solution exists.  However, since the transformation
-    # has polynomial form, using the Newton-Raphson method should work well.
-    f <- function(x) ifelse(x < r, x, newton.raphson(f.inv, dee.f.inv, x, r))
+    # No general closed form solution exists.  However, since the
+    # transformation has polynomial form, using the Newton-Raphson method
+    # should work well.
+    f <- function(x) ifelse(x < r,
+                            x,
+                            newton.raphson(f.inv, dee.f.inv, x, r))
   }
   return(list(f=f, f.inv=f.inv, d.f.inv=d.f.inv))
+}
+
+morph.identity <- function() {
+  morph(f=function(x) x,
+        f.inv=function(x) x,
+        logjacobian=function(x) 0)
 }
 
 morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
@@ -115,35 +124,41 @@ morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
       logjacobian <- isotropic.logjacobian(sub.f$f.inv, sub.f$d.f.inv)
     }
   }
-  # is forcing f, f.inv, logdeeh necessary?
+  # force evaluation of transformation functions.
+  f; f.inv; logjacobian; center;
+  # pay attention to how ... arguments are handled.  If care is not
+  # taken, weird bugs will be introduced that will break handling
+  # done by metrop.* functions.
   out <- list()
-  out$outfun <- function(outfun) {
+  out$outfun <- function(outfun, ...) {
     if (is.null(outfun)) {
-      return(function(x, ...) f.inv(x) + center)
+      return(function(state) f.inv(state) + center)
     } else if (is.function(outfun)) {
-      return(function(x, ...) outfun(f.inv(x) + center, ...))
+      outfun;
+      return(function(state) outfun(f.inv(state) + center, ...))
     } else {
-      return(function(x, ...) (f.inv(x) + center)[outfun])
+      return(function(state) (f.inv(state) + center)[outfun])
     }
   }
 
-  out$transform <- function(x) f(x - center)
-  out$inverse <- function(x) f.inv(x) + center
-  out$lud <- function(lud) {
-    function(lud, ...) lud(f.inv(x) + center, ...) + logjacobian(x)
+  out$transform <- function(state) f(state - center)
+  out$inverse <- function(state) f.inv(state) + center
+  out$lud <- function(lud, ...) {
+    lud;
+    function(state) lud(f.inv(state) + center, ...) +
+      logjacobian(state)
   }
 
   return(out)
 }
 
-
-morph.set.object <- function(out, morph=NULL) {
+morph.set.object <- function(out, transform=NULL) {
   if (is.null(morph) || is.null(out)) {
     return(out)
   }
-  out$scale   <- morph$inverse(out$scale)
-  out$initial <- morph$inverse(out$initial)
-  out$final   <- morph$inverse(out$final)
+  out$scale   <- transform$inverse(out$scale)
+  out$initial <- transform$inverse(out$initial)
+  out$final   <- transform$inverse(out$final)
   # what about out${z,proposal,current}?
   return(out)
 }
