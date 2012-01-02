@@ -11,9 +11,9 @@ isotropic(f)
 isotropic.logjacobian(f, d.f)
 }
 \arguments{
-  \item{f}{an R function that maps a non-negative real number to a
+  \item{f}{An R function that maps a non-negative real number to a
     non-negative real number.}
-  \item{d.f}{an R function that computes the first derivative of
+  \item{d.f}{An R function that computes the first derivative of
     \code{f} at the given point.}
 }
 \details{
@@ -44,7 +44,8 @@ isotropic.logjacobian(f, d.f)
 }
 \value{
   a function to calculate the corresponding isotropic function, or
-  log-Jacobian of the isotropic function.}
+  log-Jacobian of the isotropic function.
+}
 \examples{
   identity <- function(x) x
   d.identity <- function(x) 1

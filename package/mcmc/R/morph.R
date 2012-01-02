@@ -58,7 +58,7 @@ subexponential <- function(b=1) {
 
 exponential <- function(r=1, p=3) {
   if (is.null(p)) p <- 3
-  if (is.null(r)) r <- 1
+  if (is.null(r)) r <- 0
   stopifnot(p > 2)
   stopifnot(r >= 0)
   f.inv <- function(x) x + (x-r)^p * (x > r)

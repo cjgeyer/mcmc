@@ -7,6 +7,8 @@ export(initseq)
 export(temper)
 export(isotropic)
 export(isotropic.logjacobian)
+export(morph.identity)
+export(morph)
 
 
 S3method(metrop, metropolis)
