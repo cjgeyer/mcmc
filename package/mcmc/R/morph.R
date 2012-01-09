@@ -43,7 +43,7 @@ subexponential <- function(b=1) {
                               exp(b * x) - exp(1)/3,
                               (x * b)^3 * exp(1) / 6 + x * b * exp(1) / 2)
   d.f.inv <- function(x) ifelse(x > 1/b,
-                                n * exp(b * x),
+                                b * exp(b * x),
                                 (x * b)^2 * exp(1) / 2 + b * exp(1) / 2)
   f <- function(x) {
     if (x > 2 * exp(1) / 3) {
@@ -62,7 +62,7 @@ exponential <- function(r=1, p=3) {
   stopifnot(p > 2)
   stopifnot(r >= 0)
   f.inv <- function(x) x + (x-r)^p * (x > r)
-  dee.f.inv <- function(x) 1 + p * (x-r)^(p-1) * (x > r)
+  d.f.inv <- function(x) 1 + p * (x-r)^(p-1) * (x > r)
   if (p == 3) {
     g <- function(x) {
       n <- sqrt((27*r-27*x)^2 + 108) + 27 * (r - x)
