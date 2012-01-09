@@ -1,0 +1,34 @@
+
+R version 2.13.1 (2011-07-08)
+Copyright (C) 2011 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(mcmc)
+> 
+> # make sure morph.identity works properly
+> id <- function(x) x
+> m.id <- morph.identity()
+> all.equal(m.id$transform(1:10), 1:10)
+[1] TRUE
+> all.equal(m.id$inverse(1:10), 1:10)
+[1] TRUE
+> x <- seq(-1,1, length.out=15)
+> all.equal(sapply(x, m.id$lud(function(x) dnorm(x, log=TRUE))),
++           dnorm(x, log=TRUE))
+[1] TRUE
+> all.equal(m.id$outfun(id)(x), x)
+[1] TRUE
+> 
