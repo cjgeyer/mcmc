@@ -75,7 +75,7 @@ exponential <- function(r=1, p=3) {
     # should work well.
     f <- function(x) ifelse(x < r,
                             x,
-                            newton.raphson(f.inv, dee.f.inv, x, r))
+                            newton.raphson(f.inv, d.f.inv, x, r))
   }
   return(list(f=f, f.inv=f.inv, d.f.inv=d.f.inv))
 }
@@ -91,8 +91,10 @@ morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
                   center=0) {
   first.set <- c(is.null(f), is.null(f.inv), is.null(logjacobian))
   second.set <- c(is.null(r), is.null(p), is.null(b))
-  if (!xor(any(first.set), any(second.set))) {
-    stop("Exactly one of the sets of arguments (f, f.inv, logjacobian) and (r, p, b) should be non NULL.")
+  if (!xor(all(first.set), all(second.set))) {
+    stop(paste("Exactly one of the sets of arguments",
+               "(f, f.inv, logjacobian) and (r, p, b)",
+               "should be non NULL."))
   }
   if (any(first.set) & !all(first.set)) {
     stop("f, f.inv and logjacobian must all be specified.")
@@ -131,6 +133,7 @@ morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
   # done by metrop.* functions.
   out <- list()
   out$outfun <- function(outfun, ...) {
+    list(...);
     if (is.null(outfun)) {
       return(function(state) f.inv(state) + center)
     } else if (is.function(outfun)) {
@@ -144,7 +147,7 @@ morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
   out$transform <- function(state) f(state - center)
   out$inverse <- function(state) f.inv(state) + center
   out$lud <- function(lud, ...) {
-    lud;
+    lud; list(...);
     function(state) lud(f.inv(state) + center, ...) +
       logjacobian(state)
   }

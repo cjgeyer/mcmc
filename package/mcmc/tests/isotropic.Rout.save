@@ -8,8 +8,6 @@ R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
 Type 'license()' or 'licence()' for distribution details.
 
-  Natural language support but running in an English locale
-
 R is a collaborative project with many contributors.
 Type 'contributors()' for more information and
 'citation()' on how to cite R or R packages in publications.
@@ -31,8 +29,6 @@ Type 'q()' to quit R.
 > # test that isotropic(identity) is an identity function
 > all.equal(isotropic(identity)(1:10), 1:10)
 [1] TRUE
-> isotropic(identity)(1:10)
- [1]  1  2  3  4  5  6  7  8  9 10
 > x <- seq(0, 1, length.out=200)
 > all.equal(isotropic(identity)(x), x)
 [1] TRUE
@@ -40,8 +36,6 @@ Type 'q()' to quit R.
 > # make sure that isotropic.logjacobian(identity, d.identity) is a 0 function
 > all.equal(isotropic.logjacobian(identity, d.identity)(1:10), 0)
 [1] TRUE
-> isotropic.logjacobian(identity, d.identity)(1:10)
-[1] 0
 > 
 > # make sure that 0 as an input does not cause divide-by-zero errors
 > all.equal(isotropic(identity)(0), 0)
@@ -52,14 +46,6 @@ Type 'q()' to quit R.
 [1] TRUE
 > all.equal(isotropic.logjacobian(identity, d.identity)(0 * 1:4), 0)
 [1] TRUE
-> isotropic(identity)(0)
-[1] 0
-> isotropic(identity)(0 * 1:4)
-[1] 0 0 0 0
-> isotropic.logjacobian(identity, d.identity)(0)
-[1] 0
-> isotropic.logjacobian(identity, d.identity)(0 * 1:4)
-[1] 0
 > 
 > # try isotropic with f(x) = x^2, then we should get 
 > # istropic(f)(x) := |x| * x
@@ -70,13 +56,11 @@ Type 'q()' to quit R.
 [1] TRUE
 > all.equal(isotropic(f)(c(1, 0, 1)), sqrt(2) * c(1, 0, 1))
 [1] TRUE
-> isotropic(f)(1)
-[1] 1
-> isotropic(f)(c(1, 1))
-[1] 1.414214 1.414214
-> isotropic(f)(c(1, 0, 1))
-[1] 1.414214 0.000000 1.414214
 > 
-> proc.time()
-   user  system elapsed 
-  0.370   0.030   0.394 
+> # make sure lazy-loading works properly.
+> g <- function(x) x^2
+> g.iso <- isotropic(g)
+> g <- function(x) x
+> all.equal(g.iso(2), 2*2)
+[1] TRUE
+> 

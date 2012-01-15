@@ -1,7 +1,8 @@
 
-R version 2.8.1 (2008-12-22)
-Copyright (C) 2008 The R Foundation for Statistical Computing
+R version 2.13.1 (2011-07-08)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -51,7 +52,7 @@ Coefficients:
 x1           1.36824    0.38443   3.559 0.000372 ***
 x2           0.47601    0.31346   1.519 0.128864    
 ---
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 
 (Dispersion parameter for binomial family taken to be 1)
 
@@ -79,7 +80,7 @@ Parameter:
 Function Value
 [1] 49.64659
 Gradient:
-[1] 8.242296e-06 5.499507e-06 6.082246e-06
+[1] 8.235190e-06 5.499507e-06 6.082246e-06
 
 Relative gradient close to zero.
 Current iterate is probably solution.

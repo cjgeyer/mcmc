@@ -1,7 +1,8 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.13.1 (2011-07-08)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -52,8 +53,7 @@ Type 'q()' to quit R.
 [1] TRUE
 >  
 > library(Iso)
-Iso 0.0-8 
-Note: This package now has a NAMESPACE.
+Iso 0.0-10
 >  Gamma.con <- Gamma.dec[1] + cumsum(c(0, pava(diff(Gamma.dec))))
 >  all.equal(out$Gamma.con, Gamma.con)
 [1] TRUE

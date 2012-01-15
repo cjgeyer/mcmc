@@ -44,7 +44,8 @@ morph(f=NULL, f.inv=NULL, logjacobian=NULL,
   f^{-1}(y) |} respectively.  \code{center} gives the value \eqn{c}.
 }
 \value{
-  a list of functions used by \code{metrop}.
+  a list of functions; \code{outfun}, \code{transform}, \code{inverse},
+  and \code{lud}.  These functions are used by \code{\link{metrop}}.
 }
 \examples{
 }

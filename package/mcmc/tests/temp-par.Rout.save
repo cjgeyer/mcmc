@@ -1,7 +1,8 @@
 
-R version 2.9.2 (2009-08-24)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.13.1 (2011-07-08)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -31,7 +32,7 @@ glm(formula = y ~ x1 + x2 + x3, family = binomial, x = TRUE)
 
 Deviance Residuals: 
     Min       1Q   Median       3Q      Max  
--2.0371  -0.6337   0.2394   0.6686   1.9599  
+-2.0371  -0.6337   0.2394   0.6685   1.9599  
 
 Coefficients:
             Estimate Std. Error z value Pr(>|z|)    
@@ -44,9 +45,9 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
-    Null deviance: 134.60  on 99  degrees of freedom
-Residual deviance:  86.44  on 96  degrees of freedom
-AIC: 94.44
+    Null deviance: 134.602  on 99  degrees of freedom
+Residual deviance:  86.439  on 96  degrees of freedom
+AIC: 94.439
 
 Number of Fisher Scoring iterations: 5
 
