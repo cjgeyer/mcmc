@@ -128,28 +128,32 @@ morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
   }
   # force evaluation of transformation functions.
   f; f.inv; logjacobian; center;
-  # pay attention to how ... arguments are handled.  If care is not
+  out <- list(f=f, f.inv=f.inv, logjacobian=logjacobian, center=center)
+  transform <- function(state) f(state - center)
+  inverse <- function(state) f.inv(state) + center
+  transform; inverse;
+  out$transform <- transform
+  out$inverse <- inverse
+
+  # pay attention to how '...' arguments are handled.  If care is not
   # taken, weird bugs will be introduced that will break handling
   # done by metrop.* functions.
-  out <- list()
   out$outfun <- function(outfun, ...) {
     list(...);
     if (is.null(outfun)) {
-      return(function(state) f.inv(state) + center)
+      return(function(state) inverse(state))
     } else if (is.function(outfun)) {
       outfun;
-      return(function(state) outfun(f.inv(state) + center, ...))
+      return(function(state) outfun(inverse(state), ...))
     } else {
-      return(function(state) (f.inv(state) + center)[outfun])
+      return(function(state) inverse(state)[outfun])
     }
   }
 
-  out$transform <- function(state) f(state - center)
-  out$inverse <- function(state) f.inv(state) + center
   out$lud <- function(lud, ...) {
     lud; list(...);
-    function(state) lud(f.inv(state) + center, ...) +
-      logjacobian(state)
+    function(state)
+      lud(inverse(state), ...) + logjacobian(state)
   }
 
   return(out)
@@ -159,7 +163,7 @@ morph.set.object <- function(out, transform=NULL) {
   if (is.null(morph) || is.null(out)) {
     return(out)
   }
-  out$scale   <- transform$inverse(out$scale)
+  out$scale   <- transform$f.inv(out$scale)
   out$initial <- transform$inverse(out$initial)
   out$final   <- transform$inverse(out$final)
   # what about out${z,proposal,current}?

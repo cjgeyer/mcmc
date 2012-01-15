@@ -34,7 +34,7 @@ metrop.function <- function(obj, initial, nbatch, blen = 1,
     env1 <- environment(fun = func1)
     func2 <- transform$outfun(outfun, ...)
     env2 <- environment(fun = func2)
-    scale <- transform$transform(scale)
+    scale <- transform$f(scale)
     initial <- transform$transform(initial)
   
     out.time <- system.time(

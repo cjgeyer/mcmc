@@ -44,8 +44,20 @@ morph(f=NULL, f.inv=NULL, logjacobian=NULL,
   f^{-1}(y) |} respectively.  \code{center} gives the value \eqn{c}.
 }
 \value{
-  a list of functions; \code{outfun}, \code{transform}, \code{inverse},
-  and \code{lud}.  These functions are used by \code{\link{metrop}}.
+  a list of functions;
+  \item{outfun}{A function that operates on functions.  For a given
+  function, \code{outX}, \code{outfun(outX)(y) = outX(f.inv(y) +
+    center)}.}
+  \item{transform}{A function that transforms \code{X} into \code{Y}.
+    \code{transform(x) = f(x-center) = x}.}
+  \item{inverse}{A function that transforms \code{Y} into \code{X}.
+    \code{inverse{y} = f.inv(y) + center = x}.}
+  \item{lud}{A function that transforms the log-unnormalized density
+    function for X into the log-unnormalized density function for Y.
+    \code{lud(lud.x)(y) = lud.y(y)}.}
+  \item{f}{The uncentered transformation function.}
+  \item{f.inv}{The uncentered inverse transformation function.}
+  \item{logjacobian}{The log-jacobian function of \code{f.inv}.}
 }
 \examples{
 }
