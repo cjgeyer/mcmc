@@ -87,6 +87,7 @@ morph.identity <- function() {
 }
 
 morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
+                  scale.fun=NULL, scale.inv=NULL,
                   r=NULL, p=NULL, b=NULL,
                   center=0) {
   first.set <- c(is.null(f), is.null(f.inv), is.null(logjacobian))
@@ -127,10 +128,13 @@ morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
     }
   }
   # force evaluation of transformation functions.
-  f; f.inv; logjacobian; center;
-  out <- list(f=f, f.inv=f.inv, logjacobian=logjacobian, center=center)
-  transform <- function(state) f(state - center)
-  inverse <- function(state) f.inv(state) + center
+  #f; f.inv; logjacobian; center;
+  if (missing(scale.fun)) scale.fun <- f
+  if (missing(scale.inv)) scale.inv <- f.inv
+  out <- list(f=f, f.inv=f.inv, logjacobian=logjacobian, center=center,
+              scale.fun=scale.fun, scale.inv=scale.inv)
+  transform <- function(state) out$f(state - out$center)
+  inverse <- function(state) out$f.inv(state) + out$center
   transform; inverse;
   out$transform <- transform
   out$inverse <- inverse
@@ -141,31 +145,31 @@ morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
   out$outfun <- function(outfun, ...) {
     list(...);
     if (is.null(outfun)) {
-      return(function(state) inverse(state))
+      return(function(state) out$inverse(state))
     } else if (is.function(outfun)) {
       outfun;
-      return(function(state) outfun(inverse(state), ...))
+      return(function(state) outfun(out$inverse(state), ...))
     } else {
-      return(function(state) inverse(state)[outfun])
+      return(function(state) out$inverse(state)[outfun])
     }
   }
 
   out$lud <- function(lud, ...) {
     lud; list(...);
     function(state)
-      lud(inverse(state), ...) + logjacobian(state)
+      lud(out$inverse(state), ...) + out$logjacobian(state)
   }
 
   return(out)
 }
 
-morph.set.object <- function(out, transform=NULL) {
-  if (is.null(morph) || is.null(out)) {
+morph.set.object <- function(out) {
+  if (is.null(out) || is.null(out$morph)) {
     return(out)
   }
-  out$scale   <- transform$f.inv(out$scale)
-  out$initial <- transform$inverse(out$initial)
-  out$final   <- transform$inverse(out$final)
+  out$scale   <- out$morph$scale.inv(out$scale)
+  out$initial <- out$morph$inverse(out$initial)
+  out$final   <- out$morph$inverse(out$final)
   # what about out${z,proposal,current}?
   return(out)
 }
