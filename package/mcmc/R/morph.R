@@ -38,19 +38,21 @@ newton.raphson <- function(f, df, x, r) {
 subexponential <- function(b=1) {
   if (is.null(b)) b <- 1
   stopifnot(b > 0)
-  b
+  b;
   f.inv <- function(x) ifelse(x > 1/b,
                               exp(b * x) - exp(1)/3,
                               (x * b)^3 * exp(1) / 6 + x * b * exp(1) / 2)
   d.f.inv <- function(x) ifelse(x > 1/b,
                                 b * exp(b * x),
-                                (x * b)^2 * exp(1) / 2 + b * exp(1) / 2)
+                                b * (x * b)^2 * exp(1) / 2 + b * exp(1) / 2)
   f <- function(x) {
+    # x > exp(b * 1 / b) - exp(1) / 3
     if (x > 2 * exp(1) / 3) {
       log(x + exp(1)/3) / b
     } else {
-      g <- (sqrt(b^12 * (9*x^2 + exp(2)) - 3 * b^6 * x))^(1/3)
-      exp(1/3) * b / g - g / (exp(1/3) * b^3)
+      poly.inv <- exp(1/3) *
+        (sqrt(b^12 * (9 * x^2 + exp(2))) - 3 * b^6 * x)^(-1/3)
+      poly.inv * b - 1 / (poly.inv * b^3)
     }
   }
   return(list(f=f, f.inv=f.inv, d.f.inv=d.f.inv))

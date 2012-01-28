@@ -103,3 +103,8 @@ all.equal(sapply(x, morph.test$lud(dnorm, log=TRUE)),
                                           function(x) 1/2 * x^(-1/2))))
 
           
+###########################################################################
+# test built-in exponential and polynomial transformations.
+f <- morph(b=3)
+x <- seq(0, 10, length.out=100)
+all.equal(x, sapply(sapply(x, f$transform), f$inverse))

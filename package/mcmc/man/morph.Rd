@@ -19,8 +19,8 @@ morph(f=NULL, f.inv=NULL, logjacobian=NULL,
   \item{f.inv}{Inverse transformation function.}
   \item{logjacobian}{Function to compute the log-jacobian of the
     transformation.}
-  \item{scale}{Function to transform the \eqn{X} proposal scale to the
-    \eqn{Y} proposal scale.  If \code{scale} is missing, {f} is used.}
+  \item{scale.fun}{Function to transform the \eqn{X} proposal scale to the
+    \eqn{Y} proposal scale.  If \code{scale.fun} is missing, {f} is used.}
   \item{scale.inv}{Inverse function of \code{scale.inv}.  If
     \code{scale.inv} is missing, \code{f.inv} is used.}
   \item{r}{Non-negative real number.  May be missing.  If \code{p} is
@@ -81,10 +81,9 @@ morph(f=NULL, f.inv=NULL, logjacobian=NULL,
   (\code{\link{isotropic}} functions are spherical), but possibly
   inappropriate if the transformation function is non-spherical, and
   certainly inappropriate if a non-zero center is used.  In these cases,
-  the user should provide \code{scale} and \code{scale.inv}.  Failing to
+  the user should provide \code{scale.fun} and \code{scale.inv}.  Failing to
   do so may cause a negative scale to be used, resulting in an error, or
   other undesired results.
-
   
 }
 \value{
@@ -102,11 +101,30 @@ morph(f=NULL, f.inv=NULL, logjacobian=NULL,
   \item{f}{The uncentered transformation function.}
   \item{f.inv}{The inverse of \code{f}.}
   \item{logjacobian}{The log-jacobian function of \code{f.inv}.}
-  \item{scale}{Function to transform the \eqn{X} proposal scale to
+  \item{scale.fun}{Function to transform the \eqn{X} proposal scale to
     the \eqn{Y} proposal scale.}
   \item{scale.inv}{The inverse of \code{scale}.}
 }
 \examples{
+# Use an exponential transformation to run a Markov chain for a t
+# random variable.  This results in a geometrically-ergodic Markov
+# chain.
+h <- function(x) dt(x, df=3, log=TRUE)
+out <- metrop(h, 0, 100, morph=morph(b=1))
+# you can switch transformations with subsequent calls to metrop, this
+# will switch to running the Markov chain directly for the
+# t-density.  Note that this Markov chain is _not_ geometrically
+# ergodic.
+out <- metrop(out, morph=morph.identity())
+
+# Use a polynomial transformation to run a Markov chain for a simple
+# glm for a binomial distribution where we observed 3 successes in
+# 10 trials.
+f <- function(x) 3 * x - 10 * log(1 + exp(x))
+out <- metrop(f, 0, 100, morph=morph(p=3))
+
+# you can switch tra
+
 }
 \references{
 Johnson, L. T. and Geyer, C. J. (submitted)
