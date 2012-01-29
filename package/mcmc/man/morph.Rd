@@ -122,8 +122,15 @@ out <- metrop(out, morph=morph.identity())
 # 10 trials.
 f <- function(x) 3 * x - 10 * log(1 + exp(x))
 out <- metrop(f, 0, 100, morph=morph(p=3))
-
-# you can switch tra
+# the transformation is stored in 'out', you do not need to use
+# the morph parameter again unless you want to switch transformations.
+out <- metrop(out, nbatch=1, blen=100)
+# The same transformation is still being used.
+out <- metrop(out)
+# the values stored in out are on the un-transformed scale,
+# i.e. the one the user cares about.
+# this gives the batch mean of the last run
+out$batch
 
 }
 \references{
