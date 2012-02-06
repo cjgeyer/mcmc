@@ -1,4 +1,6 @@
 library(mcmc)
+isotropic <- mcmc:::isotropic
+isotropic.logjacobian <- mcmc:::isotropic.logjacobian
 
 # create identity test function
 identity <- function(x) x

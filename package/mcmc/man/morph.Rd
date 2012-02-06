@@ -106,41 +106,6 @@ morph(f=NULL, f.inv=NULL, logjacobian=NULL,
   \item{scale.inv}{The inverse of \code{scale}.}
 }
 \examples{
-# Use an exponential transformation to run a Markov chain for a t
-# random variable.  This results in a geometrically-ergodic Markov
-# chain.
-
-h <- function(x) dt(x, df=3, log=TRUE)
-out <- metrop(h, 0, 100, morph=morph(b=1))
-
-# you can switch transformations with subsequent calls to metrop, this
-# will switch to running the Markov chain directly for the
-# t-density.  Note that this Markov chain is _not_ geometrically
-# ergodic.
-
-out <- metrop(out, morph=morph.identity())
-
-# Use a polynomial transformation to run a Markov chain for a simple
-# glm for a binomial distribution where we observed 3 successes in
-# 10 trials.
-
-f <- function(x) 3 * x - 10 * log(1 + exp(x))
-out <- metrop(f, 0, 100, morph=morph(p=3))
-
-# the transformation is stored in 'out', you do not need to use
-# the morph parameter again unless you want to switch transformations.
-
-out <- metrop(out, nbatch=1, blen=100)
-
-# The same transformation is still being used.
-
-out <- metrop(out)
-
-# the values stored in out are on the un-transformed scale,
-# i.e. the one the user cares about.
-# this gives the batch mean of the last run
-
-out$batch
 }
 \references{
 Johnson, L. T. and Geyer, C. J. (submitted)

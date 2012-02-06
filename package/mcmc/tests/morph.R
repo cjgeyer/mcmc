@@ -1,4 +1,8 @@
 library(mcmc)
+morph <- mcmc:::morph
+morph.identity <- mcmc:::morph.identity
+isotropic <- mcmc:::isotropic
+isotropic.logjacobian <- mcmc:::isotropic.logjacobian
 
 # make sure morph.identity works properly
 ident.func <- function(x) x
@@ -108,25 +112,9 @@ all.equal(sapply(x, morph.test$lud(dnorm, log=TRUE)),
 f <- morph(b=3)
 x <- seq(0, 10, length.out=100)
 all.equal(x, sapply(sapply(x, f$transform), f$inverse))
-all.equal(x, sapply(sapply(x, f$scale.fun), f$scale.inv))
 
 f <- morph(p=3)
 all.equal(x, sapply(sapply(x, f$transform), f$inverse))
-all.equal(x, sapply(sapply(x, f$scale.fun), f$scale.inv))
 f <- morph(p=3, r=10)
 all.equal(-10:10, Vectorize(f$transform)(-10:10))
 
-###########################################################################
-# test interactions with metrop
-# make sure that scale is preserved across runs
-lud <- function(x) dt(x, df=3, log=TRUE)
-scale <- 3
-out <- metrop(lud, 0, nbatch=1, blen=1, nspac=1, morph=morph(b=1), scale=scale)
-all.equal(scale, out$scale)
-out <- metrop(lud, 0, nbatch=1, blen=1, nspac=1, morph=morph(p=3), scale=scale)
-all.equal(scale, out$scale)
-
-# check if out$batch is on the correct (untransformed) scale.
-lud <- function(x) ifelse(1 <= x & x <= 2, 0, -Inf)
-out <- metrop(lud, 1.5, nbatch=100, nspac=1, morph=morph(b=10))
-all(1 <= out$batch & out$batch <= 2)

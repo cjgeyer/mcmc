@@ -1,12 +1,14 @@
 morph.metrop <- function(obj, initial, nbatch, blen = 1,
-    nspac = 1, scale = 1, outfun, debug = FALSE, b, r, p, ...)
+    nspac = 1, scale = 1, outfun, debug = FALSE, b, r, p, center=0,
+    ...)
 UseMethod("morph.metrop")
 
 morph.metrop.morph.metropolis <- function(obj, initial, nbatch, blen = 1,
-    nspac = 1, scale = 1, outfun, debug = FALSE, b, r, p, ...) {
-  if (any(!missing(b), !missing(r), !missing(p))) {
-    obj$morph <- morph(b, r, p)
+    nspac = 1, scale = 1, outfun, debug = FALSE, b, r, p, center=0, ...) {
+  if (any(!missing(b), !missing(r), !missing(p), !missing(center))) {
+    obj$morph <- morph(b=b, r=r, p=p, center=center)
   }
+  morph <- obj$morph
   
   outfun.save <- ifelse(missing(outfun), obj$outfun, outfun)
   scale.save <- ifelse(missing(scale), obj$scale, scale)
@@ -22,11 +24,11 @@ morph.metrop.morph.metropolis <- function(obj, initial, nbatch, blen = 1,
   
   unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun.save,
                                   scale.save)
-  return(unmorphed)
+  return(unmorphed.obj)
 }
 
 morph.metrop.function <- function(obj, initial, nbatch, blen = 1,
-    nspac = 1, scale = 1, outfun, debug = FALSE, b, r, p, ...) {
+    nspac = 1, scale = 1, outfun, debug = FALSE, b, r, p, center=0, ...) {
   
   morph <- morph(b=b, r=r, p=p)
   
