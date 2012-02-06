@@ -4,19 +4,18 @@ metrop <- function(obj, initial, nbatch, blen = 1,
 UseMethod("metrop")
 
 metrop.metropolis <- function(obj, initial, nbatch, blen = 1,
-    nspac = 1, scale = 1, outfun, morph, debug = FALSE, ...)
+    nspac = 1, scale = 1, outfun, debug = FALSE, ...)
 {
     if (missing(nbatch)) nbatch <- obj$nbatch
     if (missing(blen)) blen <- obj$blen
     if (missing(nspac)) nspac <- obj$nspac
     if (missing(scale)) scale <- obj$scale
     if (missing(debug)) debug <- obj$debug
-    if (missing(morph)) morph <- obj$morph
     if (missing(outfun)) outfun <- obj$outfun
 
     assign(".Random.seed", obj$final.seed, .GlobalEnv)
     out <- metrop.function(obj$lud, obj$final, nbatch, blen,
-                           nspac, scale, outfun, morph, debug, ...)
+                           nspac, scale, outfun, debug, ...)
     return(out)
 }
 

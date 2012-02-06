@@ -369,78 +369,15 @@ static int out_setup(SEXP func, SEXP rho, SEXP state)
 {
     out_state_dimension = LENGTH(state);
 
-    if (func == R_NilValue) {
-        out_option = OUT_IDENTITY;
-        out_dimension = out_state_dimension;
-        out_func = R_NilValue;
-        out_env = R_NilValue;
-    } else if (isFunction(func)) {
-        if (! isEnvironment(rho))
-            error("out_setup: argument \"rho\" must be environment");
-        out_option = OUT_FUNCTION;
-        out_func = func;
-        out_env = rho;
-        out_dimension = LENGTH(eval(lang2(func, state), rho));
-    } else if (isLogical(func)) {
-        int i;
-        if (LENGTH(func) != out_state_dimension)
-            error("is.logical(outfun) & (length(outfun) != length(initial))");
-        out_option = OUT_INDEX;
-        out_index = (int *) R_alloc(out_state_dimension, sizeof(int));
-        for (i = 0, out_dimension = 0; i < out_state_dimension; i++) {
-            out_index[i] = LOGICAL(func)[i];
-            out_dimension += out_index[i];
-        }
-    } else if (isNumeric(func)) {
-        SEXP foo;
-        int foolen, i;
-        int foopos = 0;
-        int fooneg = 0;
-        PROTECT(foo = coerceVector(func, REALSXP));
-        foolen = LENGTH(foo);
-        for (i = 0; i < foolen; i++) {
-            double foodble = REAL(foo)[i];
-            int fooint = foodble;
-            int fooabs = fooint > 0 ? fooint : (- fooint);
-
-            if (foodble == 0)
-                error("is.numeric(outfun) & any(outfun == 0)");
-            if (foodble != fooint)
-                error("is.numeric(outfun) & any(outfun != as.integer(outfun))");
-            if (fooabs > out_state_dimension)
-                error("is.numeric(outfun) & any(abs(outfun) > length(initial)");
-
-            if (foodble > 0)
-                foopos++;
-            else if (foodble < 0)
-                fooneg++;
-        }
-
-        if ((foopos > 0) && (fooneg > 0))
-            error("is.numeric(outfun) & any(outfun > 0) & any(outfun < 0)");
-
-        out_option = OUT_INDEX;
-        out_index = (int *) R_alloc(out_state_dimension, sizeof(int));
-        if (foopos > 0) {
-            for (i = 0; i < out_state_dimension; i++)
-                out_index[i] = FALSE;
-            for (i = 0; i < foolen; i++) {
-                 int fooint = REAL(foo)[i];
-                 out_index[fooint - 1] = TRUE;
-            }
-        } else /* (fooneg > 0) */ {
-            for (i = 0; i < out_state_dimension; i++)
-                out_index[i] = TRUE;
-            for (i = 0; i < foolen; i++) {
-                 int fooint = REAL(foo)[i];
-                 int fooabs = (- fooint);
-                 out_index[fooabs - 1] = FALSE;
-            }
-        }
-        for (i = 0, out_dimension = 0; i < out_state_dimension; i++)
-            out_dimension += out_index[i];
-        UNPROTECT(1);
+    if (!isFunction(func)) {
+        error("out_setup: argument \"func\" must be a function");
     }
+    if (! isEnvironment(rho))
+        error("out_setup: argument \"rho\" must be environment");
+    out_option = OUT_FUNCTION;
+    out_func = func;
+    out_env = rho;
+    out_dimension = LENGTH(eval(lang2(func, state), rho));
     return out_dimension;
 }
 
@@ -458,36 +395,19 @@ static void outfun(SEXP state, SEXP buffer)
     if (LENGTH(buffer) != out_dimension)
         error("outfun: buffer length different from initialization");
 
-    switch (out_option) {
-        case OUT_IDENTITY:
-            for (j = 0; j < out_state_dimension; j++)
-                REAL(buffer)[j] = REAL(state)[j];
-            break;
-        case OUT_INDEX:
-            for (j = 0, k = 0; j < out_state_dimension; j++)
-                if (out_index[j])
-                    REAL(buffer)[k++] = REAL(state)[j];
-            break;
-        case OUT_FUNCTION:
-            {
-                SEXP call, result, foo;
+    SEXP call, result, foo;
 
-                PROTECT(call = lang2(out_func, state));
-                PROTECT(result = eval(call, out_env));
-                if (! isNumeric(result))
-                    error("outfun: result of function call must be numeric");
-                PROTECT(foo = coerceVector(result, REALSXP));
-                if (! isAllFinite(foo))
-                    error("outfun returned vector with non-finite element");
-                if (LENGTH(foo) != out_dimension)
-                    error("outfun return vector length changed from initial");
-                for (k = 0; k < out_dimension; k++)
-                    REAL(buffer)[k] = REAL(foo)[k];
-                UNPROTECT(3);
-            }
-            break;
-        default:
-            error("bogus out option\n");
-    }
+    PROTECT(call = lang2(out_func, state));
+    PROTECT(result = eval(call, out_env));
+    if (! isNumeric(result))
+        error("outfun: result of function call must be numeric");
+    PROTECT(foo = coerceVector(result, REALSXP));
+    if (! isAllFinite(foo))
+        error("outfun returned vector with non-finite element");
+    if (LENGTH(foo) != out_dimension)
+        error("outfun return vector length changed from initial");
+    for (k = 0; k < out_dimension; k++)
+        REAL(buffer)[k] = REAL(foo)[k];
+    UNPROTECT(3);
 }
 
