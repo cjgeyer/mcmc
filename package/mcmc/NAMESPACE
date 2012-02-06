@@ -5,10 +5,6 @@ export(metrop)
 export(olbm)
 export(initseq)
 export(temper)
-export(isotropic)
-export(isotropic.logjacobian)
-export(morph.identity)
-export(morph)
 export(morph.metrop)
 
 
