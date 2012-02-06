@@ -9,7 +9,7 @@
 }
 \usage{
 metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1, outfun,
-    morph, debug = FALSE, ...)
+    debug = FALSE, ...)
 }
 \arguments{
   \item{obj}{an R function that evaluates the log unnormalized probability
@@ -36,9 +36,6 @@ metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1, outfun,
           or logical vector, then the batch means of \code{state[outfun]}
           (if this makes sense).  If missing, the the batch means
           of \code{state} are returned.}
-  \item{morph}{controls the transformation used in the Markov chain.
-    Defaults to the identity transformation, as provided by
-    \code{\link{morph.identity}}.}
   \item{debug}{if \code{TRUE} extra output useful for testing.}
   \item{...}{additional arguments for \code{obj} or \code{outfun}.}
 }
@@ -52,12 +49,6 @@ The initial state must satisfy \code{obj(state, ...) > 0}.
 Description of a complete MCMC analysis (Bayesian logistic regression)
 using this function can be found in the vignette \code{demo}
 (\url{../doc/demo.pdf}).
-
-The \code{morph} parameter defines a transformation, \code{metrop} runs
-the Markov chain for the induced log unnormalized density of the
-transformed variable.  \code{morph} defaults to the identity
-transformation, hence by default \code{metrop} runs a Markov chain for
-the given log unnormalized density.  See \code{\link{morph}} for full details.
 }
 \value{
   an object of class \code{"mcmc"}, subclass \code{"metropolis"},
@@ -78,7 +69,6 @@ the given log unnormalized density.  See \code{\link{morph}} for full details.
   \item{nbatch}{the argument \code{nbatch} or \code{obj$nbatch}.}
   \item{blen}{the argument \code{blen} or \code{obj$blen}.}
   \item{nspac}{the argument \code{nspac} or \code{obj$nspac}.}
-  \item{morph}{the argument \code{morph} or \code{obj$morph}.}
   \item{outfun}{the argument \code{outfun} or \code{obj$outfun}.}
   Description of additional output when \code{debug = TRUE} can be
   found in the vignette \code{debug} (\url{../doc/debug.pdf}).
@@ -125,8 +115,5 @@ out <- metrop(out, nbatch = 1e4)
 out$accept
 plot(out$batch[ , 1])
 hist(out$batch[ , 1])
-}
-\seealso{
-  \code{\link{morph}}
 }
 \keyword{misc}
