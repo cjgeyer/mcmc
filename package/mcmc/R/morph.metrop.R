@@ -29,14 +29,18 @@ morph.metrop.morph.metropolis <- function(obj, initial, nbatch, blen = 1,
 
 morph.metrop.function <- function(obj, initial, nbatch, blen = 1,
     nspac = 1, scale = 1, outfun, debug = FALSE, b, r, p, center=0, ...) {
-  
+
+  if (missing(b)) b <- NULL
+  if (missing(r)) r <- NULL
+  if (missing(p)) p <- NULL
   morph <- morph(b=b, r=r, p=p)
-  
-  outfun.save <- ifelse(missing(outfun), NULL, outfun)
+  #morph <- morph(f=c.sub.f, f.inv=c.sub.finv, logjacobian=c.sub.logj)
+  if (missing(outfun)) outfun <- NULL
+  outfun.save <- outfun
   scale.save <- scale
   
   metrop.out <- metrop.function(morph$lud(obj),
-                                initial=morp$transform(initial),
+                                initial=morph$transform(initial),
                                 nbatch=nbatch,
                                 blen=blen,
                                 scale=morph$scale.fun(scale),
@@ -54,4 +58,31 @@ morph.metrop.function <- function(obj, initial, nbatch, blen = 1,
   obj$outfun <- outfun
   obj$scale <- scale
   class(obj) <- c("mcmc", "morph.metropolis")
+  return(obj)
+}
+
+morph.metropC <- function(obj, initial, nbatch, blen = 1,
+    nspac = 1, scale = 1, outfun, debug = FALSE, b, r, p, center=0, ...) {
+
+  if (missing(b)) b <- NULL
+  if (missing(r)) r <- NULL
+  if (missing(p)) p <- NULL
+  #morph <- morph(b=b, r=r, p=p)
+  morph <- morph(f=c.sub.f, f.inv=c.sub.finv, logjacobian=c.sub.logj)
+  if (missing(outfun)) outfun <- NULL
+  outfun.save <- outfun
+  scale.save <- scale
+  
+  metrop.out <- metrop.function(morph$lud(obj),
+                                initial=morph$transform(initial),
+                                nbatch=nbatch,
+                                blen=blen,
+                                scale=morph$scale.fun(scale),
+                                outfun=morph$outfun(outfun),
+                                debug=debug,
+                                ...)
+  
+  unmorphed.obj <- .morph.unmorph(metrop.out, morph, outfun.save,
+                                  scale.save)
+  return(unmorphed.obj)
 }

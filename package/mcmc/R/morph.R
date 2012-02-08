@@ -35,6 +35,22 @@ newton.raphson <- function(f, df, x, r) {
   return(x0)
 }
 
+c.sub.f <- function(x) {
+  .C("subexponentialF",
+        x=as.double(x), as.double(1.0), as.integer(length(x)))$x
+}
+
+c.sub.finv <- function(x) {
+  .C("subexponentialFinv",
+     x=as.double(x), as.double(1.0), as.integer(length(x)))$x
+}
+
+c.sub.logj <- function(x) {
+  .C("subexponentialLogJacobian",
+     as.double(x), as.double(1.0), as.integer(length(x)),
+     y=as.double(3.0))$y
+}
+
 subexponential <- function(b=1) {
   if (is.null(b)) b <- 1
   stopifnot(b > 0)
