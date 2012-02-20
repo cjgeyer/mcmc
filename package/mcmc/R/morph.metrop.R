@@ -6,35 +6,51 @@ UseMethod("morph.metrop")
 morph.metrop.morph.metropolis <- function(obj, initial, nbatch, blen = 1,
     nspac = 1, scale = 1, outfun, debug = FALSE, b, r, p, center = 0, ...) {
   if (any(!missing(b), !missing(r), !missing(p), !missing(center))) {
+    # TODO: move these missing statments to morph
+    if (missing(b)) b <- NULL
+    if (missing(r)) r <- NULL
+    if (missing(p)) p <- NULL
     obj$morph <- morph(b=b, r=r, p=p, center=center)
   }
   morph <- obj$morph
   obj$final <- obj$morph.final
-  
-  outfun.save <- ifelse(missing(outfun), obj$outfun, outfun)
-  scale.save <- ifelse(missing(scale), obj$scale, scale)
+
+  if (missing(outfun))
+    outfun.save <- obj$outfun
+  else
+    outfun <- outfun
+  if (missing(scale))
+    scale.save <- obj$scale
+  else
+    scale.save <- scale
+
+  if (missing(blen)) blen <- obj$blen
+  if (missing(nspac)) nspac <- obj$nspac
+  if (missing(debug)) debug <- obj$debug
   
   morphed.obj <- metrop.metropolis(obj,
                                    nbatch=nbatch,
                                    blen=blen,
                                    nspac=nspac,
-                                   scale=morph$scale.fun(scale.save),
+                                   scale=scale.save,
                                    outfun=morph$outfun(outfun.save),
                                    debug=debug,
                                    ...)
   
   unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun.save,
                                   scale.save)
+  unmorphed.obj$scale <- scale.save
   return(unmorphed.obj)
 }
 
 morph.metrop.function <- function(obj, initial, nbatch, blen = 1,
     nspac = 1, scale = 1, outfun, debug = FALSE, b, r, p, center = 0, ...) {
 
+  # TODO move these missing statements to morph
   if (missing(b)) b <- NULL
   if (missing(r)) r <- NULL
   if (missing(p)) p <- NULL
-  morph <- morph(b=b, r=r, p=p)
+  morph <- morph(b=b, r=r, p=p, center=center)
   if (missing(outfun)) outfun <- NULL
   outfun.save <- outfun
   scale.save <- scale
@@ -43,18 +59,19 @@ morph.metrop.function <- function(obj, initial, nbatch, blen = 1,
                                 initial=morph$transform(initial),
                                 nbatch=nbatch,
                                 blen=blen,
-                                scale=morph$scale.fun(scale),
+                                scale=scale,
                                 outfun=morph$outfun(outfun),
                                 debug=debug,
                                 ...)
   
   unmorphed.obj <- .morph.unmorph(metrop.out, morph, outfun.save,
                                   scale.save)
+  unmorphed.obj$scale <- scale
   return(unmorphed.obj)
 }
 
 .morph.unmorph <- function(obj, morph, outfun, scale) {
-  obj$morph
+  obj$morph <- morph
   obj$morph.final <- obj$final
   obj$final <- morph$inverse(obj$final)
   obj$outfun <- outfun
