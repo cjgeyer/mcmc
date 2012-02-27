@@ -36,7 +36,7 @@ newton.raphson <- function(f, df, x, r) {
 }
 
 subexponential <- function(b=1) {
-  if (is.null(b)) b <- 1
+  if (missing(b) | is.null(b)) b <- 1
   stopifnot(b > 0)
   b;
   f.inv <- function(x) ifelse(x > 1/b,
@@ -59,8 +59,8 @@ subexponential <- function(b=1) {
 }
 
 exponential <- function(r=1, p=3) {
-  if (is.null(p)) p <- 3
-  if (is.null(r)) r <- 0
+  if (missing(p) || is.null(p)) p <- 3
+  if (missing(r) || is.null(r)) r <- 0
   stopifnot(p > 2)
   stopifnot(r >= 0)
   f.inv <- function(x) x + (x-r)^p * (x > r)
@@ -82,63 +82,44 @@ exponential <- function(r=1, p=3) {
   return(list(f=f, f.inv=f.inv, d.f.inv=d.f.inv))
 }
 
-morph.identity <- function() {
-  morph(f=function(x) x,
-        f.inv=function(x) x,
-        logjacobian=function(x) 0)
-}
+morph <- function(b, r, p, center) {
+  if (missing(center)) center <- 0
+  use.subexpo <- !missing(b)
+  use.expo <- !(missing(r) && missing(p))
+  
+  if (!use.expo && !use.subexpo) {
+    f <- function(x) x
+    f.inv <- function(x) x
+    d.f.inv <- function(x) 0
+  } else {
+    if (use.expo && !use.subexpo) {
+      expo <- exponential(r, p)
+      
+      f <- expo$f
+      f.inv <- expo$f.inv
+      d.f.inv <- expo$d.f.inv
+    } else if (!use.expo && use.subexpo) {
+      subexpo <- subexponential(b)
+      
+      f <- subexpo$f
+      f.inv <- subexpo$f.inv
+      d.f.inv <- subexpo$d.f.inv
+    } else { #use.expo & use.subexpo
+      expo <- exponential(r, p)
+      subexpo <- subexponential(b)
+      
+      f <- function(x) expo$f(subexpo$f(x))
+      f.inv <- function(x) subexpo$f.inv(expo$f.inv(x))
+      d.f.inv <- function(x) expo$d.f.inv(x) * subexpo$d.f.inv(expo$f.inv(x))
+    }
+  }
 
-morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
-                  scale.fun=NULL, b=NULL, r=NULL, p=NULL,
-                  center=0) {
-  first.set <- c(is.null(f), is.null(f.inv), is.null(logjacobian))
-  second.set <- c(is.null(r), is.null(p), is.null(b))
-  if (!xor(all(first.set), all(second.set))) {
-    stop(paste("Exactly one of the sets of arguments",
-               "(f, f.inv, logjacobian) and (r, p, b)",
-               "should be non NULL."))
-  }
-  if (any(first.set) & !all(first.set)) {
-    stop("f, f.inv and logjacobian must all be specified.")
-  }
-  if (any(second.set)) {
-    exp.f <- NULL
-    sub.f <- NULL
-    if (!is.null(r) | !is.null(p)) {
-      exp.f <- exponential(r, p)
-    }
-    if (!is.null(b)) {
-      sub.f <- subexponential(b)
-    }
-    if (!is.null(exp.f) & !is.null(sub.f)) {
-      f <- function(x) isotropic(sub.f$f)(isotropic(exp.f$f)(x))
-      f.inv <-
-        function(x) isotropic(sub.f$f.inv)(isotropic(exp.f$f.inv)(x))
-      logjacobian <-
-        function(x)
-          isotropic.logjacobian(sub.f$f.inv, sub.f$d.f.inv)(exp.f$f.inv(x)) +
-            isotropic.logjacobian(exp.f$f.inv, exp.f$d.f.inv)(x)
-    } else if (!is.null(exp.f)) {
-      f <- isotropic(exp.f$f)
-      f.inv <- isotropic(exp.f$f.inv)
-      logjacobian <- isotropic.logjacobian(exp.f$f.inv, exp.f$d.f.inv)
-    } else if (!is.null(sub.f)) {
-      f <- isotropic(sub.f$f)
-      f.inv <- isotropic(sub.f$f.inv)
-      logjacobian <- isotropic.logjacobian(sub.f$f.inv, sub.f$d.f.inv)
-    }
-  }
-  # force evaluation of transformation functions.
-  #f; f.inv; logjacobian; center;
-  if (missing(scale.fun)) scale.fun <- f
-  out <- list(f=f, f.inv=f.inv, logjacobian=logjacobian, center=center,
-              scale.fun=scale.fun)
-  transform <- function(state) out$f(state - out$center)
-  inverse <- function(state) out$f.inv(state) + out$center
-  transform; inverse;
-  out$transform <- transform
-  out$inverse <- inverse
-
+  out <- list(f=isotropic(f),
+              f.inv=isotropic(f.inv),
+              log.jacobian=isotropic.logjacobian(f.inv, d.f.inv),
+              center=center)
+  out$transform <- function(state) f(state - out$center)
+  out$inverse <- function(state) f.inv(state) + out$center
   # pay attention to how '...' arguments are handled.  If care is not
   # taken, weird bugs will be introduced that will break handling
   # done by metrop.* functions.
@@ -157,7 +138,7 @@ morph <- function(f=NULL, f.inv=NULL, logjacobian=NULL,
   out$lud <- function(lud, ...) {
     lud; list(...);
     function(state)
-      lud(out$inverse(state), ...) + out$logjacobian(state)
+      lud(out$inverse(state), ...) + out$log.jacobian(state)
   }
 
   return(out)

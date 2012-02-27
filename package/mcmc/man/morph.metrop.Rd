@@ -9,7 +9,7 @@
 }
 \usage{
 morph.metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1,
-  outfun, debug = FALSE, b, r, p, center = 0, ...)
+  outfun, debug = FALSE, b, r, p, center, ...)
 }
 \arguments{
   \item{obj}{see \code{\link{metrop}}.}
@@ -26,7 +26,8 @@ morph.metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1,
     \code{r} is specified, \code{p} defaults to 3.}
   \item{b}{Positive real number.  May be missing.}
   \item{center}{Real scalar or vector.  If \code{center} is a vector it
-    should be the same length of the state of the Markov chain.}
+    should be the same length of the state of the Markov chain,
+    \code{center} defaults to 0}
   \item{...}{see \code{\link{metrop}}.}
 }
 \details{
