@@ -82,6 +82,14 @@ exponential <- function(r=1, p=3) {
   return(list(f=f, f.inv=f.inv, d.f.inv=d.f.inv))
 }
 
+morph.identity <- function() {
+  out <- list(outfun=function(f) function(state) f(state, ...),
+              transform=function(x) x,
+              inverse=function(x) x,
+              lud=function(x) x)
+  return(out)
+}
+
 morph <- function(b, r, p, center) {
   if (missing(center)) center <- 0
   use.subexpo <- !missing(b)

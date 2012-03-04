@@ -6,6 +6,8 @@ export(olbm)
 export(initseq)
 export(temper)
 export(morph.metrop)
+export(morph)
+export(morph.identity)
 
 S3method(metrop, metropolis)
 S3method(metrop, "function")
