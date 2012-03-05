@@ -14,8 +14,7 @@ isotropic <- function(f) {
 }
 
 isotropic.logjacobian <- function(f, d.f) {
-  f(1); # force evaluation of components
-  d.f(1);
+  f; d.f; # force evaluation of components
   function(x) {
     x.norm <- euclid.norm(x)
     k <- length(x)
@@ -83,14 +82,16 @@ exponential <- function(r=1, p=3) {
 }
 
 morph.identity <- function() {
-  out <- list(outfun=function(f) function(state) f(state, ...),
+  out <- list(outfun=function(f) function(state, ...) f(state, ...),
               transform=function(x) x,
               inverse=function(x) x,
-              lud=function(x) x)
+              lud=function(f) function(x, ...) f(x, ...))
   return(out)
 }
 
 morph <- function(b, r, p, center) {
+  if (all(missing(b), missing(r), missing(p), missing(center)))
+    return(morph.identity())
   if (missing(center)) center <- 0
   use.subexpo <- !missing(b)
   use.expo <- !(missing(r) && missing(p))
@@ -98,7 +99,7 @@ morph <- function(b, r, p, center) {
   if (!use.expo && !use.subexpo) {
     f <- function(x) x
     f.inv <- function(x) x
-    d.f.inv <- function(x) 0
+    log.jacobian <- function(x) 0
   } else {
     if (use.expo && !use.subexpo) {
       expo <- exponential(r, p)
@@ -112,7 +113,7 @@ morph <- function(b, r, p, center) {
       f <- subexpo$f
       f.inv <- subexpo$f.inv
       d.f.inv <- subexpo$d.f.inv
-    } else { #use.expo & use.subexpo
+    } else { #use.expo && use.subexpo
       expo <- exponential(r, p)
       subexpo <- subexponential(b)
       
@@ -120,34 +121,43 @@ morph <- function(b, r, p, center) {
       f.inv <- function(x) subexpo$f.inv(expo$f.inv(x))
       d.f.inv <- function(x) expo$d.f.inv(x) * subexpo$d.f.inv(expo$f.inv(x))
     }
+    
+    f <- isotropic(f)
+    f.inv <- isotropic(f.inv)
+    log.jacobian <- isotropic.logjacobian(f.inv, d.f.inv)
   }
 
-  out <- list(f=isotropic(f),
-              f.inv=isotropic(f.inv),
-              log.jacobian=isotropic.logjacobian(f.inv, d.f.inv),
+  out <- list(f=f, f.inv=f.inv, log.jacobian=log.jacobian,
               center=center)
-  out$transform <- function(state) f(state - out$center)
-  out$inverse <- function(state) f.inv(state) + out$center
+  out$transform <- function(state) out$f(state - out$center)
+  out$inverse <- function(state) out$f.inv(state) + out$center
   # pay attention to how '...' arguments are handled.  If care is not
   # taken, weird bugs will be introduced that will break handling
   # done by metrop.* functions.
-  out$outfun <- function(outfun, ...) {
-    list(...);
+  out$outfun <- function(outfun) {
     if (is.null(outfun)) {
       return(function(state) out$inverse(state))
     } else if (is.function(outfun)) {
       outfun;
-      return(function(state) outfun(out$inverse(state), ...))
+      return(function(state, ...) outfun(out$inverse(state), ...))
     } else {
       return(function(state) out$inverse(state)[outfun])
     }
   }
 
-  out$lud <- function(lud, ...) {
-    lud; list(...);
-    function(state)
+  out$lud <- function(lud) {
+    lud;
+    function(state, ...)
       lud(out$inverse(state), ...) + out$log.jacobian(state)
   }
 
   return(out)
 }
+
+
+
+
+
+
+
+

@@ -5,32 +5,35 @@ UseMethod("morph.metrop")
 
 morph.metrop.morph.metropolis <- function(obj, initial, nbatch, blen = 1,
     nspac = 1, scale = 1, outfun, debug = FALSE, morph, ...) {
-  if (missing(morph)) morph <- obj$morph
-  obj$final <- obj$morph.final
+  if (missing(morph)) {
+    morph <- obj$morph
+    obj$final <- obj$morph.final
+  } else {
+    # if the transformation was changed, transform the last state from the
+    # original space to be the initial state.
+    obj$final <- morph$transform(obj$final)
+  }
 
   if (missing(outfun))
     outfun.save <- obj$outfun
   else
     outfun.save <- outfun
-  if (missing(scale))
-    scale.save <- obj$scale
-  else
-    scale.save <- scale
 
   if (missing(blen)) blen <- obj$blen
   if (missing(nspac)) nspac <- obj$nspac
   if (missing(debug)) debug <- obj$debug
+  if (missing(scale)) scale <- obj$scale
   
   morphed.obj <- metrop.metropolis(obj,
                                    nbatch=nbatch,
                                    blen=blen,
                                    nspac=nspac,
-                                   scale=scale.save,
+                                   scale=scale,
                                    outfun=morph$outfun(outfun.save),
                                    debug=debug,
                                    ...)
   
-  unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun.save, scale.save)
+  unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun.save)
   return(unmorphed.obj)
 }
 
@@ -40,7 +43,6 @@ morph.metrop.function <- function(obj, initial, nbatch, blen = 1,
   if (missing(morph)) morph <- morph.identity()
   if (missing(outfun)) outfun <- NULL
   outfun.save <- outfun
-  scale.save <- scale
   
   morphed.obj <- metrop.function(morph$lud(obj),
                                  initial=morph$transform(initial),
@@ -51,16 +53,15 @@ morph.metrop.function <- function(obj, initial, nbatch, blen = 1,
                                  debug=debug,
                                  ...)
   
-  unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun.save, scale.save)
+  unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun.save)
   return(unmorphed.obj)
 }
 
-.morph.unmorph <- function(obj, morph, outfun, scale) {
+.morph.unmorph <- function(obj, morph, outfun) {
   obj$morph       <- morph
   obj$morph.final <- obj$final
   obj$final       <- morph$inverse(obj$final)
   obj$outfun      <- outfun
-  obj$scale       <- scale
   class(obj) <- c("mcmc", "morph.metropolis")
   return(obj)
 }
