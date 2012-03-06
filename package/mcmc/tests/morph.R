@@ -29,7 +29,7 @@ morph.center <- morph(center=center)
 all.equal(sapply(x, morph.center$transform), x-center)
 all.equal(sapply(x, morph.center$inverse), x+center)
 all.equal(sapply(x, morph.center$lud(function(y) dnorm(y, log=TRUE))),
-          dnorm(x, log=TRUE, mean=2))
+          dnorm(x, log=TRUE, mean=-2))
 
 # test center parameter, multivariate version
 center <- 1:4
@@ -57,11 +57,11 @@ ident.morph <- morph()
 dnorm.morph <- ident.morph$lud(function(x, mean=0)
                                  dnorm(x, mean=mean, log=TRUE))
 all.equal(dnorm.morph(2, mean), dnorm(2, mean=mean, log=TRUE))
-x <- seq(-3:3, length.out=20)
+x <- seq(-3, 3, length.out=20)
 m2 <- morph(r=10)
 dnorm.morph <- m2$lud(function(x, mean)
                         dnorm(x, mean=mean, log=TRUE))
-all.equal(sapply(x, function(y) dnorm(y, 2)),
+all.equal(sapply(x, function(y) dnorm.morph(y, 2)),
           dnorm(x, mean=2, log=TRUE))
 
 # make sure morph$outfun passes '...' arguments.
@@ -73,7 +73,7 @@ all.equal(outfun.morph(1:10, mean), 1:10+mean)
 
 m2 <- morph(r=10)
 outfun.morph <- m2$outfun(outfun.orig)
-all.equal(outfun.morph(1:10, mean), 1:10+mean)
+all.equal(sapply(1:10, function(x) outfun.morph(x, mean)), 1:10+mean)
 
 ###########################################################################
 # test built-in exponential and polynomial transformations.
