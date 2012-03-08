@@ -81,11 +81,16 @@ exponential <- function(r=1, p=3) {
   return(list(f=f, f.inv=f.inv, d.f.inv=d.f.inv))
 }
 
+identity.func <- function(x) x
 morph.identity <- function() {
   out <- list(outfun=function(f) function(state, ...) f(state, ...),
-              transform=function(x) x,
-              inverse=function(x) x,
-              lud=function(f) function(x, ...) f(x, ...))
+              transform=identity.func,
+              inverse=identity.func,
+              lud=function(f) function(x, ...) f(x, ...),
+              log.jacobian=function(x) 0,
+              center=0,
+              f=identity.func,
+              f.inv=identity.func)
   return(out)
 }
 
@@ -131,9 +136,7 @@ morph <- function(b, r, p, center) {
               center=center)
   out$transform <- function(state) out$f(state - out$center)
   out$inverse <- function(state) out$f.inv(state) + out$center
-  # pay attention to how '...' arguments are handled.  If care is not
-  # taken, weird bugs will be introduced that will break handling
-  # done by metrop.* functions.
+  
   out$outfun <- function(outfun) {
     if (is.null(outfun)) {
       return(function(state) out$inverse(state))

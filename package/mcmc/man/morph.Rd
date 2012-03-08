@@ -30,6 +30,23 @@ morph.identity()
   only called once during setup, and not at all while running the Markov chain.
 }
 \details{
+  The \code{morph} function facilitates using variable transformations
+  by providing functions to (using \eqn{X} for the original random
+  variable with the pdf \eqn{f_X}{f.X}, and \eqn{Y} for the transformed
+  random variable with the pdf \eqn{f_Y}{f.Y}):
+  \itemize{
+    \item Calculate the log unnormalized probability density for \eqn{Y}
+    induced by the transformation.
+    \item Transform an arbitrary function of \eqn{X} to a function of
+    \eqn{Y}.
+    \item Transform values of \eqn{X} to values of \eqn{Y}.
+    \item Inverse values of \eqn{Y} to values of \eqn{X}.
+  }
+  for a select few transformations.
+
+  \code{morph.identity} implements the identity transformation,
+  \eqn{Y=X}.
+  
   The parameters \code{r}, \code{p}, \code{b} and \code{center} specify the
   transformation function.  In all cases, \code{center} gives the center
   of the transformation, which is the value \eqn{c} in the equation
@@ -55,26 +72,24 @@ morph.identity()
     \frac{1}{b})}{
     g2(x) = (exp(b * x) - exp(1) / 3) * I(x > 1 / b) +
             (x^3 * b^3 exp(1) / 6 + x * b * exp(1) / 2) * I(x <= 1 / b).}
-  We require that \eqn{b} is non-negative.
+  We require that \eqn{b} is positive.
 
-  \code{morph.metrop} uses the transformation specified by the inverse
-  relationship, \deqn{X = f^{-1}(Y) + c}, where \eqn{c} is given by the
-  value of \code{center}.  The parameters \code{r}, \code{p} and
-  \code{b} specify \eqn{f^{-1}} in the following manner.
-  
-  If one of \code{r} and \code{p} is specified, and \code{b} is not
-  specified, then 
-  \deqn{f^{-1}(X) = g_1(|X|) \frac{X}{|X|}.}{f^{-1}(X) = g1(|X|) * X / |X|.}
-  In the case of only specifying \code{r}, \code{p=3}.  If only \code{p}
-  is specified, \code{r = 0} is used.
-  
-  If only \code{b} is specified, then 
-  \deqn{f^{-1}(X) = g_2(|X|) \frac{X}{|X|}.}{f^{-1}(X) = g2(|X|) * X / |X|.}
-  
-  If one of \code{r} and \code{p} is specified, and \code{b} is also
-  specified, then
-  \deqn{f^{-1}(X) = g_2(g_1(|X|)) \frac{X}{|X|}.}{
-    f^{-1}(X) = g2(g1(|X|)) * X / |X|.}
+  The parameters \code{r}, \code{p} and \code{b} specify \eqn{f^{-1}} in
+  the following manner:
+  \itemize{
+    \item   If one of \code{r} and \code{p} is specified, and \code{b}
+    is not specified, then \deqn{f^{-1}(X) = g_1(|X|)
+      \frac{X}{|X|}.}{f^{-1}(X) = g1(|X|) * X / |X|.}  In the case of only
+    specifying \code{r}, \code{p=3}.  If only \code{p} is specified,
+    \code{r = 0} is used.
+
+    \item If only \code{b} is specified, then \deqn{f^{-1}(X) = g_2(|X|)
+      \frac{X}{|X|}.}{f^{-1}(X) = g2(|X|) * X / |X|.}
+
+    \item If one of \code{r} and \code{p} is specified, and \code{b} is
+    also specified, then \deqn{f^{-1}(X) = g_2(g_1(|X|))
+      \frac{X}{|X|}.}{f^{-1}(X) = g2(g1(|X|)) * X / |X|.}
+  }
 }
 \value{
   a list containing the functions

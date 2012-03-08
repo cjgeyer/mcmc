@@ -21,6 +21,9 @@ TestMorphIdentity <- function(m.id) {
 TestMorphIdentity(morph())
 TestMorphIdentity(morph.identity())
 
+# make sure that morph and morph.identity give back the same things
+all.equal(sort(names(morph.identity())), sort(names(morph(b=1))))
+
 # test center parameter, univariate version
 zero.func <- function(x) 0
 center <- 2

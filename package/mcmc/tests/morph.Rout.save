@@ -41,6 +41,10 @@ Type 'q()' to quit R.
 > TestMorphIdentity(morph.identity())
 [1] TRUE
 > 
+> # make sure that morph and morph.identity give back the same things
+> all.equal(sort(names(morph.identity())), sort(names(morph(b=1))))
+[1] TRUE
+> 
 > # test center parameter, univariate version
 > zero.func <- function(x) 0
 > center <- 2

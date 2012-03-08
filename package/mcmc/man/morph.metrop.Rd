@@ -88,6 +88,6 @@ Variable Transformation to Obtain Geometric Ergodicity
     in the Random-walk Metropolis Algorithm.
 }
 \seealso{
-  \code{\link{metrop}}
+  \code{\link{metrop}}, \code{\link{morph}}.
 }
 \keyword{misc}
