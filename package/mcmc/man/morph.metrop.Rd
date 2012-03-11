@@ -85,7 +85,7 @@ morph.metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1,
   for the exponential family examples mentioned above.
   (See Johnson and Geyer, submitted, for the complete theory.)
 
-  The transformation \eqn{g_1}{g1} behaves like the identity transformation
+  The transformation \eqn{g_1}{g1} behaves like a shift transformation
   on a ball of radius \code{r} centered at \code{center}, so these arguments
   to \code{\link{morph}} should be chosen so that a sizable proportion of
   the probability under the original (untransformed) unnormalized density
