@@ -40,7 +40,8 @@ morph.identity()
     \item Transform an arbitrary function of \eqn{X} to a function of
     \eqn{Y}.
     \item Transform values of \eqn{X} to values of \eqn{Y}.
-    \item Inverse values of \eqn{Y} to values of \eqn{X}.
+    \item Transform values of \eqn{Y} to values of \eqn{X}
+       (the inverse transformation).
   }
   for a select few transformations.
 
@@ -77,16 +78,16 @@ morph.identity()
   The parameters \code{r}, \code{p} and \code{b} specify \eqn{f^{-1}} in
   the following manner:
   \itemize{
-    \item   If one of \code{r} and \code{p} is specified, and \code{b}
+    \item  If one or both of \code{r} and \code{p} is specified, and \code{b}
     is not specified, then \deqn{f^{-1}(X) = g_1(|X|)
-      \frac{X}{|X|}.}{f^{-1}(X) = g1(|X|) * X / |X|.}  In the case of only
-    specifying \code{r}, \code{p=3}.  If only \code{p} is specified,
+      \frac{X}{|X|}.}{f^{-1}(X) = g1(|X|) * X / |X|.}  If only
+    \code{r} is specified, \code{p = 3} is used.  If only \code{p} is specified,
     \code{r = 0} is used.
 
     \item If only \code{b} is specified, then \deqn{f^{-1}(X) = g_2(|X|)
       \frac{X}{|X|}.}{f^{-1}(X) = g2(|X|) * X / |X|.}
 
-    \item If one of \code{r} and \code{p} is specified, and \code{b} is
+    \item If one or both of \code{r} and \code{p} is specified, and \code{b} is
     also specified, then \deqn{f^{-1}(X) = g_2(g_1(|X|))
       \frac{X}{|X|}.}{f^{-1}(X) = g2(g1(|X|)) * X / |X|.}
   }
@@ -99,7 +100,7 @@ morph.identity()
     f(inverse(state), ...)}.
   \item \code{inverse}, the inverse transformation function.
   \item \code{transform}, the transformation function.
-  \item \code{lud}, a function that operates on function.  As input,
+  \item \code{lud}, a function that operates on functions.  As input,
   \code{lud} takes a function that calculates a log unnormalized
   probability density, and returns a function that calculates the
   log unnormalized density by transforming a random variable using the
@@ -111,7 +112,7 @@ morph.identity()
 }
 \examples{
 
-# use a exponential transformation, centered at 100.
+# use an exponential transformation, centered at 100.
 b1 <- morph(b=1, center=100)
 # original log unnormalized density is from a t distribution with 3
 # degrees of freedom, centered at 100.
