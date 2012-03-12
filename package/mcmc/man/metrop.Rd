@@ -49,6 +49,17 @@ The initial state must satisfy \code{obj(state, ...) > - Inf}.
 Description of a complete MCMC analysis (Bayesian logistic regression)
 using this function can be found in the vignette \code{demo}
 (\url{../doc/demo.pdf}).
+
+Suppose the function coded by the log unnormalized function (either
+\code{obj} or \code{obj$lud}) is actually a log unnormalized density,
+that is, if \eqn{w} denotes that function, then \eqn{e^w}{exp(w)} integrates
+to some value strictly between zero and infinity.  Then the \code{metrop}
+function always simulates a reversible, Harris ergodic Markov chain having
+the equilibrium distribution with this log unnormalized density.
+The chain is not guaranteed to be geometrically ergodic.  In fact it cannot
+be geometrically ergodic if the tails of the log unnormalized density are
+suficiently heavy.  The \code{\link{morph.metrop}} function deals with this
+situation.
 }
 \value{
   an object of class \code{"mcmc"}, subclass \code{"metropolis"},
