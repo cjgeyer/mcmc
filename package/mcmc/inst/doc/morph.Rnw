@@ -1,0 +1,61 @@
+
+\documentclass{article}
+
+\usepackage{natbib}
+\usepackage{graphics}
+\usepackage{amsmath, amssymb}
+\usepackage{indentfirst}
+\usepackage[utf8]{inputenc}
+
+\DeclareMathOperator{\var}{var}
+\DeclareMathOperator{\cov}{cov}
+
+% \VignetteIndexEntry{MCMC Morph Example}
+
+\begin{document}
+
+<<foo,include=FALSE,echo=FALSE>>=
+options(keep.source = TRUE, width = 60)
+foo <- packageDescription("mcmc")
+@
+
+\title{Morphemetric MCMC Example (mcmc Version \Sexpr{foo$Version})}
+\author{Leif T. Johnson}
+\maketitle
+
+\section{Overview}
+
+This is an example how to use morphemetric Markov chains as implemented in
+the \verb@mcmc@ package in R.
+
+Let $X$ be a $\mathbb{R}^k$ valued random variable with probability density
+function (pdf), $f_X$.  
+
+\begin{thebibliography}{}
+
+\bibitem[Gelman et al.(1996)Gelman, Roberts, and Gilks]{grg}
+Gelman, A., G.~O. Roberts, and W.~R. Gilks (1996).
+\newblock Efficient Metropolis jumping rules.
+\newblock In \emph{Bayesian Statistics, 5 (Alicante, 1994)}, pp.~599--607.
+  Oxford University Press.
+
+\bibitem[Geyer(1992)]{practical}
+Geyer, C.~J. (1992).
+\newblock Practical Markov chain Monte Carlo (with discussion).
+\newblock \emph{Statistical Science}, 7, 473--511.
+
+\bibitem[Geyer and Thompson(1995)]{geyer-temp}
+Geyer, C.~J. and E.~A. Thompson (1995).
+\newblock Annealing Markov chain Monte Carlo with applications to
+    ancestral inference.
+\newblock \emph{Journal of the American Statistical Association}, 90, 909--920.
+
+\bibitem[Johnson and Geyer(submitted)]{johnson-geyer}
+Johnson, L.~T. and C.~J. Geyer (submitted).
+\newblock Variable Transformation to Obtain Geometric Ergodicity
+    in the Random-walk Metropolis Algorithm.
+\newblock \emph{Annals of Statistics}.
+
+\end{thebibliography}
+
+\end{document}

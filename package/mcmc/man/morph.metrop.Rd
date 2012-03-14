@@ -63,7 +63,7 @@ morph.metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1,
   modified in subsequent calls.  See \code{\link{metrop}} for more details.
 
   The general idea is that a random-walk Metropolis sampler
-  (what \code{\link{metrop}} does) will not be geometrically 
+  (what \code{\link{metrop}} does) will not be geometrically
   ergodic unless the tails of the unnormalized density decrease
   superexponentially fast (so the tails of the log unnormalized density
   decrease faster than linearly).  It may not be geometrically ergodic
