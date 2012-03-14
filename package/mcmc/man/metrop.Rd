@@ -40,15 +40,26 @@ metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1, outfun,
   \item{...}{additional arguments for \code{obj} or \code{outfun}.}
 }
 \details{
-Runs a \dQuote{random-walk} Metropolis algorithm with multivariate normal
-proposal
+Runs a \dQuote{random-walk} Metropolis algorithm, terminology introduced
+by Tierney (1994), with multivariate normal proposal
 producing a Markov chain with equilibrium distribution having a specified
 unnormalized density.  Distribution must be continuous.  Support of the
 distribution is the support of the density specified by argument \code{obj}.
-The initial state must satisfy \code{obj(state, ...) > 0}.
+The initial state must satisfy \code{obj(state, ...) > - Inf}.
 Description of a complete MCMC analysis (Bayesian logistic regression)
 using this function can be found in the vignette \code{demo}
 (\url{../doc/demo.pdf}).
+
+Suppose the function coded by the log unnormalized function (either
+\code{obj} or \code{obj$lud}) is actually a log unnormalized density,
+that is, if \eqn{w} denotes that function, then \eqn{e^w}{exp(w)} integrates
+to some value strictly between zero and infinity.  Then the \code{metrop}
+function always simulates a reversible, Harris ergodic Markov chain having
+the equilibrium distribution with this log unnormalized density.
+The chain is not guaranteed to be geometrically ergodic.  In fact it cannot
+be geometrically ergodic if the tails of the log unnormalized density are
+suficiently heavy.  The \code{\link{morph.metrop}} function deals with this
+situation.
 }
 \value{
   an object of class \code{"mcmc"}, subclass \code{"metropolis"},
@@ -100,6 +111,14 @@ unnormalized density function and \code{outfun} to have only one argument
 \code{state} and use global variables (objects in the R global environment) to
 specify any other information these functions need to use.  That too
 follows the R way.  But some people consider that bad programming practice.
+}
+\references{
+Tierney, L. (1994)
+Markov chains for exploring posterior distributions (with discussion).
+\emph{Annals of Statistics} \bold{22} 1701--1762.
+}
+\seealso{
+\code{\link{morph.metrop}}
 }
 \examples{
 h <- function(x) if (all(x >= 0) && sum(x) <= 1) return(1) else return(-Inf)

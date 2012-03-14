@@ -45,7 +45,7 @@ morph.metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1,
   of \eqn{f^{-1}}.  Because \eqn{f} is a diffeomorphism, a Markov chain
   for \eqn{f_Y}{fY} may be transformed into a Markov chain for
   \eqn{f_X}{fX}.  Furthermore, these Markov chains are isomorphic
-  (Johnson and Geyer(submitted)) and have the same convergence rate.
+  (Johnson and Geyer, submitted) and have the same convergence rate.
   The \code{\link{morph}} variable provides a diffeomorphism,
   \code{morph.metrop} uses this diffeomorphism to induce the log
   unnormalized density, \eqn{\log f_Y}{log fY} based on the user
@@ -61,6 +61,49 @@ morph.metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1,
 
   Any of the other parameters to \code{morph.metrop} may also be
   modified in subsequent calls.  See \code{\link{metrop}} for more details.
+
+  The general idea is that a random-walk Metropolis sampler
+  (what \code{\link{metrop}} does) will not be geometrically 
+  ergodic unless the tails of the unnormalized density decrease
+  superexponentially fast (so the tails of the log unnormalized density
+  decrease faster than linearly).  It may not be geometrically ergodic
+  even then (see Johnson and Geyer, submitted, for the complete theory).
+  The transformations used by this function (provided by \code{\link{morph}})
+  can produce geometrically ergodic chains when the tails of the log
+  unnormalized density are too light for \code{\link{metrop}} to do so.
+
+  When the tails of the unnormalized density are exponentially light but
+  not superexponentially light (so the tails of the log unnormalized density
+  are asymptotically linear, as in the case of exponential family models
+  when conjugate priors are used, for example logistic regression, Poisson
+  regression with log link, or log-linear models for categorical data), one
+  should use \code{\link{morph}} with \code{b = 0} (the default), which
+  produces a transformation of the form \eqn{g_1}{g1} in the notation
+  used in the details section of the help for \code{\link{morph}}.
+  This will produce a geometrically ergodic sampler if other features of the
+  log unnormalized density are well behaved.  For example it will do so
+  for the exponential family examples mentioned above.
+  (See Johnson and Geyer, submitted, for the complete theory.)
+
+  The transformation \eqn{g_1}{g1} behaves like a shift transformation
+  on a ball of radius \code{r} centered at \code{center}, so these arguments
+  to \code{\link{morph}} should be chosen so that a sizable proportion of
+  the probability under the original (untransformed) unnormalized density
+  is contained in this ball.  This function will work when \code{r = 0} and
+  \code{center = 0} (the defaults) are used, but may not work as well as when
+  \code{r} and \code{center} are well chosen.
+
+  When the tails of the unnormalized density are not exponentially light
+  (so the tails of the log unnormalized density decrease sublinearly, as
+  in the case of univariate and multivariate \eqn{t} distributions), one
+  should use \code{\link{morph}} with \code{r > 0} and \code{p = 3}, which
+  produces a transformation of the form \eqn{g_2}{g2} composed
+  with \eqn{g_1}{g1} in the notation
+  used in the details section of the help for \code{\link{morph}}.
+  This will produce a geometrically ergodic sampler if other features of the
+  log unnormalized density are well behaved.  For example it will do so
+  for the \eqn{t} examples mentioned above.
+  (See Johnson and Geyer, submitted, for the complete theory.)
 }
 \value{
   an object of class \code{mcmc}, subclass \code{morph.metropolis}.

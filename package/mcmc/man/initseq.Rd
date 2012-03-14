@@ -38,7 +38,7 @@ estimators applied to the batch means give valid standard errors for the
 mean of the match means even when the batch length is too short to provide
 a valid estimate of asymptotic variance.  One does, of course, have to
 multiply the asymptotic variance of the batch means by the batch length
-to get the asymptotic variance for the unbached chain.
+to get the asymptotic variance for the unbatched chain.
 }
 \value{
 a list containing the following components:
