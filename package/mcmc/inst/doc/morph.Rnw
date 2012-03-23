@@ -20,7 +20,7 @@ foo <- packageDescription("mcmc")
 @
 
 \title{Morphemetric MCMC Example (mcmc Version \Sexpr{foo$Version})}
-\author{Leif T. Johnson}
+\author{Leif T. Johnson \\ and Charles J. Geyer}
 \maketitle
 
 \section{Overview}
@@ -29,7 +29,35 @@ This is an example how to use morphemetric Markov chains as implemented in
 the \verb@mcmc@ package in R.
 
 Let $X$ be a $\mathbb{R}^k$ valued random variable with probability density
-function (pdf), $f_X$.  
+function (pdf), $f_X$.  Let $g$ be a diffeomorphism, and $Y=g(X)$.  Then the 
+pdf of $Y$, $f_Y$ is given by the equation
+\begin{equation}\label{eq:def-fy}
+  f_Y(y) = f_X\bigl(g^{-1}(y)\bigr) | \nabla g^{-1}(y) |.
+\end{equation}
+Since $g$ is a diffeomorphism, we can draw inference about $X$ from information 
+about $Y$ (and vice versa).  
+
+It is not unusual for $f_X$ to either be known only up to a normalizing 
+constant, or to be analytically intractable in other ways --- such as a large 
+number of dimensions.  A common solution to this problem is to use Markov chain
+Monte Carlo (MCMC) methods to learn about $f_X$ when this happens.
+
+When using MCMC, a primary concern of the practicioner should be the question 
+"Does the Markov chain converge fast enough to be useful?"  One very useful 
+convergence rate is called \emph{geometrically ergodic} \textbf{CITE SOMETHING 
+HERE}.
+
+The \texttt{mcmc} package implements the Metropolis random-walk algorithm for 
+arbitrary log unnormalized probability densities.  But the Metropolis 
+random-walk algorithm does not always perform well.  As is demonstrated in 
+\citet{johnson-geyer}, for one-to-one densities, $f_X$ and $f_Y$ defined as in
+\eqref{eq:def-fy} a Metropolis random-walk $f_Y$ can be geometrically ergodic 
+even though a Metropolis random-walk for $f_X$ is not.  Since the densities are
+one-to-one, inference about $f_X$ can be drawn from the Markov chain for $f_Y$.
+
+The \texttt{morph.metrop} and \texttt{morph} functions in the \texttt{mcmc} 
+package provide this functionality, and this vignette gives a demonstration
+on how to use them.
 
 \begin{thebibliography}{}
 
