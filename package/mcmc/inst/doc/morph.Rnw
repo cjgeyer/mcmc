@@ -20,6 +20,7 @@ foo <- packageDescription("mcmc")
 @
 
 \title{Morphemetric MCMC Example (mcmc Version \Sexpr{foo$Version})}
+% $ (Just to make emacs syntax highlighting work properly)
 \author{Leif T. Johnson \\ and Charles J. Geyer}
 \maketitle
 
@@ -59,6 +60,50 @@ The \texttt{morph.metrop} and \texttt{morph} functions in the \texttt{mcmc}
 package provide this functionality, and this vignette gives a demonstration
 on how to use them.
 
+\section{$T$ Distribution}
+
+\citet{johnson-geyer}[Example 4.2] show that a T distribution is
+sub-exponentially light, and hence a Metropolis random-walk for a $T$
+density cannot be geometrically ergodic, but, using the transformations
+described in their Corollaries 1 and 2 will induce a target density,
+$\pi_\gamma$ for which a Metropolis random-walk will be geometrically
+ergodic.  In fact, we know from \citet{mengersen-tweedie} that for a
+univariate target density, being exponentially light is a sufficient
+condition for the geometric ergodicity of a Metropolis random-walk.  Hence
+using the transformation described as $h_2$ in
+\citet{johnson-geyer}[Corollary 2] will induce a target density for which a
+Metroplis random-walk will be geometrically ergodic.  This section
+demonstrates how to do this using the \texttt{mcmc} package for
+\texttt{R}.  We will use a univariate $T$ distribution with 3 degrees of
+freedom for a target density.
+
+Passing a positive value for \texttt{b} to \texttt{morph} function will
+create the aforementioned transformation, $h_2$.  It's as simple as 
+<<>>=
+library(mcmc)
+h2 <- morph(b=1)
+@ 
+We can now see the induced density.  Note that \texttt{morph} works for
+log unnormalized densities, so we need exponentiate the induced density to
+plot it on the usual scale.
+<<>>=
+lud <- function(x) dt(x, df=3, log=TRUE)
+lud.induced <- h2$lud(lud)
+@ 
+We can plot the two densities,
+<<fig=TRUE>>=
+x <- seq(-3, 3, length.out=400)
+plot(x, exp(sapply(x, lud.induced)), lty=2, type="l",
+     xlab="t", ylab="")
+lines(x, exp(lud(x)), lty=1)
+legend("topright", c("t-density", "induced density"), lty=1:2)
+@ 
+
+
+
+
+\section{Multinomial Distribution with a Conjugate Prior}
+
 \begin{thebibliography}{}
 
 \bibitem[Gelman et al.(1996)Gelman, Roberts, and Gilks]{grg}
@@ -83,6 +128,11 @@ Johnson, L.~T. and C.~J. Geyer (submitted).
 \newblock Variable Transformation to Obtain Geometric Ergodicity
     in the Random-walk Metropolis Algorithm.
 \newblock \emph{Annals of Statistics}.
+
+\bibitem[Mengersen and Tweedie(1996)]{mengersen-tweedie}
+  Mengersen, K.L. ad R. L. Tweedie (1996).
+\newblock Rates of convergence of the {H}astings and {M}etropolis algorithms.
+\newblock \emph{Annals of Statistics}, 24, 101--121.
 
 \end{thebibliography}
 
