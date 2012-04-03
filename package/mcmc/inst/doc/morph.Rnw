@@ -98,9 +98,20 @@ plot(x, exp(sapply(x, lud.induced)), lty=2, type="l",
 lines(x, exp(lud(x)), lty=1)
 legend("topright", c("t-density", "induced density"), lty=1:2)
 @ 
-
-
-
+The \texttt{sapply} in this example is necessary, \texttt{lud.induced} is not 
+vectorized.  Instead, it treats any vector passed as a single input, which
+is rescaled (using an isomorphic transformation) and passed to
+\texttt{lud}.  Compare the behavior of \texttt{lud} and
+\texttt{lud.induced} in the following example.
+<<>>=
+lud(rep(0, 4))
+lud(1)
+lud.induced(rep(0, 4))
+lud.induced(1)
+@
+Because \texttt{dt} is vectorized, \texttt{lud} is vectorized so it maps 
+vectors to vectors, but \texttt{lud.induced} treats the vector as a single
+input.
 
 \section{Multinomial Distribution with a Conjugate Prior}
 
