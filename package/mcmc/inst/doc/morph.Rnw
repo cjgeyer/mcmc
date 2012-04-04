@@ -9,6 +9,7 @@
 
 \DeclareMathOperator{\var}{var}
 \DeclareMathOperator{\cov}{cov}
+\DeclareMathOperator{\E}{E}
 
 % \VignetteIndexEntry{MCMC Morph Example}
 
@@ -111,7 +112,63 @@ lud.induced(1)
 @
 Because \texttt{dt} is vectorized, \texttt{lud} is vectorized so it maps 
 vectors to vectors, but \texttt{lud.induced} treats the vector as a single
-input.
+input, which is transformed and passed to \texttt{lud}.
+
+Running a Markov chain for the induced density is done with
+\texttt{morph.metrop}.
+<<>>=
+out <- morph.metrop(lud, 0, blen=100, nbatch=100, morph=morph(b=1))
+@ 
+The content of \texttt{out\$batch} is on the scale of used by
+\texttt{lud}.  Once the transformation has been set, no adjustment is
+needed (unless you want to change transformations).  We start by adjusting
+the scale.
+<<>>=
+# adjust scale to find a roughly 20% acceptance rate
+out$accept
+@ 
+An acceptance rate of \Sexpr{round(100 * out$accept, 1)}\%
+%$ to fix emacs highlighting
+is probably too high.  By increasing the scale of the proposal distribution
+we can bring it down towards 20\%.
+<<>>=
+out <- morph.metrop(out, scale=4)
+out$accept
+@ 
+We now use this Markov chain to estimate 
+\begin{equation}\label{eq:e-abs-t}
+  \E(|T|)
+\end{equation}
+for the $T$ distribution with 3 degrees of freedom.  We'll start with an
+estimate from 1000 iterations of the chain.  
+<<>>=
+out <- morph.metrop(out, blen=1, nbatch=1e4, outfun=abs)
+@ 
+We're going to use over-lapping batch means to estimate \eqref{eq:e-abs-t},
+but first we need to establish a reasonable batch length.
+<<fig=TRUE>>=
+acf(out$batch, lag.max=200)
+@ 
+It looks like a batch length of 100 will be sufficiently long.
+<<>>=
+mcse <- sqrt(olbm(out$batch, 100))
+est.mean <- colMeans(out$batch)
+est.mean
+mcse
+@ 
+The variable \texttt{est.mean} gives our MCMC estimate of
+\eqref{eq:e-abs-t} and \texttt{mcse} gives the Monte Carlo standard error
+of our estimate.  Because the underlying Markov chain is geometrically
+ergodic and $\E(|T|^2)$ is finite, there is a central limit theorem for our
+estimate.  The confidence interval for \eqref{eq:e-abs-t} is given by
+<<>>=
+est.mean + mcse * 1.96 * c(-1,1)
+@ 
+If a narrower confidence interval is desired, the Markov chain can be run
+longer.
+
+Note that when calculating our estimate and the Monte Carlo standard error
+we were not concerned with what was happening on the transformed scale.
 
 \section{Multinomial Distribution with a Conjugate Prior}
 
