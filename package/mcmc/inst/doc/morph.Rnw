@@ -168,7 +168,59 @@ If a narrower confidence interval is desired, the Markov chain can be run
 longer.
 
 Note that when calculating our estimate and the Monte Carlo standard error
-we were not concerned with what was happening on the transformed scale.
+we are not concerned with what was happening on the transformed scale.  The
+\texttt{morph.metrop} function seamlessly does this for us.
+
+\subsection{Simulation Study}
+
+<<>>=
+n.sims <- 100
+n.iter <- 1000
+@ 
+
+To show the utility of the transformation, we will study the distribution
+of estimates of $\E(|T|)$ for a univariate $T$ random variable with three
+degrees of freedom.  We will consider two different estimation methods:
+\begin{enumerate}
+\item \label{enum:rw} We will estimate $\E(|T|)$ using a random-walk Metropolis algorithm
+for the $T$ density by using the \texttt{metrop} function.
+\citet{jarner-roberts} demonstrate that a central limit theorem does not
+hold for these estimates.
+\item \label{enum:rw-induced} We will
+estimate $\E(|T|)$ using a random-walk Metroplis algorithm for the density
+induced by setting \texttt{b=1} in the \texttt{morph.metrop} function.
+\citet{johnson-geyer} demonstrate that a central limit does hold for these estimates.
+\end{enumerate}
+
+To demostrate this, we will estimate $\E(|T|)$ \texttt{n.sims =
+  \Sexpr{n.sims}} times with each method, in each case using a Markov chain
+\texttt{n.iter = \Sexpr{n.iter}} iterations long, and then examine the
+normality of the resulting estimates.
+
+We have already determined that for the induced density, a scale of 4 is
+about right.  Before doing the simulations we will establish a reasonable
+scale to use for the random-walk Metropolis altorithm run for the $T$
+density.
+
+<<>>=
+out <- metrop(lud, 0, blen=1000, nbatch=1)
+out$accept
+out <- metrop(out, scale=4)
+out$accept
+out <- metrop(out, scale=6)
+out$accept
+@ 
+A scale of 6 appears to be about right.  It's now easy to run these
+simulations.
+
+<<runsims>>=
+t.estimates <- replicate(n.iter, metrop(lud, 0, blen=1000, nbatch=1,
+                                        outfun=abs)$batch)
+induced.estimates <- replicate(n.iter, morph.metrop(lud, 0, blen=1000, nbatch=1,
+                                                    outfun=abs, morph=morph(b=1))$batch)
+
+@ 
+
 
 \section{Multinomial Distribution with a Conjugate Prior}
 
@@ -189,7 +241,14 @@ Geyer, C.~J. (1992).
 Geyer, C.~J. and E.~A. Thompson (1995).
 \newblock Annealing Markov chain Monte Carlo with applications to
     ancestral inference.
-\newblock \emph{Journal of the American Statistical Association}, 90, 909--920.
+\newblock \emph{Journal of the American Statistical Association}, 90,
+909--920.
+
+\bibitem[Jarner and Roberts(2007)]{jarner-roberts}
+Jarner, S.F. and G.O. Roberts (2007).
+\newblock {C}onvergence of {H}eavy-tailed {M}onte {C}arlo {M}arkov {C}hain
+  Algorithms.
+\newblock \emph{Scandinavian Journal of Statistics}, 34, 781--815.
 
 \bibitem[Johnson and Geyer(submitted)]{johnson-geyer}
 Johnson, L.~T. and C.~J. Geyer (submitted).
