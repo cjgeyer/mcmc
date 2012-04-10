@@ -175,7 +175,7 @@ we are not concerned with what was happening on the transformed scale.  The
 
 <<>>=
 n.sims <- 100
-n.iter <- 1000
+n.iter <- 1500
 @ 
 
 To show the utility of the transformation, we will study the distribution
@@ -221,6 +221,60 @@ induced.estimates <- replicate(n.iter, morph.metrop(lud, 0, blen=1000, nbatch=1,
 
 @ 
 
+Now we can look at the distribution of our estimates.  Since this is a
+``toy'' example, we can establish a truth value using Good Old Fashioned
+Monte Carlo (GOFMC).
+
+<<establishtruth>>=
+n.truth <- 1000000
+t.values <- abs(rt(n.truth, df=3))
+truth <- mean(t.values)
+truth.se <- 1.96 * sd(t.values) / sqrt(n.truth)
+truth
+truth.se
+@
+This estimates the true value out to $\pm \Sexpr{signif(truth.se, 1)}$.
+
+First, we look at histograms of the estimates.
+
+<<fig=TRUE>>=
+par(mfrow=c(1,2))
+hist(t.estimates, xlab="", main="Estimates from R-W on T")
+lines(rep(truth, 2), c(0, length(t.estimates)), col="red")
+lines(rep(mean(t.estimates), 2), c(0, length(t.estimates)), lty=2)
+hist(induced.estimates, xlab="",
+     main="Estimates from R-W\non Induced Distribution")
+lines(rep(truth, 2), c(0, length(induced.estimates)), col="red")
+lines(rep(mean(induced.estimates), 2), c(0, length(induced.estimates)), lty=2)
+@ 
+
+Notice that the distribution coming from the estimates based on the
+random-walk Metropolis algorithm for the induced
+density are symmetric and follow a normal distribution, but the estimates
+based on the random-walk Metropolis algorithm for the $T$ density do not
+follow a symmetric distribution.
+
+The following Q-Q plots for the standardized estimates support this theory.
+
+<<fig=TRUE>>=
+par(mfrow=c(1,2))
+t.standardized <- t.estimates - mean(t.estimates) / sd(t.estimates)
+induced.standardized <- induced.estimates - mean(induced.estimates) / sd(induced.estimates)
+qqnorm(t.standardized, main="Q-Q Plot\nEstimates from T")
+qqline(t.standardized)
+qqnorm(induced.standardized, main="Q-Q Plot\nEstimates from Induced Density")
+qqline(induced.standardized)
+@ 
+
+Finally, we can examine the normality of the estimates with a
+Komogorov-Smirnov test.
+
+<<>>=
+t.kstest <- ks.test(t.standardized, pnorm)
+induced.kstest <- ks.test(induced.standardized, pnorm)
+t.kstest$p.value
+induced.kstest$p.value
+@ 
 
 \section{Multinomial Distribution with a Conjugate Prior}
 
