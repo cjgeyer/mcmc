@@ -1,4 +1,3 @@
-
 \documentclass{article}
 
 \usepackage{natbib}
@@ -175,7 +174,7 @@ we are not concerned with what was happening on the transformed scale.  The
 
 <<>>=
 n.sims <- 100
-n.iter <- 1500
+n.iter <- 5000
 @ 
 
 To show the utility of the transformation, we will study the distribution
@@ -186,16 +185,16 @@ degrees of freedom.  We will consider two different estimation methods:
 for the $T$ density by using the \texttt{metrop} function.
 \citet{jarner-roberts} demonstrate that a central limit theorem does not
 hold for these estimates.
-\item \label{enum:rw-induced} We will
-estimate $\E(|T|)$ using a random-walk Metroplis algorithm for the density
-induced by setting \texttt{b=1} in the \texttt{morph.metrop} function.
-\citet{johnson-geyer} demonstrate that a central limit does hold for these estimates.
+\item \label{enum:rw-induced} We will estimate $\E(|T|)$ using a
+  random-walk Metroplis algorithm for the density induced by setting
+  \texttt{b=1} in the \texttt{morph.metrop} function.
+  \citet{johnson-geyer} demonstrate that a central limit does hold for
+  these estimates.
 \end{enumerate}
 
-To demostrate this, we will estimate $\E(|T|)$ \texttt{n.sims =
-  \Sexpr{n.sims}} times with each method, in each case using a Markov chain
-\texttt{n.iter = \Sexpr{n.iter}} iterations long, and then examine the
-normality of the resulting estimates.
+To demonstrate this we will estimate $\E(|T|)$ \Sexpr{n.sims} times with
+each method, in each case using a Markov chain \Sexpr{n.iter} iterations
+long, and then examine the normality of the resulting estimates.
 
 We have already determined that for the induced density, a scale of 4 is
 about right.  Before doing the simulations we will establish a reasonable
@@ -276,7 +275,40 @@ t.kstest$p.value
 induced.kstest$p.value
 @ 
 
-\section{Multinomial Distribution with a Conjugate Prior}
+\section{Binomial Distribution with a Conjugate Prior}
+
+We demonstrate a morphemetric Markov chain using the \textttt{UCBAdmisions}
+data set included in \texttt{R}, (use \texttt{help(UCBAdmissions)} to see
+details of this data set).  We will model the probability of a student
+being admitted or rejected, using the sex of the student and the department
+that the student applied to as predictor variables.  For our prior, we
+naively assume that 30\% of all students are admitted, independent of sex
+or department.  As this is a naive prior, we will not give it much weight
+and allow most of the information in the posterior distribution to come
+from the data.
+
+First we will convert the data to a more convenient format.  The
+\texttt{UCAdmissions} data is stored in a table format, we convert it to a
+\texttt{data.frame}.
+<<convert>>=
+dat <- as.data.frame(UCBAdmissions)
+dat.split <- split(dat, dat$Admit)
+dat.split <- lapply(dat.split,
+                    function(d) {
+                      val <- as.character(d$Admit[1])
+                      d["Admit"] <- NULL
+                      names(d)[names(d) == "Freq"] <- val
+                      d
+                    })
+dat <- merge(dat.split[[1]], dat.split[[2]])
+@ 
+
+Next we build the model matrix.
+<<>>=
+formula <- cbind(Admitted, Rejected) ~ (Sex + Dept)^2
+utils::str(m <- model.frame(formula, dat))
+mat <- model.matrix(ff, m)
+@ 
 
 \begin{thebibliography}{}
 
