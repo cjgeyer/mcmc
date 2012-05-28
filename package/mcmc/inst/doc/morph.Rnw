@@ -9,6 +9,7 @@
 \DeclareMathOperator{\var}{var}
 \DeclareMathOperator{\cov}{cov}
 \DeclareMathOperator{\E}{E}
+\newcommand{\inner}[1]{\langle #1 \rangle}
 
 % \VignetteIndexEntry{MCMC Morph Example}
 
@@ -173,18 +174,18 @@ we are not concerned with what was happening on the transformed scale.  The
 \subsection{Simulation Study}
 
 <<>>=
-n.sims <- 100
-n.iter <- 5000
+n.sims <- 300
+n.iter <- 2000
 @ 
 
 To show the utility of the transformation, we will study the distribution
 of estimates of $\E(|T|)$ for a univariate $T$ random variable with three
 degrees of freedom.  We will consider two different estimation methods:
 \begin{enumerate}
-\item \label{enum:rw} We will estimate $\E(|T|)$ using a random-walk Metropolis algorithm
-for the $T$ density by using the \texttt{metrop} function.
-\citet{jarner-roberts} demonstrate that a central limit theorem does not
-hold for these estimates.
+\item \label{enum:rw} We will estimate $\E(|T|)$ using a random-walk
+  Metropolis algorithm for the $T$ density by using the \texttt{metrop}
+  function.  \citet{jarner-roberts} demonstrate that a central limit
+  theorem does not hold for these estimates.
 \item \label{enum:rw-induced} We will estimate $\E(|T|)$ using a
   random-walk Metroplis algorithm for the density induced by setting
   \texttt{b=1} in the \texttt{morph.metrop} function.
@@ -213,11 +214,13 @@ A scale of 6 appears to be about right.  It's now easy to run these
 simulations.
 
 <<runsims>>=
-t.estimates <- replicate(n.iter, metrop(lud, 0, blen=1000, nbatch=1,
-                                        outfun=abs)$batch)
-induced.estimates <- replicate(n.iter, morph.metrop(lud, 0, blen=1000, nbatch=1,
-                                                    outfun=abs, morph=morph(b=1))$batch)
-
+t.estimates <- 
+  replicate(n.sims, 
+            metrop(lud, 0, blen=n.iter, nbatch=1, scale=6, outfun=abs)$batch)
+induced.estimates <- 
+  replicate(n.sims, 
+            morph.metrop(lud, 0, blen=n.iter, nbatch=1, scale=4, outfun=abs, 
+                         nspac=1, morph=morph(b=1))$batch)
 @ 
 
 Now we can look at the distribution of our estimates.  Since this is a
@@ -234,7 +237,7 @@ truth.se
 @
 This estimates the true value out to $\pm \Sexpr{signif(truth.se, 1)}$.
 
-First, we look at histograms of the estimates.
+Next we can look at histograms of the estimates.
 
 <<fig=TRUE>>=
 par(mfrow=c(1,2))
@@ -251,45 +254,118 @@ Notice that the distribution coming from the estimates based on the
 random-walk Metropolis algorithm for the induced
 density are symmetric and follow a normal distribution, but the estimates
 based on the random-walk Metropolis algorithm for the $T$ density do not
-follow a symmetric distribution.
+follow a symmetric distribution.  
+
+We can also look at mean value of our estimates (which are themselves mean
+values).  
+<<t-abs-mean-estimates>>=
+mean(t.estimates)
+sd(t.estimates) / sqrt(length(t.estimates))
+mean(t.estimates) + 
+  sd(t.estimates) / sqrt(length(t.estimates)) * 1.96 * c(-1, 1)
+mean(induced.estimates)
+sd(induced.estimates) / sqrt(length(induced.estimates))
+mean(induced.estimates) + 
+  sd(induced.estimates) / sqrt(length(induced.estimates)) * 1.96 * c(-1, 1)
+@ 
 
 The following Q-Q plots for the standardized estimates support this theory.
 
 <<fig=TRUE>>=
 par(mfrow=c(1,2))
-t.standardized <- t.estimates - mean(t.estimates) / sd(t.estimates)
-induced.standardized <- induced.estimates - mean(induced.estimates) / sd(induced.estimates)
+t.standardized <- (t.estimates - mean(t.estimates)) / sd(t.estimates)
+induced.standardized <- 
+  (induced.estimates - mean(induced.estimates)) / sd(induced.estimates)
 qqnorm(t.standardized, main="Q-Q Plot\nEstimates from T")
 qqline(t.standardized)
 qqnorm(induced.standardized, main="Q-Q Plot\nEstimates from Induced Density")
 qqline(induced.standardized)
 @ 
 
-Finally, we can examine the normality of the estimates with a
-Komogorov-Smirnov test.
+Finally, we can examine the normality of the estimates with
+Komogorov-Smirnov tests.
 
-<<>>=
+<<abs-t-kstest>>=
 t.kstest <- ks.test(t.standardized, pnorm)
 induced.kstest <- ks.test(induced.standardized, pnorm)
 t.kstest$p.value
 induced.kstest$p.value
 @ 
 
+Comparing the standardized estimates to a Normal$(0, 1)$ distribution gives
+the p-values of \Sexpr{signif(t.kstest[["p.value"]], 3)} for the standardized 
+estimates coming from the random-walk Metropolis algorithm for the
+$t$-density, and \Sexpr{signif(induced.kstest[["p.value"]], 3)}
+for the estimates coming from the random-walk Metropolis algorithm for the 
+induced density.  Thus, there is strong evidence that the esimates deriving
+from the un-transformed $t$-density do not follow a Normal distribution,
+but there is \emph{no} evidence that the estimates deriving from the induced
+density \emph{do not} follow a Normal distribution.  
+
 \section{Binomial Distribution with a Conjugate Prior}
 
-We demonstrate a morphemetric Markov chain using the \textttt{UCBAdmisions}
+We demonstrate a morphemetric Markov chain using the \texttt{UCBAdmisions}
 data set included in \texttt{R}, (use \texttt{help(UCBAdmissions)} to see
 details of this data set).  We will model the probability of a student
 being admitted or rejected, using the sex of the student and the department
 that the student applied to as predictor variables.  For our prior, we
 naively assume that 30\% of all students are admitted, independent of sex
-or department.  As this is a naive prior, we will not give it much weight
-and allow most of the information in the posterior distribution to come
-from the data.
+or department.  As this is a naive prior, we will only add 5 students to
+each gender-department combination.  This will not give the prior much
+weight, most of the information in the posterior distribution will be from
+the data.
 
-First we will convert the data to a more convenient format.  The
-\texttt{UCAdmissions} data is stored in a table format, we convert it to a
-\texttt{data.frame}.
+If we have $L$ observations from a multinomial distribution, then using a
+multinomial logit-link, with model matricies $M^1,\dots,M^L$, regression
+parameter $\beta$, observed counts $Y^1,\dots,Y^N$ with observed sample
+sizes $N^1,\dots,N^L$ and prior probabilities $\xi^1, \dots, \xi^L$ and
+prior ``sample sizes'' $\nu^1,\dots,\nu^L$ then the posterior distribution
+of $\beta$ is given by \citep{johnson-thesis}[Sec. 5.1.2]
+\begin{equation}\label{eq:mult-post-conj-complicated}
+\pi(\beta|y,n,\xi,\nu) \propto \exp\biggl\{ \sum_{l=1}^L \inner{y^l + \xi^l
+    \nu^l, M^l \beta} - (n^l + \nu^l) \log\bigl(
+    \sum_j e^{M_{j\cdot} \beta} \bigr) \biggr\}
+\end{equation}
+where $\inner{a, b}$ denotes the usual inner product between vectors $a$
+and $b$.  For our application, we can simplify this in two ways.
+
+First, we use the posterior counts instead of the sum of the prior and data
+counts, i.e. use $y^{*l} = y^l + \xi^l \nu^l$ and $n^{*l} = n^l + \nu^l$.
+
+Second, to avoid having a direction of recession in $\pi(\beta|\cdot)$, we
+need to fix the elements of $\beta$ that correspond with one of the
+response categories.  Since we are going to fitting a binomial response, if
+we set these elements of $\beta$ to be $0$, we may then replace the
+sequence of model matricies with a single model matrix; $M$ instead of
+$M^1,\dots,M^L$.  The $l^{th}$ row of $M$ will correspond to $M^l$.  Label
+the two response categories $A$ and $B$.  Without loss of generality, we
+will fix the elements of $\beta$ corresponding to category $B$ to 0.
+
+Let $x_1,\dots,x_L$ represent the posterior counts of category $A$, and
+$\beta^*$ represent the corresponding elements of $\beta$ --- these are the
+elements of $\beta$ we did not fix as 0.  The meaning of
+$n^{*1},\dots,n^{*L}$ is unchanged.  Then our simplified un-nomralized
+posterior density is
+\begin{equation}\label{eq:simplified-posterior}
+  \pi(\beta|x,n^*) \propto
+  \exp\biggl\{
+    \inner{x, M \beta^*} 
+    - 
+    \sum_{l=1}^L n^{*l} \log\bigl(1 + e^{(M \beta^*)_l}\bigr)
+  \biggr\}.
+\end{equation}
+This can be computed with a very simple \texttt{R} function, we implement
+it in log form.
+<<def-posterior-binom>>=
+lud.binom <- function(beta, M, x, n) {
+  MB <- M %*% beta
+  sum(x * MB) - sum(n * log(1 + exp(MB)))
+}
+@ 
+
+Now that we have a function to calculate a log-unnormalized posterior
+density, we can run the markov chain.  To that, we need the model matrix.
+First we convert the \texttt{UCAdmissions} data to a \texttt{data.frame}.
 <<convert>>=
 dat <- as.data.frame(UCBAdmissions)
 dat.split <- split(dat, dat$Admit)
@@ -303,12 +379,61 @@ dat.split <- lapply(dat.split,
 dat <- merge(dat.split[[1]], dat.split[[2]])
 @ 
 
-Next we build the model matrix.
-<<>>=
-formula <- cbind(Admitted, Rejected) ~ (Sex + Dept)^2
-utils::str(m <- model.frame(formula, dat))
-mat <- model.matrix(ff, m)
+Next we build the model matrix.  Our model specification allows for an
+interaction between gender and departement, even though our prior assumes
+that they are independent.
+<<build-model-matrix>>=
+formula <- cbind(Admitted, Rejected) ~ (Gender + Dept)^2
+mf <- model.frame(formula, dat)
+M <- model.matrix(formula, mf)
 @ 
+
+As stated above, we will take $\nu = 5$ and $\xi=0.30$.  That is, we will
+add 5 students to each gender-department combination, where each
+combination has a 30\% acceptance rate.
+<<>>=
+xi <- 0.30
+nu <- 5
+@ 
+
+<<lud-binom>>=
+lud.berkeley <- function(B) 
+  lud.binom(B, M, dat$Admitted + xi * nu, dat$Admitted + dat$Rejected + nu)
+@ 
+
+This function is suitable for passing to \texttt{metrop} or
+\texttt{morph.metrop}.  We know that using \texttt{morph.metrop} with 
+\texttt{morph=morph(p=3)} will run a geometrically ergodic Markov chain
+\citep{johnson-geyer}.
+<<>>=
+berkeley.out <- morph.metrop(lud.berkeley, rep(0, ncol(M)), blen=1000, 
+                             nbatch=1, scale=0.1, morph=morph(p=3))
+berkeley.out$accept
+berkeley.out <- morph.metrop(berkeley.out, scale=0.05)
+berkeley.out$accept
+berkeley.out <- morph.metrop(berkeley.out, scale=0.02)
+berkeley.out$accept
+berkeley.out <- morph.metrop(berkeley.out, blen=10000)
+berkeley.out$accept
+@ 
+
+<<>>=
+berkeley.out <- morph.metrop(berkeley.out, blen=1, nbatch=100000)
+@ 
+
+Estimate the posterior mean acceptance probabilities for each
+gender-department combination.
+<<>>=
+beta <- setNames(colMeans(berkeley.out$batch), colnames(M))
+MB <- M %*% beta
+dat$p <- dat$Admitted / (dat$Admitted + dat$Rejected)
+dat$p.post <- exp(MB) / (1 + exp(MB))
+dat
+@ 
+The small difference between the data and posterior probabilities is
+expected, our prior was given very little weight.  Using
+\texttt{morph.metrop} with the setting \texttt{morph=morph(p=3)} in this
+setting is an efficient way of sampling from the posterior distribution.
 
 \begin{thebibliography}{}
 
@@ -335,6 +460,12 @@ Jarner, S.F. and G.O. Roberts (2007).
 \newblock {C}onvergence of {H}eavy-tailed {M}onte {C}arlo {M}arkov {C}hain
   Algorithms.
 \newblock \emph{Scandinavian Journal of Statistics}, 34, 781--815.
+
+\bibitem[Johnson(2011)]{johnson-thesis}
+Johnson, L.~T. (2011).
+\newblock Geometric Ergodicity of a Random-Walk Metropolis Algorithm via
+  Variable Transformation and Computer Aided Reasoning in Statistics.
+\newblock \emph{University of Minesota}.
 
 \bibitem[Johnson and Geyer(submitted)]{johnson-geyer}
 Johnson, L.~T. and C.~J. Geyer (submitted).
