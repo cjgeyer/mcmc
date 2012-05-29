@@ -6,6 +6,7 @@
 \usepackage{indentfirst}
 \usepackage[utf8]{inputenc}
 \usepackage[tableposition=top]{caption}
+\usepackage{url}
 
 \DeclareMathOperator{\var}{var}
 \DeclareMathOperator{\cov}{cov}
@@ -47,8 +48,8 @@ Monte Carlo (MCMC) methods to learn about $f_X$ when this happens.
 
 When using MCMC, a primary concern of the practicioner should be the question 
 "Does the Markov chain converge fast enough to be useful?"  One very useful 
-convergence rate is called \emph{geometrically ergodic} \textbf{CITE SOMETHING 
-HERE}.
+convergence rate is called \emph{geometrically ergodic}  \citep[Chapter
+1]{johnson-thesis}.
 
 The \texttt{mcmc} package implements the Metropolis random-walk algorithm for 
 arbitrary log unnormalized probability densities.  But the Metropolis 
@@ -497,24 +498,6 @@ for(i in 1:6) {
 
 \begin{thebibliography}{}
 
-\bibitem[Gelman et al.(1996)Gelman, Roberts, and Gilks]{grg}
-Gelman, A., G.~O. Roberts, and W.~R. Gilks (1996).
-\newblock Efficient Metropolis jumping rules.
-\newblock In \emph{Bayesian Statistics, 5 (Alicante, 1994)}, pp.~599--607.
-  Oxford University Press.
-
-\bibitem[Geyer(1992)]{practical}
-Geyer, C.~J. (1992).
-\newblock Practical Markov chain Monte Carlo (with discussion).
-\newblock \emph{Statistical Science}, 7, 473--511.
-
-\bibitem[Geyer and Thompson(1995)]{geyer-temp}
-Geyer, C.~J. and E.~A. Thompson (1995).
-\newblock Annealing Markov chain Monte Carlo with applications to
-    ancestral inference.
-\newblock \emph{Journal of the American Statistical Association}, 90,
-909--920.
-
 \bibitem[Jarner and Roberts(2007)]{jarner-roberts}
 Jarner, S.F. and G.O. Roberts (2007).
 \newblock {C}onvergence of {H}eavy-tailed {M}onte {C}arlo {M}arkov {C}hain
@@ -525,7 +508,7 @@ Jarner, S.F. and G.O. Roberts (2007).
 Johnson, L.~T. (2011).
 \newblock Geometric Ergodicity of a Random-Walk Metropolis Algorithm via
   Variable Transformation and Computer Aided Reasoning in Statistics.
-\newblock \emph{University of Minesota}.
+\newblock \emph{University of Minesota}. \url{http://purl.umn.edu/113140}
 
 \bibitem[Johnson and Geyer(submitted)]{johnson-geyer}
 Johnson, L.~T. and C.~J. Geyer (submitted).
