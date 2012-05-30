@@ -30,5 +30,13 @@ bfst.pdf : bfst.tex
 	pdflatex bfst.tex
 	pdflatex bfst.tex
 
+morph.tex : morph.Rnw
+	$(R_HOME)/bin/R CMD Sweave morph.Rnw
+
+morph.pdf : morph.tex
+	pdflatex morph.tex
+	pdflatex morph.tex
+
 clean :
-	rm -f *.dvi *.aux *.log demo-fig* Rplots.*
+	rm -f *.dvi *.aux *.log demo-fig* morph-*.pdf Rplots.*
+

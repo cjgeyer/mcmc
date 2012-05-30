@@ -24,7 +24,7 @@ foo <- packageDescription("mcmc")
 
 \title{Morphemetric MCMC Example (mcmc Version \Sexpr{foo$Version})}
 % $ (Just to make emacs syntax highlighting work properly)
-\author{Leif T. Johnson \\ and Charles J. Geyer}
+\author{Leif T. Johnson \and Charles J. Geyer}
 \maketitle
 
 \section{Overview}
@@ -33,76 +33,87 @@ This is an example how to use morphemetric Markov chains as implemented in
 the \verb@mcmc@ package in R.
 
 Let $X$ be a $\mathbb{R}^k$ valued random variable with probability density
-function, $f_X$.  Let $g$ be a diffeomorphism, and $Y=g(X)$.  Then the 
+function, $f_X$.  Let $g$ be a diffeomorphism, and $Y=g(X)$.  Then the
 probability density function of $Y$, $f_Y$ is given by
 \begin{equation}\label{eq:def-fy}
   f_Y(y) = f_X\bigl(g^{-1}(y)\bigr) \det\bigl( \nabla g^{-1}(y) \bigr).
 \end{equation}
-Since $g$ is a diffeomorphism, we can draw inference about $X$ from information 
-about $Y$ (and vice versa).  
+Since $g$ is a diffeomorphism, we can draw inference about $X$ from information
+about $Y$ (and vice versa).
 
-It is not unusual for $f_X$ to either be known only up to a normalizing 
+It is not unusual for $f_X$ to either be known only up to a normalizing
 constant, or to be analytically intractable in other ways --- such as
 being high dimensional.
 A common solution to this problem is to use Markov chain
 Monte Carlo (MCMC) methods to learn about $f_X$.
 
-When using MCMC, a primary concern of the practitioner should be the question 
-``Does the Markov chain converge fast enough to be useful?''  One very useful 
+When using MCMC, a primary concern of the practitioner should be the question
+``Does the Markov chain converge fast enough to be useful?''  One very useful
 convergence rate is called \emph{geometrically ergodic}
 \citep[Chapter~1]{johnson-thesis}.
 
-The \texttt{mcmc} package implements the Metropolis random-walk algorithm for 
-arbitrary log unnormalized probability densities.  But the Metropolis 
-random-walk algorithm does not always perform well.  As is demonstrated in 
+The \texttt{mcmc} package implements the Metropolis random-walk algorithm for
+arbitrary log unnormalized probability densities.  But the Metropolis
+random-walk algorithm does not always perform well.  As is demonstrated in
 \citet{johnson-geyer}, for $f_X$ and $f_Y$ related by diffeomorphism as in
 \eqref{eq:def-fy}, a Metropolis random-walk for $f_Y$ can be geometrically
-ergodic 
+ergodic
 even though a Metropolis random-walk for $f_X$ is not.
 Since the transformation is
 one-to-one, inference about $f_X$ can be drawn from the Markov chain for $f_Y$.
 
-The \texttt{morph.metrop} and \texttt{morph} functions in the \texttt{mcmc} 
+The \texttt{morph.metrop} and \texttt{morph} functions in the \texttt{mcmc}
 package provide this functionality, and this vignette gives a demonstration
 on how to use them.
 
-\section{$T$ Distribution}
+\section{T Distribution}
 
-\citet{johnson-geyer}[Example 4.2] show that a T distribution is
-sub-exponentially light, and hence a Metropolis random-walk for a $T$
-density cannot be geometrically ergodic, but, using the transformations
-described in their Corollaries 1 and 2 will induce a target density,
+We start with a univariate example, which is a Student $t$ distribution
+with three degrees of freedom.
+Of course, one doesn't need MCMC to simulate this distribution
+(the R function \texttt{rt} does that), so this is just a toy problem.
+But it does illustrate some aspects of using variable transformation.
+
+A necessary condition for geometric ergodicity of a random-walk Metropolis
+algorithm is that the target density $\pi$ have a moment generating function
+\citep{jarner-tweedie}.
+For a univariate target density, which we have in this section,
+a sufficient condition for geometric ergodicity of a random-walk Metropolis
+algorithm is that the target density $\pi$ be exponentially light
+\citet{mengersen-tweedie}.
+Thus if we do not use variable transformation,
+the Markov chain simulated by the \texttt{metrop} function will not
+be geometrically ergodic.
+\citet[Example 4.2]{johnson-geyer} show that a $t$ distribution is
+sub-exponentially light.  Hence using the transformations
+described in their Corollaries~1 and~2 will induce a target density
 $\pi_\gamma$ for which a Metropolis random-walk will be geometrically
-ergodic.  In fact, we know from \citet{mengersen-tweedie} that for a
-univariate target density, being exponentially light is a sufficient
-condition for the geometric ergodicity of a Metropolis random-walk.  Hence
+ergodic.
 using the transformation described as $h_2$ in
-\citet{johnson-geyer}[Corollary 2] will induce a target density for which a
-Metroplis random-walk will be geometrically ergodic.  This section
-demonstrates how to do this using the \texttt{mcmc} package for
-\texttt{R}.  We will use a univariate $T$ distribution with 3 degrees of
-freedom for a target density.
+\citet[Corollary~2]{johnson-geyer} will induce a target density for which a
+Metropolis random-walk will be geometrically ergodic.
 
 Passing a positive value for \texttt{b} to \texttt{morph} function will
-create the aforementioned transformation, $h_2$.  It's as simple as 
+create the aforementioned transformation, $h_2$.  It's as simple as
 <<>>=
 library(mcmc)
 h2 <- morph(b=1)
-@ 
+@
 We can now see the induced density.  Note that \texttt{morph} works for
 log unnormalized densities, so we need exponentiate the induced density to
 plot it on the usual scale.
 <<>>=
 lud <- function(x) dt(x, df=3, log=TRUE)
 lud.induced <- h2$lud(lud)
-@ 
+@
 We can plot the two densities,
 <<fig=TRUE>>=
 curve(exp(Vectorize(lud.induced)(x)), from = -3, to = 3, lty = 2,
     xlab = "t", ylab = "density")
 curve(exp(lud(x)), add = TRUE)
 legend("topright", c("t density", "induced density"), lty=1:2)
-@ 
+@
+
 The \texttt{Vectorize} in this example is necessary because
 the function \texttt{lud.induced} is not vectorized.
 Instead, it treats any vector passed as a single input, which
@@ -124,7 +135,7 @@ Running a Markov chain for the induced density is done with
 \texttt{morph.metrop}.
 <<>>=
 out <- morph.metrop(lud, 0, blen=100, nbatch=100, morph=morph(b=1))
-@ 
+@
 The content of \texttt{out\$batch} is on the scale of used by
 \texttt{lud}.  Once the transformation has been set, no adjustment is
 needed (unless you want to change transformations).  We start by adjusting
@@ -132,7 +143,7 @@ the scale.
 <<>>=
 # adjust scale to find a roughly 20% acceptance rate
 out$accept
-@ 
+@
 An acceptance rate of \Sexpr{round(100 * out$accept, 1)}\%
 %$ to fix emacs highlighting
 is probably too high.  By increasing the scale of the proposal distribution
@@ -140,28 +151,28 @@ we can bring it down towards 20\%.
 <<>>=
 out <- morph.metrop(out, scale=4)
 out$accept
-@ 
-We now use this Markov chain to estimate 
+@
+We now use this Markov chain to estimate
 \begin{equation}\label{eq:e-abs-t}
   \E(|T|)
 \end{equation}
 for the $T$ distribution with 3 degrees of freedom.  We'll start with an
-estimate from 1000 iterations of the chain.  
+estimate from 1000 iterations of the chain.
 <<>>=
 out <- morph.metrop(out, blen=1, nbatch=1e4, outfun=abs)
-@ 
+@
 We're going to use over-lapping batch means to estimate \eqref{eq:e-abs-t},
 but first we need to establish a reasonable batch length.
 <<fig=TRUE>>=
 acf(out$batch, lag.max=200)
-@ 
+@
 It looks like a batch length of 100 will be sufficiently long.
 <<>>=
 mcse <- sqrt(olbm(out$batch, 100))
 est.mean <- colMeans(out$batch)
 est.mean
 mcse
-@ 
+@
 The variable \texttt{est.mean} gives our MCMC estimate of
 \eqref{eq:e-abs-t} and \texttt{mcse} gives the Monte Carlo standard error
 of our estimate.  Because the underlying Markov chain is geometrically
@@ -169,7 +180,7 @@ ergodic and $\E(|T|^2)$ is finite, there is a central limit theorem for our
 estimate.  The confidence interval for \eqref{eq:e-abs-t} is given by
 <<>>=
 est.mean + mcse * 1.96 * c(-1,1)
-@ 
+@
 If a narrower confidence interval is desired, the Markov chain can be run
 longer.
 
@@ -182,7 +193,7 @@ we are not concerned with what was happening on the transformed scale.  The
 <<>>=
 n.sims <- 300
 n.iter <- 2000
-@ 
+@
 
 To show the utility of the transformation, we will study the distribution
 of estimates of $\E(|T|)$ for a univariate $T$ random variable with three
@@ -215,19 +226,19 @@ out <- metrop(out, scale=4)
 out$accept
 out <- metrop(out, scale=6)
 out$accept
-@ 
+@
 A scale of 6 appears to be about right.  It's now easy to run these
 simulations.
 
 <<runsims>>=
-t.estimates <- 
-  replicate(n.sims, 
+t.estimates <-
+  replicate(n.sims,
             metrop(lud, 0, blen=n.iter, nbatch=1, scale=6, outfun=abs)$batch)
-induced.estimates <- 
-  replicate(n.sims, 
-            morph.metrop(lud, 0, blen=n.iter, nbatch=1, scale=4, outfun=abs, 
+induced.estimates <-
+  replicate(n.sims,
+            morph.metrop(lud, 0, blen=n.iter, nbatch=1, scale=4, outfun=abs,
                          nspac=1, morph=morph(b=1))$batch)
-@ 
+@
 
 Now we can look at the distribution of our estimates.  Since this is a
 ``toy'' example, we can establish a truth value using Good Old Fashioned
@@ -254,39 +265,39 @@ hist(induced.estimates, xlab="",
      main="Estimates from R-W\non Induced Distribution")
 lines(rep(truth, 2), c(0, length(induced.estimates)), col="red")
 lines(rep(mean(induced.estimates), 2), c(0, length(induced.estimates)), lty=2)
-@ 
+@
 
 Notice that the distribution coming from the estimates based on the
 random-walk Metropolis algorithm for the induced
 density are symmetric and follow a normal distribution, but the estimates
 based on the random-walk Metropolis algorithm for the $T$ density do not
-follow a symmetric distribution.  
+follow a symmetric distribution.
 
 We can also look at mean value of our estimates (which are themselves mean
-values).  
+values).
 <<t-abs-mean-estimates>>=
 mean(t.estimates)
 sd(t.estimates) / sqrt(length(t.estimates))
-mean(t.estimates) + 
+mean(t.estimates) +
   sd(t.estimates) / sqrt(length(t.estimates)) * 1.96 * c(-1, 1)
 mean(induced.estimates)
 sd(induced.estimates) / sqrt(length(induced.estimates))
-mean(induced.estimates) + 
+mean(induced.estimates) +
   sd(induced.estimates) / sqrt(length(induced.estimates)) * 1.96 * c(-1, 1)
-@ 
+@
 
 The following Q-Q plots for the standardized estimates support this theory.
 
 <<fig=TRUE>>=
 par(mfrow=c(1,2))
 t.standardized <- (t.estimates - mean(t.estimates)) / sd(t.estimates)
-induced.standardized <- 
+induced.standardized <-
   (induced.estimates - mean(induced.estimates)) / sd(induced.estimates)
 qqnorm(t.standardized, main="Q-Q Plot\nEstimates from T")
 qqline(t.standardized)
 qqnorm(induced.standardized, main="Q-Q Plot\nEstimates from Induced Density")
 qqline(induced.standardized)
-@ 
+@
 
 Finally, we can examine the normality of the estimates with
 Komogorov-Smirnov tests.
@@ -296,17 +307,17 @@ t.kstest <- ks.test(t.standardized, pnorm)
 induced.kstest <- ks.test(induced.standardized, pnorm)
 t.kstest$p.value
 induced.kstest$p.value
-@ 
+@
 
 Comparing the standardized estimates to a Normal$(0, 1)$ distribution gives
-the p-values of \Sexpr{signif(t.kstest[["p.value"]], 3)} for the standardized 
+the p-values of \Sexpr{signif(t.kstest[["p.value"]], 3)} for the standardized
 estimates coming from the random-walk Metropolis algorithm for the
 $t$-density, and \Sexpr{signif(induced.kstest[["p.value"]], 3)}
-for the estimates coming from the random-walk Metropolis algorithm for the 
+for the estimates coming from the random-walk Metropolis algorithm for the
 induced density.  Thus, there is strong evidence that the esimates deriving
 from the un-transformed $t$-density do not follow a Normal distribution,
 but there is \emph{no} evidence that the estimates deriving from the induced
-density \emph{do not} follow a Normal distribution.  
+density \emph{do not} follow a Normal distribution.
 
 \section{Binomial Distribution with a Conjugate Prior}
 
@@ -326,7 +337,7 @@ multinomial logit-link, with model matricies $M^1,\dots,M^L$, regression
 parameter $\beta$, observed counts $Y^1,\dots,Y^N$ with observed sample
 sizes $N^1,\dots,N^L$ and prior probabilities $\xi^1, \dots, \xi^L$ and
 prior ``sample sizes'' $\nu^1,\dots,\nu^L$ then the posterior distribution
-of $\beta$ is given by \citep{johnson-thesis}[Sec. 5.1.2]
+of $\beta$ is given by \citep[Sec. 5.1.2]{johnson-thesis}
 \begin{equation}\label{eq:mult-post-conj-complicated}
 \pi(\beta|y,n,\xi,\nu) \propto \exp\biggl\{ \sum_{l=1}^L \inner{y^l + \xi^l
     \nu^l, M^l \beta} - (n^l + \nu^l) \log\bigl(
@@ -355,8 +366,8 @@ posterior density is
 \begin{equation}\label{eq:simplified-posterior}
   \pi(\beta|x,n^*) \propto
   \exp\biggl\{
-    \inner{x, M \beta^*} 
-    - 
+    \inner{x, M \beta^*}
+    -
     \sum_{l=1}^L n^{*l} \log\bigl(1 + e^{(M \beta^*)_l}\bigr)
   \biggr\}.
 \end{equation}
@@ -367,7 +378,7 @@ lud.binom <- function(beta, M, x, n) {
   MB <- M %*% beta
   sum(x * MB) - sum(n * log(1 + exp(MB)))
 }
-@ 
+@
 
 Now that we have a function to calculate a log-unnormalized posterior
 density, we can run the markov chain.  To that, we need the model matrix.
@@ -383,7 +394,7 @@ dat.split <- lapply(dat.split,
                       d
                     })
 dat <- merge(dat.split[[1]], dat.split[[2]])
-@ 
+@
 
 Next we build the model matrix.  Our model specification allows for an
 interaction between gender and departement, even though our prior assumes
@@ -392,7 +403,7 @@ that they are independent.
 formula <- cbind(Admitted, Rejected) ~ (Gender + Dept)^2
 mf <- model.frame(formula, dat)
 M <- model.matrix(formula, mf)
-@ 
+@
 
 As stated above, we will take $\nu = 5$ and $\xi=0.30$.  That is, we will
 add 5 students to each gender-department combination, where each
@@ -400,19 +411,19 @@ combination has a 30\% acceptance rate.
 <<>>=
 xi <- 0.30
 nu <- 5
-@ 
+@
 
 <<lud-binom>>=
-lud.berkeley <- function(B) 
+lud.berkeley <- function(B)
   lud.binom(B, M, dat$Admitted + xi * nu, dat$Admitted + dat$Rejected + nu)
-@ 
+@
 
 This function is suitable for passing to \texttt{metrop} or
-\texttt{morph.metrop}.  We know that using \texttt{morph.metrop} with 
+\texttt{morph.metrop}.  We know that using \texttt{morph.metrop} with
 \texttt{morph=morph(p=3)} will run a geometrically ergodic Markov chain
 \citep{johnson-geyer}.
 <<>>=
-berkeley.out <- morph.metrop(lud.berkeley, rep(0, ncol(M)), blen=1000, 
+berkeley.out <- morph.metrop(lud.berkeley, rep(0, ncol(M)), blen=1000,
                              nbatch=1, scale=0.1, morph=morph(p=3))
 berkeley.out$accept
 berkeley.out <- morph.metrop(berkeley.out, scale=0.05)
@@ -421,11 +432,11 @@ berkeley.out <- morph.metrop(berkeley.out, scale=0.02)
 berkeley.out$accept
 berkeley.out <- morph.metrop(berkeley.out, blen=10000)
 berkeley.out$accept
-@ 
+@
 
 <<>>=
 berkeley.out <- morph.metrop(berkeley.out, blen=1, nbatch=100000)
-@ 
+@
 
 Estimate the posterior mean acceptance probabilities for each
 gender-department combination.
@@ -435,7 +446,7 @@ MB <- M %*% beta
 dat$p <- dat$Admitted / (dat$Admitted + dat$Rejected)
 dat$p.post <- exp(MB) / (1 + exp(MB))
 dat
-@ 
+@
 The small difference between the data and posterior probabilities is
 expected, our prior was given very little weight.  Using
 \texttt{morph.metrop} with the setting \texttt{morph=morph(p=3)} in this
@@ -452,18 +463,18 @@ deparmtnet, there is considerable overlap of the distributions of
 probabilities for males and females.
 
 <<calculate-posterior-probabilities>>=
-posterior.probabilities <- 
+posterior.probabilities <-
   t(apply(berkeley.out$batch, 1,
           function(r) {
             eMB <- exp(M %*% r)
             eMB / (1 + eMB)
           }))
 quants <- apply(posterior.probabilities, 2, quantile, prob=c(0.05, 0.95))
-quants.str <- matrix(apply(quants, 2, 
+quants.str <- matrix(apply(quants, 2,
                            function(r) sprintf("[%0.2f, %0.2f]", r[1], r[2])),
                      nrow=2, byrow=TRUE)
 
-@ 
+@
 
 \begin{table}[ht]
   \caption{5\% and 95\% posterior quantiles for admittance probability
@@ -480,12 +491,12 @@ quants.str <- matrix(apply(quants, 2,
 \label{tab:post-quant}
 \end{center}
 \end{table}
-  
+
 \begin{figure}
 \begin{center}
 <<label=fig1,fig=TRUE,echo=FALSE>>=
 x <- (0:5) * 2 + 1
-plot(x[c(1, 6)] + 0.5 * c(-1, 1), 0:1, 
+plot(x[c(1, 6)] + 0.5 * c(-1, 1), 0:1,
      xlab="Department", ylab="Probability", xaxt="n", type="n")
 axis(1, x, LETTERS[1:6])
 for(i in 1:6) {
@@ -507,6 +518,12 @@ Jarner, S.F. and G.O. Roberts (2007).
 \newblock {C}onvergence of {H}eavy-tailed {M}onte {C}arlo {M}arkov {C}hain
   Algorithms.
 \newblock \emph{Scandinavian Journal of Statistics}, 34, 781--815.
+
+\bibitem[Jarner and Tweedie(2003)]{jarner-tweedie}
+Jarner, S.~F. and Tweedie, R.~L. (2003).
+\newblock Necessary conditions for geometric and polynomial ergodicity of
+    random-walk-type {M}arkov chains.
+\newblock \emph{Bernoulli}, 9, 559--578.
 
 \bibitem[Johnson(2011)]{johnson-thesis}
 Johnson, L.~T. (2011).

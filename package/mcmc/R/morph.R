@@ -3,7 +3,7 @@ euclid.norm <- function(x) {
 }
 
 isotropic <- function(f) {
-  f(1); # force evaluation of f
+  force(f)
   function(x) {
     x.norm <- euclid.norm(x)
     if (x.norm == 0)
@@ -14,7 +14,8 @@ isotropic <- function(f) {
 }
 
 isotropic.logjacobian <- function(f, d.f) {
-  f; d.f; # force evaluation of components
+  force(f)
+  force(d.f)
   function(x) {
     x.norm <- euclid.norm(x)
     k <- length(x)
