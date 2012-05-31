@@ -1,8 +1,8 @@
 
-R version 2.13.1 (2011-07-08)
-Copyright (C) 2011 The R Foundation for Statistical Computing
+R version 2.15.0 (2012-03-30)
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
-Platform: x86_64-pc-linux-gnu (64-bit)
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -80,7 +80,7 @@ Parameter:
 Function Value
 [1] 49.64659
 Gradient:
-[1] 8.235190e-06 5.499507e-06 6.082246e-06
+[1] 8.242296e-06 5.499507e-06 6.082246e-06
 
 Relative gradient close to zero.
 Current iterate is probably solution.
@@ -173,3 +173,6 @@ Current iterate is probably solution.
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  0.394   0.030   0.508 

@@ -1,0 +1,2 @@
+rm -f mcmc/src/*.{o,so,rds}
+R CMD check mcmc
