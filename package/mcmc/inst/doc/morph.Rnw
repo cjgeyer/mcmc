@@ -5,6 +5,8 @@
 \usepackage{amsmath, amssymb}
 \usepackage{indentfirst}
 \usepackage[utf8]{inputenc}
+\usepackage[tableposition=top]{caption}
+\usepackage{url}
 
 \DeclareMathOperator{\var}{var}
 \DeclareMathOperator{\cov}{cov}
@@ -46,8 +48,8 @@ Monte Carlo (MCMC) methods to learn about $f_X$ when this happens.
 
 When using MCMC, a primary concern of the practicioner should be the question 
 "Does the Markov chain converge fast enough to be useful?"  One very useful 
-convergence rate is called \emph{geometrically ergodic} \textbf{CITE SOMETHING 
-HERE}.
+convergence rate is called \emph{geometrically ergodic}  \citep[Chapter
+1]{johnson-thesis}.
 
 The \texttt{mcmc} package implements the Metropolis random-walk algorithm for 
 arbitrary log unnormalized probability densities.  But the Metropolis 
@@ -435,25 +437,66 @@ expected, our prior was given very little weight.  Using
 \texttt{morph.metrop} with the setting \texttt{morph=morph(p=3)} in this
 setting is an efficient way of sampling from the posterior distribution.
 
+We can also compare the posterior distribution of admittance
+probability for each gender-department combination.
+Table~\ref{tab:post-quant} gives the 5\% and 95\% quantiles for the
+posterior distribution of the admittance probabilities for each
+gender-department combination.  Figure~\ref{fig:posterior-probs} gives
+the same quantiles, plus the mean posterior-probability for each
+gender-department combination.  From these we can see that for each
+deparmtnet, there is considerable overlap of the distributions of
+probabilities for males and females.
+
+<<calculate-posterior-probabilities>>=
+posterior.probabilities <- 
+  t(apply(berkeley.out$batch, 1,
+          function(r) {
+            eMB <- exp(M %*% r)
+            eMB / (1 + eMB)
+          }))
+quants <- apply(posterior.probabilities, 2, quantile, prob=c(0.05, 0.95))
+quants.str <- matrix(apply(quants, 2, 
+                           function(r) sprintf("[%0.2f, %0.2f]", r[1], r[2])),
+                     nrow=2, byrow=TRUE)
+
+@ 
+
+\begin{table}[ht]
+  \caption{5\% and 95\% posterior quantiles for admittance probability
+    for each gender-department combination}
+  \begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+  \hline
+ Gender & Dept. A & Dept. B & Dept. C & Dept. D & Dept. E. & Dept. F \\
+ \hline
+ Female & \Sexpr{paste(quants.str[1, 1:6], collapse=" & ")} \\
+ Male & \Sexpr{paste(quants.str[2, 1:6], collapse=" & ")} \\
+ \hline
+\end{tabular}
+\label{tab:post-quant}
+\end{center}
+\end{table}
+  
+\begin{figure}
+\begin{center}
+<<label=fig1,fig=TRUE,echo=FALSE>>=
+x <- (0:5) * 2 + 1
+plot(x[c(1, 6)] + 0.5 * c(-1, 1), 0:1, 
+     xlab="Department", ylab="Probability", xaxt="n", type="n")
+axis(1, x, LETTERS[1:6])
+for(i in 1:6) {
+  lines((x[i]-0.25)*c(1, 1), quants[1:2, i], lwd=2, col="gray")
+  lines((x[i] + 0.25) * c(1, 1), quants[1:2, i + 6], lwd=2, col="gray")
+  points(x[i] + 0.25 * c(-1, 1), dat$p.post[i + c(0, 6)], pch=c("F", "M"))
+}
+@
+\end{center}
+\caption{Posterior 5\% and 95\% quantiles and mean, by department and gender.}
+\label{fig:posterior-probs}
+\end{figure}
+
+
 \begin{thebibliography}{}
-
-\bibitem[Gelman et al.(1996)Gelman, Roberts, and Gilks]{grg}
-Gelman, A., G.~O. Roberts, and W.~R. Gilks (1996).
-\newblock Efficient Metropolis jumping rules.
-\newblock In \emph{Bayesian Statistics, 5 (Alicante, 1994)}, pp.~599--607.
-  Oxford University Press.
-
-\bibitem[Geyer(1992)]{practical}
-Geyer, C.~J. (1992).
-\newblock Practical Markov chain Monte Carlo (with discussion).
-\newblock \emph{Statistical Science}, 7, 473--511.
-
-\bibitem[Geyer and Thompson(1995)]{geyer-temp}
-Geyer, C.~J. and E.~A. Thompson (1995).
-\newblock Annealing Markov chain Monte Carlo with applications to
-    ancestral inference.
-\newblock \emph{Journal of the American Statistical Association}, 90,
-909--920.
 
 \bibitem[Jarner and Roberts(2007)]{jarner-roberts}
 Jarner, S.F. and G.O. Roberts (2007).
@@ -465,7 +508,7 @@ Jarner, S.F. and G.O. Roberts (2007).
 Johnson, L.~T. (2011).
 \newblock Geometric Ergodicity of a Random-Walk Metropolis Algorithm via
   Variable Transformation and Computer Aided Reasoning in Statistics.
-\newblock \emph{University of Minesota}.
+\newblock \emph{University of Minesota}. \url{http://purl.umn.edu/113140}
 
 \bibitem[Johnson and Geyer(submitted)]{johnson-geyer}
 Johnson, L.~T. and C.~J. Geyer (submitted).
