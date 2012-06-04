@@ -18,7 +18,8 @@ morph.metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1,
   \item{blen}{see \code{\link{metrop}}.}
   \item{nspac}{see \code{\link{metrop}}.}
   \item{scale}{see \code{\link{metrop}}.}
-  \item{outfun}{see \code{\link{metrop}}.}
+  \item{outfun}{unlike for \code{\link{metrop}} must be a function or missing;
+    if missing the identity function, \code{function(x) x}, is used.}
   \item{debug}{see \code{\link{metrop}}.}
   \item{morph}{morph object used for transformations.  See \code{\link{morph}}.}
   \item{...}{see \code{\link{metrop}}.}

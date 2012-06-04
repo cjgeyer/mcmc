@@ -41,8 +41,7 @@ morph.metrop.function <- function(obj, initial, nbatch, blen = 1,
     nspac = 1, scale = 1, outfun, debug = FALSE, morph, ...) {
 
   if (missing(morph)) morph <- morph.identity()
-  if (missing(outfun)) outfun <- NULL
-  outfun.save <- outfun
+  if (missing(outfun)) outfun <- identity.func
   
   morphed.obj <- metrop.function(morph$lud(obj),
                                  initial=morph$transform(initial),
@@ -53,7 +52,7 @@ morph.metrop.function <- function(obj, initial, nbatch, blen = 1,
                                  debug=debug,
                                  ...)
   
-  unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun.save)
+  unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun)
   return(unmorphed.obj)
 }
 
