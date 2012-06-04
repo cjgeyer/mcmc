@@ -62,8 +62,8 @@ exponential <- function(r=1, p=3) {
   if (missing(r) || is.null(r)) r <- 0
   stopifnot(p > 2)
   stopifnot(r >= 0)
-  f.inv <- function(x) x + (x-r)^p * (x > r)
-  d.f.inv <- function(x) 1 + p * (x-r)^(p-1) * (x > r)
+  f.inv <- function(x) ifelse(x <= r, x, x + (x-r)^p)
+  d.f.inv <- function(x) ifelse(x <= r, 1, 1 + p * (x-r)^(p-1))
   if (p == 3) {
     g <- function(x) {
       n <- sqrt((27*r-27*x)^2 + 108) + 27 * (r - x)
@@ -81,16 +81,29 @@ exponential <- function(r=1, p=3) {
   return(list(f=f, f.inv=f.inv, d.f.inv=d.f.inv))
 }
 
+.make.outfun <- function(out) {
+  out;
+  function(f) {
+    f;
+    if (is.null(f))
+      return(out$inverse)
+    else if (is.function(f))
+      return(function(state, ...) f(out$inverse(state), ...))
+    else
+      return(function(state) out$inverse(state)[f])
+  }
+}
+
 identity.func <- function(x) x
 morph.identity <- function() {
-  out <- list(outfun=function(f) function(state, ...) f(state, ...),
-              transform=identity.func,
+  out <- list(transform=identity.func,
               inverse=identity.func,
               lud=function(f) function(x, ...) f(x, ...),
               log.jacobian=function(x) 0,
               center=0,
               f=identity.func,
               f.inv=identity.func)
+  out$outfun <- .make.outfun(out)
   return(out)
 }
 
@@ -137,16 +150,7 @@ morph <- function(b, r, p, center) {
   out$transform <- function(state) out$f(state - out$center)
   out$inverse <- function(state) out$f.inv(state) + out$center
   
-  out$outfun <- function(outfun) {
-    if (is.null(outfun)) {
-      return(function(state) out$inverse(state))
-    } else if (is.function(outfun)) {
-      outfun;
-      return(function(state, ...) outfun(out$inverse(state), ...))
-    } else {
-      return(function(state) out$inverse(state)[outfun])
-    }
-  }
+  out$outfun <- .make.outfun(out)
 
   out$lud <- function(lud) {
     lud;

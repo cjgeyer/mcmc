@@ -14,11 +14,7 @@ morph.metrop.morph.metropolis <- function(obj, initial, nbatch, blen = 1,
     obj$final <- morph$transform(obj$final)
   }
 
-  if (missing(outfun))
-    outfun.save <- obj$outfun
-  else
-    outfun.save <- outfun
-
+  if (missing(outfun)) outfun <- obj$outfun
   if (missing(blen)) blen <- obj$blen
   if (missing(nspac)) nspac <- obj$nspac
   if (missing(debug)) debug <- obj$debug
@@ -29,11 +25,11 @@ morph.metrop.morph.metropolis <- function(obj, initial, nbatch, blen = 1,
                                    blen=blen,
                                    nspac=nspac,
                                    scale=scale,
-                                   outfun=morph$outfun(outfun.save),
+                                   outfun=morph$outfun(outfun),
                                    debug=debug,
                                    ...)
   
-  unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun.save)
+  unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun)
   return(unmorphed.obj)
 }
 
@@ -42,7 +38,6 @@ morph.metrop.function <- function(obj, initial, nbatch, blen = 1,
 
   if (missing(morph)) morph <- morph.identity()
   if (missing(outfun)) outfun <- NULL
-  outfun.save <- outfun
   
   morphed.obj <- metrop.function(morph$lud(obj),
                                  initial=morph$transform(initial),
@@ -53,7 +48,7 @@ morph.metrop.function <- function(obj, initial, nbatch, blen = 1,
                                  debug=debug,
                                  ...)
   
-  unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun.save)
+  unmorphed.obj <- .morph.unmorph(morphed.obj, morph, outfun)
   return(unmorphed.obj)
 }
 
