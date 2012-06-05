@@ -21,6 +21,25 @@ TestMorphIdentity <- function(m.id) {
 TestMorphIdentity(morph())
 TestMorphIdentity(morph.identity())
 
+TestMorphIdentityOutfun <- function(m) {
+  f <- m$outfun(NULL)
+  x <- 1:20
+  if (!identical(x, f(x)))
+    return(FALSE)
+  f <- m$outfun(c(6, 8))
+  if (!identical(x[c(6, 8)], f(x)))
+    return(FALSE)
+  i <- rep(FALSE, 20)
+  i[c(1, 3, 5)] <- TRUE
+  f <- m$outfun(i)
+  if (!identical(x[i], f(x)))
+    return(FALSE)
+  return(TRUE)
+}
+
+TestMorphIdentityOutfun(morph())
+TestMorphIdentityOutfun(morph.identity())
+
 # make sure that morph and morph.identity give back the same things
 all.equal(sort(names(morph.identity())), sort(names(morph(b=1))))
 
@@ -53,6 +72,16 @@ x <- seq(1.1, 2, length.out=10)
 all(sapply(x, morph.r$lud(function(x) dnorm(x, log=TRUE)))
     !=
     dnorm(x, log=TRUE))
+
+TestExponentialEvenPWithRInverse <- function() {
+  r <- 0.3
+  p <- 2.2
+  morph.r <- morph(r=r, p=p)
+  x <- seq(0, r, length.out=20)
+  all.equal(x, sapply(x, morph.r$inverse))
+}
+
+TestExponentialEvenPWithRInverse()
 
 # make sure morph$lud passes '...' arguments.
 mean <- 2

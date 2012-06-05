@@ -110,9 +110,9 @@ is rescaled (using an isomorphic transformation) and passed to
 \texttt{lud}.  Compare the behavior of \texttt{lud} and
 \texttt{lud.induced} in the following example.
 <<>>=
-lud(rep(0, 4))
+lud(rep(1, 4))
 lud(1)
-lud.induced(rep(0, 4))
+lud.induced(rep(1, 4))
 lud.induced(1)
 @
 Because the function \texttt{dt} is vectorized, the function \texttt{lud}
