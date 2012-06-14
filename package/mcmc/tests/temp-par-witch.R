@@ -1,6 +1,8 @@
 
  library(mcmc)
 
+ options(digits=4) # avoid rounding differences
+
  set.seed(42)
 
  d <- 3

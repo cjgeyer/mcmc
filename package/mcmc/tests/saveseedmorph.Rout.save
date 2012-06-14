@@ -1,0 +1,49 @@
+
+R version 2.15.0 (2012-03-30)
+Copyright (C) 2012 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+>  library(mcmc)
+> 
+>  set.seed(42)
+> 
+>  h <- function(x) if (all(x >= 0) && sum(x) <= 1) return(1) else return(-Inf)
+>  out <- morph.metrop(obj = h, initial = rep(0, 5), nbatch = 100, blen = 17,
++      nspac = 3, scale = 0.1)
+> 
+>  out1 <- morph.metrop(out)
+>  out2 <- morph.metrop(out1)
+>  out3 <- morph.metrop(out, nbatch = 2 * out$nbatch)
+> 
+>  fred <- rbind(out1$batch, out2$batch)
+>  identical(fred, out3$batch)
+[1] TRUE
+> 
+>  out <- morph.metrop(out, morph = morph(p = 2.2, r = 0.3))
+> 
+>  out1 <- morph.metrop(out)
+>  out2 <- morph.metrop(out1)
+>  out3 <- morph.metrop(out, nbatch = 2 * out$nbatch)
+> 
+>  fred <- rbind(out1$batch, out2$batch)
+>  identical(fred, out3$batch)
+[1] TRUE
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  0.752   0.036   0.767 

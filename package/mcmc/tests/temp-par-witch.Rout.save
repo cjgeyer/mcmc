@@ -1,8 +1,8 @@
 
-R version 2.13.1 (2011-07-08)
-Copyright (C) 2011 The R Foundation for Statistical Computing
+R version 2.15.0 (2012-03-30)
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
-Platform: x86_64-pc-linux-gnu (64-bit)
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -19,12 +19,14 @@ Type 'q()' to quit R.
 > 
 >  library(mcmc)
 > 
+>  options(digits=4) # avoid rounding differences
+> 
 >  set.seed(42)
 > 
 >  d <- 3
 >  witch.which <- 1 - (1 / 2)^(1 / d) * (1 / 4)^(seq(0, 5) / d)
 >  witch.which
-[1] 0.2062995 0.5000000 0.6850197 0.8015749 0.8750000 0.9212549
+[1] 0.2063 0.5000 0.6850 0.8016 0.8750 0.9213
 > 
 >  ncomp <- length(witch.which)
 > 
@@ -63,16 +65,16 @@ Type 'q()' to quit R.
 [16] "accepti"      "initial"      "final"       
 > 
 >  out$acceptx
-[1] 0.6335878 0.4974359 0.3245383 0.6022099 0.6129870 0.5913706
+[1] 0.6516 0.3924 0.3465 0.2084 0.1928 0.5874
 > 
 >  out$accepti
-          [,1]      [,2]      [,3]      [,4]      [,5]      [,6]
-[1,]        NA 0.7050691 0.5497382        NA        NA        NA
-[2,] 0.7522936        NA 0.5547445 0.6287879        NA        NA
-[3,] 0.5794393 0.5865385        NA 0.5308642 0.5476190        NA
-[4,]        NA 0.6666667 0.5505618        NA 0.8271605 0.6836735
-[5,]        NA        NA 0.5438596 0.8925620        NA 0.8373984
-[6,]        NA        NA        NA 0.8390805 0.9022989        NA
+       [,1]   [,2]   [,3]   [,4]   [,5]   [,6]
+[1,]     NA 0.6651 0.4608     NA     NA     NA
+[2,] 0.6346     NA 0.5397 0.2984     NA     NA
+[3,] 0.4796 0.5714     NA 0.4149 0.1031     NA
+[4,]     NA 0.1980 0.3193     NA 0.2621 0.3137
+[5,]     NA     NA 0.1871 0.2609     NA 0.2615
+[6,]     NA     NA     NA 0.3333 0.3174     NA
 > 
 >  ### check that have prob 1 / 2 for corners
 > 
@@ -88,9 +90,9 @@ Type 'q()' to quit R.
 >  out <- temper(out, outfun = outfun)
 > 
 >  colMeans(out$batch)
-[1] 0.54923077 0.40923077 0.39538462 0.09692308 0.12923077 0.60000000
+[1] 0.5492 0.4800 0.5569 0.7692 0.9246 0.7708
 >  apply(out$batch, 2, sd) / sqrt(out$nbatch)
-[1] 0.03482043 0.04817350 0.05463694 0.02855536 0.02113093 0.05130821
+[1] 0.03585 0.05019 0.05510 0.04775 0.02586 0.05737
 > 
 >  ### try again
 > 
@@ -100,12 +102,15 @@ Type 'q()' to quit R.
 +      apply(out$batch, 2, sd) / sqrt(out$nbatch))
 >  colnames(foo) <- c("means", "MCSE")
 >  foo
-         means       MCSE
-[1,] 0.5231068 0.01389634
-[2,] 0.5361165 0.02213288
-[3,] 0.4904854 0.03961204
-[4,] 0.5652427 0.04909165
-[5,] 0.4056311 0.05106757
-[6,] 0.2450485 0.05108284
+      means    MCSE
+[1,] 0.5033 0.01345
+[2,] 0.5122 0.02469
+[3,] 0.4969 0.03692
+[4,] 0.5283 0.04713
+[5,] 0.4583 0.04743
+[6,] 0.4192 0.05931
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  5.452   0.048   5.485 

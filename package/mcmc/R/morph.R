@@ -27,10 +27,16 @@ isotropic.logjacobian <- function(f, d.f) {
   }
 }
 
-newton.raphson <- function(f, df, x, r) {
-  x0 <- 2 * r
-  while(abs(f(x0) - x) > sqrt(.Machine$double.eps)) {
-    x0 <- x0 - (f(x0) - x) / df(x0)
+# rearranged by charlie
+# add starting point so we can use a better starting point for
+#     the current actual use
+# also do one more Newton step after error is < sqrt(machine.eps)
+#     so ultimate error is about machine.eps
+newton.raphson <- function(f, df, x, r, x0 = 2 * r) {
+  repeat {
+      err <- f(x0) - x
+      x0 <- x0 - err / df(x0)
+      if (abs(err) < sqrt(.Machine$double.eps)) break
   }
   return(x0)
 }
@@ -75,9 +81,8 @@ exponential <- function(r=1, p=3) {
     # No general closed form solution exists.  However, since the
     # transformation has polynomial form, using the Newton-Raphson method
     # should work well.
-    f <- function(x) ifelse(x < r,
-                            x,
-                            newton.raphson(f.inv, d.f.inv, x, r))
+    f <- function(x) ifelse(x < r, x,
+        newton.raphson(f.inv, d.f.inv, x, r, x0 = r + x^(1 / p)))
   }
   return(list(f=f, f.inv=f.inv, d.f.inv=d.f.inv))
 }

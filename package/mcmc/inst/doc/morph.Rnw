@@ -2,7 +2,7 @@
 
 \usepackage{natbib}
 \usepackage{graphics}
-\usepackage{amsmath,amssymb}
+\usepackage{amsmath, amssymb}
 \usepackage{indentfirst}
 \usepackage[utf8]{inputenc}
 \usepackage[tableposition=top]{caption}
@@ -33,33 +33,30 @@ This is an example how to use morphemetric Markov chains as implemented in
 the \verb@mcmc@ package in R.
 
 Let $X$ be a $\mathbb{R}^k$ valued random variable with probability density
-function, $f_X$.  Let $g$ be a diffeomorphism, and $Y=g(X)$.  Then the 
-probability density function of $Y$, $f_Y$ is given by
+function (pdf), $f_X$.  Let $g$ be a diffeomorphism, and $Y=g(X)$.  Then the 
+pdf of $Y$, $f_Y$ is given by the equation
 \begin{equation}\label{eq:def-fy}
-  f_Y(y) = f_X\bigl(g^{-1}(y)\bigr) \det\bigl( \nabla g^{-1}(y) \bigr).
+  f_Y(y) = f_X\bigl(g^{-1}(y)\bigr) | \nabla g^{-1}(y) |.
 \end{equation}
 Since $g$ is a diffeomorphism, we can draw inference about $X$ from information 
 about $Y$ (and vice versa).  
 
 It is not unusual for $f_X$ to either be known only up to a normalizing 
-constant, or to be analytically intractable in other ways --- such as
-being high dimensional.
-A common solution to this problem is to use Markov chain
-Monte Carlo (MCMC) methods to learn about $f_X$.
+constant, or to be analytically intractable in other ways --- such as a large 
+number of dimensions.  A common solution to this problem is to use Markov chain
+Monte Carlo (MCMC) methods to learn about $f_X$ when this happens.
 
-When using MCMC, a primary concern of the practitioner should be the question 
-``Does the Markov chain converge fast enough to be useful?''  One very useful 
-convergence rate is called \emph{geometrically ergodic}
-\citep[Chapter~1]{johnson-thesis}.
+When using MCMC, a primary concern of the practicioner should be the question 
+"Does the Markov chain converge fast enough to be useful?"  One very useful 
+convergence rate is called \emph{geometrically ergodic}  \citep[Chapter
+1]{johnson-thesis}.
 
 The \texttt{mcmc} package implements the Metropolis random-walk algorithm for 
 arbitrary log unnormalized probability densities.  But the Metropolis 
 random-walk algorithm does not always perform well.  As is demonstrated in 
-\citet{johnson-geyer}, for $f_X$ and $f_Y$ related by diffeomorphism as in
-\eqref{eq:def-fy}, a Metropolis random-walk for $f_Y$ can be geometrically
-ergodic 
-even though a Metropolis random-walk for $f_X$ is not.
-Since the transformation is
+\citet{johnson-geyer}, for one-to-one densities, $f_X$ and $f_Y$ defined as in
+\eqref{eq:def-fy} a Metropolis random-walk $f_Y$ can be geometrically ergodic 
+even though a Metropolis random-walk for $f_X$ is not.  Since the densities are
 one-to-one, inference about $f_X$ can be drawn from the Markov chain for $f_Y$.
 
 The \texttt{morph.metrop} and \texttt{morph} functions in the \texttt{mcmc} 
@@ -98,14 +95,14 @@ lud.induced <- h2$lud(lud)
 @ 
 We can plot the two densities,
 <<fig=TRUE>>=
-curve(exp(Vectorize(lud.induced)(x)), from = -3, to = 3, lty = 2,
-    xlab = "t", ylab = "density")
-curve(exp(lud(x)), add = TRUE)
-legend("topright", c("t density", "induced density"), lty=1:2)
+x <- seq(-3, 3, length.out=400)
+plot(x, exp(sapply(x, lud.induced)), lty=2, type="l",
+     xlab="t", ylab="")
+lines(x, exp(lud(x)), lty=1)
+legend("topright", c("t-density", "induced density"), lty=1:2)
 @ 
-The \texttt{Vectorize} in this example is necessary because
-the function \texttt{lud.induced} is not vectorized.
-Instead, it treats any vector passed as a single input, which
+The \texttt{sapply} in this example is necessary, \texttt{lud.induced} is not 
+vectorized.  Instead, it treats any vector passed as a single input, which
 is rescaled (using an isomorphic transformation) and passed to
 \texttt{lud}.  Compare the behavior of \texttt{lud} and
 \texttt{lud.induced} in the following example.
@@ -115,10 +112,9 @@ lud(1)
 lud.induced(rep(1, 4))
 lud.induced(1)
 @
-Because the function \texttt{dt} is vectorized, the function \texttt{lud}
-is also vectorized, mapping vectors to vectors,
-whereas the function \texttt{lud.induced} is unvectorized,
-mapping vectors to scalars.
+Because \texttt{dt} is vectorized, \texttt{lud} is vectorized so it maps 
+vectors to vectors, but \texttt{lud.induced} treats the vector as a single
+input, which is transformed and passed to \texttt{lud}.
 
 Running a Markov chain for the induced density is done with
 \texttt{morph.metrop}.
