@@ -66,7 +66,7 @@ The \texttt{morph.metrop} and \texttt{morph} functions in the \texttt{mcmc}
 package provide this functionality, and this vignette gives a demonstration
 on how to use them.
 
-\section{T Distribution}
+\section{T Distribution} \label{sec:toy}
 
 We start with a univariate example, which is a Student $t$ distribution
 with three degrees of freedom.
@@ -117,19 +117,29 @@ legend("topright", c("t density", "induced density"), lty=1:2)
 The \texttt{Vectorize} in this example is necessary because
 the function \texttt{lud.induced} is not vectorized.
 Instead, it treats any vector passed as a single input, which
-is rescaled (using an isomorphic transformation) and passed to
+is rescaled (using the specified diffeomorphism) and passed to
 \texttt{lud}.  Compare the behavior of \texttt{lud} and
 \texttt{lud.induced} in the following example.
 <<>>=
-lud(rep(0, 4))
+lud(1:4)
 lud(1)
-lud.induced(rep(0, 4))
+foo <- try(lud.induced(1:4))
+class(foo)
+cat(foo, "\n")
 lud.induced(1)
 @
 Because the function \texttt{dt} is vectorized, the function \texttt{lud}
 is also vectorized, mapping vectors to vectors,
 whereas the function \texttt{lud.induced} is unvectorized,
 mapping vectors to scalars.
+
+Before we start using random numbers, we set the see of the random number
+generator so this document always produces the same results.
+<<set-seed>>=
+set.seed(42)
+@
+To change the results, change the seed or delete the \texttt{set.seed}
+statement.
 
 Running a Markov chain for the induced density is done with
 \texttt{morph.metrop}.
@@ -152,73 +162,69 @@ we can bring it down towards 20\%.
 out <- morph.metrop(out, scale=4)
 out$accept
 @
-We now use this Markov chain to estimate
-\begin{equation}\label{eq:e-abs-t}
-  \E(|T|)
-\end{equation}
-for the $T$ distribution with 3 degrees of freedom.  We'll start with an
-estimate from 1000 iterations of the chain.
+We now use this Markov chain to estimate the expectation of the target
+distribution.
+But first we need to check whether our batch length is good.
+The following code
+<<label=fig0too,include=FALSE>>=
+acf(out$batch)
+@
+makes the autocorrelation plot (Figure~\ref{fig:fig0}).
+\begin{figure}
+\begin{center}
+<<label=fig0,fig=TRUE,echo=FALSE>>=
+<<fig0too>>
+@
+\end{center}
+\caption{Autocorrelation plot for the sequence of batch means.}
+\label{fig:fig0}
+\end{figure}
+It looks like there is no significant autocorrelation among the batchs
+so the following produces a valid confidence interval for the true
+unknown mean of the target distribution (since this is a toy problem
+we actually know the true ``unknown'' mean is zero, but we pretend we
+don't know that for the purposes of the toy problem)
 <<>>=
-out <- morph.metrop(out, blen=1, nbatch=1e4, outfun=abs)
+t.test(out$batch)
 @
-We're going to use over-lapping batch means to estimate \eqref{eq:e-abs-t},
-but first we need to establish a reasonable batch length.
-<<fig=TRUE>>=
-acf(out$batch, lag.max=200)
-@
-It looks like a batch length of 100 will be sufficiently long.
+If we want a point estimate and a Monte Carlo standard error, those are
 <<>>=
-mcse <- sqrt(olbm(out$batch, 100))
-est.mean <- colMeans(out$batch)
-est.mean
-mcse
+colMeans(out$batch)
+apply(out$batch, 2, sd) / sqrt(out$nbatch)
 @
-The variable \texttt{est.mean} gives our MCMC estimate of
-\eqref{eq:e-abs-t} and \texttt{mcse} gives the Monte Carlo standard error
-of our estimate.  Because the underlying Markov chain is geometrically
-ergodic and $\E(|T|^2)$ is finite, there is a central limit theorem for our
-estimate.  The confidence interval for \eqref{eq:e-abs-t} is given by
-<<>>=
-est.mean + mcse * 1.96 * c(-1,1)
-@
-If a narrower confidence interval is desired, the Markov chain can be run
-longer.
+If a shorter confidence interval is desired, the Markov chain can be run
+longer (increase either the number of batches or the batch length, or both).
 
 Note that when calculating our estimate and the Monte Carlo standard error
 we are not concerned with what was happening on the transformed scale.  The
 \texttt{morph.metrop} function seamlessly does this for us.
 
-\subsection{Simulation Study}
+\subsection{Comparison of Morphed and Unmorphed}
 
-<<>>=
-n.sims <- 300
-n.iter <- 2000
-@
-
-To show the utility of the transformation, we will study the distribution
-of estimates of $\E(|T|)$ for a univariate $T$ random variable with three
-degrees of freedom.  We will consider two different estimation methods:
+To show the utility of the transformation, we will study the behavior
+of the Markov chain with and without the transformation for the same
+problem as in the preceding section.
+We will consider two different estimation methods.
 \begin{enumerate}
-\item \label{enum:rw} We will estimate $\E(|T|)$ using a random-walk
-  Metropolis algorithm for the $T$ density by using the \texttt{metrop}
+\item \label{enum:rw} Estimate the mean of the target distribution
+  using a random-walk Metropolis algorithm implemented by the \texttt{metrop}
   function.  \citet{jarner-roberts} demonstrate that a central limit
   theorem does not hold for these estimates.
-\item \label{enum:rw-induced} We will estimate $\E(|T|)$ using a
-  random-walk Metroplis algorithm for the density induced by setting
-  \texttt{b=1} in the \texttt{morph.metrop} function.
+\item \label{enum:rw-induced} Estimate the mean of the target distribution
+  using a random-walk Metroplis algorithm implemented by the
+  \texttt{morph.metrop} function with argument \texttt{morph = morph(b=1)}.
   \citet{johnson-geyer} demonstrate that a central limit does hold for
   these estimates.
 \end{enumerate}
 
-To demonstrate this we will estimate $\E(|T|)$ \Sexpr{n.sims} times with
-each method, in each case using a Markov chain \Sexpr{n.iter} iterations
-long, and then examine the normality of the resulting estimates.
+We do the latter first, since we are already set up for it.
+But we use an unbatched and longer run.
+<<morph-metrop-t-long-run>>=
+out.morph <- morph.metrop(out, blen = 1, nbatch = 1e5)
+out.morph$accept
+@
 
-We have already determined that for the induced density, a scale of 4 is
-about right.  Before doing the simulations we will establish a reasonable
-scale to use for the random-walk Metropolis altorithm run for the $T$
-density.
-
+For the former, we need to adjust the scale.
 <<>>=
 out <- metrop(lud, 0, blen=1000, nbatch=1)
 out$accept
@@ -227,97 +233,146 @@ out$accept
 out <- metrop(out, scale=6)
 out$accept
 @
-A scale of 6 appears to be about right.  It's now easy to run these
-simulations.
-
-<<runsims>>=
-t.estimates <-
-  replicate(n.sims,
-            metrop(lud, 0, blen=n.iter, nbatch=1, scale=6, outfun=abs)$batch)
-induced.estimates <-
-  replicate(n.sims,
-            morph.metrop(lud, 0, blen=n.iter, nbatch=1, scale=4, outfun=abs,
-                         nspac=1, morph=morph(b=1))$batch)
+A scale of 6 appears to be about right.  Now we do a similar long run for
+this sampler.
+<<unmorph-metrop-t-long-run>>=
+out.unmorph <- metrop(out, blen = 1, nbatch = 1e5)
+out.unmorph$accept
 @
 
-Now we can look at the distribution of our estimates.  Since this is a
-``toy'' example, we can establish a truth value using Good Old Fashioned
-Monte Carlo (GOFMC).
-
-<<establishtruth>>=
-n.truth <- 1000000
-t.values <- abs(rt(n.truth, df=3))
-truth <- mean(t.values)
-truth.se <- 1.96 * sd(t.values) / sqrt(n.truth)
-truth
-truth.se
+The following code
+<<label=fig2too,include=FALSE>>=
+oldpar <- par(mar = c(1, 4, 1, 1), mfrow = c(2, 1))
+plot(as.vector(out.morph$batch), xlab = "", axes = FALSE,
+    ylab = "morphed chain", pch = ".")
+axis(side = 2)
+box()
+plot(as.vector(out.unmorph$batch), xlab = "", axes = FALSE,
+    ylab = "unmorphed chain", pch = ".")
+axis(side = 2)
+box()
+par(oldpar)
 @
-This estimates the true value out to $\pm \Sexpr{signif(truth.se, 1)}$.
-
-Next we can look at histograms of the estimates.
-
-<<fig=TRUE>>=
-par(mfrow=c(1,2))
-hist(t.estimates, xlab="", main="Estimates from R-W on T")
-lines(rep(truth, 2), c(0, length(t.estimates)), col="red")
-lines(rep(mean(t.estimates), 2), c(0, length(t.estimates)), lty=2)
-hist(induced.estimates, xlab="",
-     main="Estimates from R-W\non Induced Distribution")
-lines(rep(truth, 2), c(0, length(induced.estimates)), col="red")
-lines(rep(mean(induced.estimates), 2), c(0, length(induced.estimates)), lty=2)
+makes time series plots for the two chains (Figure~\ref{fig:fig2}).
+\begin{figure}
+\begin{center}
+<<label=fig2,fig=TRUE,echo=FALSE>>=
+<<fig2too>>
 @
+\end{center}
+\caption{Time series plots for morphed and unmorphed chains.}
+\label{fig:fig2}
+\end{figure}
+Both appear stationary and it is hard to tell the difference from these
+plots.  The range of the unmorphed plot appears wider but that is only
+due to a few points and so may not be correct.
 
-Notice that the distribution coming from the estimates based on the
-random-walk Metropolis algorithm for the induced
-density are symmetric and follow a normal distribution, but the estimates
-based on the random-walk Metropolis algorithm for the $T$ density do not
-follow a symmetric distribution.
-
-We can also look at mean value of our estimates (which are themselves mean
-values).
-<<t-abs-mean-estimates>>=
-mean(t.estimates)
-sd(t.estimates) / sqrt(length(t.estimates))
-mean(t.estimates) +
-  sd(t.estimates) / sqrt(length(t.estimates)) * 1.96 * c(-1, 1)
-mean(induced.estimates)
-sd(induced.estimates) / sqrt(length(induced.estimates))
-mean(induced.estimates) +
-  sd(induced.estimates) / sqrt(length(induced.estimates)) * 1.96 * c(-1, 1)
+The following code
+<<label=fig3too,include=FALSE>>=
+oldpar <- par(mar = c(5, 4, 1, 1), mfrow = c(2, 1))
+acf(as.vector(out.morph$batch), type = "covariance",
+    ylab = "morphed chain")
+acf(as.vector(out.unmorph$batch), type = "covariance",
+    ylab = "unmorphed chain")
+par(oldpar)
 @
-
-The following Q-Q plots for the standardized estimates support this theory.
-
-<<fig=TRUE>>=
-par(mfrow=c(1,2))
-t.standardized <- (t.estimates - mean(t.estimates)) / sd(t.estimates)
-induced.standardized <-
-  (induced.estimates - mean(induced.estimates)) / sd(induced.estimates)
-qqnorm(t.standardized, main="Q-Q Plot\nEstimates from T")
-qqline(t.standardized)
-qqnorm(induced.standardized, main="Q-Q Plot\nEstimates from Induced Density")
-qqline(induced.standardized)
+makes autocovariance plots for the two chains (Figure~\ref{fig:fig3}).
+\begin{figure}
+\begin{center}
+<<label=fig3,fig=TRUE,echo=FALSE>>=
+<<fig3too>>
 @
+\end{center}
+\caption{Autocovariance plots for morphed and unmorphed chains.}
+\label{fig:fig3}
+\end{figure}
+Again, not much apparent difference.
 
-Finally, we can examine the normality of the estimates with
-Komogorov-Smirnov tests.
-
-<<abs-t-kstest>>=
-t.kstest <- ks.test(t.standardized, pnorm)
-induced.kstest <- ks.test(induced.standardized, pnorm)
-t.kstest$p.value
-induced.kstest$p.value
+The following code compares Monte Carlo standard errors
+<<initseq>>=
+sqrt(initseq(as.vector(out.morph$batch))$var.con / out.morph$nbatch)
+sqrt(initseq(as.vector(out.unmorph$batch))$var.con / out.morph$nbatch)
+initseq(as.vector(out.morph$batch))$Gamma.con
+initseq(as.vector(out.unmorph$batch))$Gamma.con
 @
+Again, not much difference.  Although we know the unmorphed chain
+is much worse in theory, it seems to work in practice.
+(More study is needed here, perhaps looking at longer runs.
+But we don't want to take the time for really long runs in a vignette.)
 
-Comparing the standardized estimates to a Normal$(0, 1)$ distribution gives
-the p-values of \Sexpr{signif(t.kstest[["p.value"]], 3)} for the standardized
-estimates coming from the random-walk Metropolis algorithm for the
-$t$-density, and \Sexpr{signif(induced.kstest[["p.value"]], 3)}
-for the estimates coming from the random-walk Metropolis algorithm for the
-induced density.  Thus, there is strong evidence that the esimates deriving
-from the un-transformed $t$-density do not follow a Normal distribution,
-but there is \emph{no} evidence that the estimates deriving from the induced
-density \emph{do not} follow a Normal distribution.
+Let's look at the distribution of batch means.
+<<batch-100>>=
+blen <- 100
+foo <- as.vector(out.unmorph$batch)
+stopifnot(length(foo) %% blen == 0)
+foo <- matrix(foo, nrow = blen)
+foo <- colMeans(foo)
+@
+The following code
+<<label=fig4too,include=FALSE>>=
+qqnorm(foo)
+qqline(foo)
+@
+makes a Q-Q plot of the batch means (Figure~\ref{fig:fig4}).
+\begin{figure}
+\begin{center}
+<<label=fig4,fig=TRUE,echo=FALSE>>=
+<<fig4too>>
+@
+\end{center}
+\caption{Q-Q plot of batch means (batch length \Sexpr{blen})
+for the unmorphed chain.}
+\label{fig:fig4}
+\end{figure}
+Finally we see bad behavior of the unnmorphed chain.  These batch means
+(or at least some batch means for sufficiently long batch length) should
+look normally distributed, and these don't.  Not even close.
+
+But on further thought, this is just heavy-tailedness of the target
+distribution.  If one makes a Q-Q plot for means of sample size 100
+for independent and identically distributed $t(3)$ random variables
+one sees more or less the same thing.  One needs sample size 300
+for approximate normality (as indicated by a Q-Q plot) for this distribution.
+For MCMC we need about 300 times the lag at which autocorrelations become
+insignificant, so we need batch length about 5000.  Let's try that.
+<<batch-5000>>=
+blen <- 5000
+foo <- as.vector(out.unmorph$batch)
+stopifnot(length(foo) %% blen == 0)
+foo <- matrix(foo, nrow = blen)
+foo <- colMeans(foo)
+@
+The following code
+<<label=fig5too,include=FALSE>>=
+qqnorm(foo)
+qqline(foo)
+@
+makes a Q-Q plot of the batch means (Figure~\ref{fig:fig5}).
+\begin{figure}
+\begin{center}
+<<label=fig5,fig=TRUE,echo=FALSE>>=
+<<fig5too>>
+@
+\end{center}
+\caption{Q-Q plot of batch means (batch length \Sexpr{blen})
+for the unmorphed chain.}
+\label{fig:fig5}
+\end{figure}
+Better, in fact
+<<shapiro-wilk>>=
+shapiro.test(foo)
+@
+not significantly different from normally distributed (although with such
+a small number of batch means, perhaps that is just low power).
+
+Since last issue we encountered (non-normality of batch means for moderate
+but not really large batch length) is caused by the heavy-tailedness of
+the target distribution, the morphed chain will have all the same issues.
+
+This suggests that we should perhaps use a more robust estimator of scale
+than the standard deviation of the batch means which using small batches
+(length 100), but since there is nothing in the literature about this
+(as far as we know), we will say no more about it.
 
 \section{Binomial Distribution with a Conjugate Prior}
 
@@ -510,6 +565,172 @@ for(i in 1:6) {
 \label{fig:posterior-probs}
 \end{figure}
 
+\section{Cauchy Location-Scale Model}
+
+We are going to do a Cauchy location-scale family objective Bayesianly.
+
+\subsection{Data}
+
+First we generate some data.
+<<cauchy-data>>=
+n <- 15
+mu0 <- 50
+sigma0 <- 10
+x <- rcauchy(n, mu0, sigma0)
+round(sort(x), 1)
+@
+\texttt{mu0} and \texttt{sigma0} are the true unknown parameter values
+(since the data are simulated we actually know these ``unknown'' parameter
+values, but we must pretend we don't know them and estimate them).
+
+\subsection{Prior}
+
+The standard objective prior distribution for this situation
+(insofar as any prior distribution can be said to be an objective standard)
+is the improper prior
+$$
+   g(\mu, \sigma) = \frac{1}{\sigma}
+$$
+which is right Haar measure for the location-scale group, and is the
+standard prior that comes from the group invariance argument
+\citep[Section~3.2]{kass-wasserman}.
+
+\subsection{Log Unnormalized Posterior}
+
+We need a function whose argument is a two-vector
+<<cauchy-log-unnormalized-posterior>>=
+lup <- function(theta) {
+    if (any(is.na(theta)))
+        stop("NA or NaN in input to log unnormalized density function")
+    mu <- theta[1]
+    sigma <- theta[2]
+    if (sigma <= 0) return(-Inf)
+    if (any(! is.finite(theta))) return(-Inf)
+    result <- sum(dcauchy(x, mu, sigma, log = TRUE)) - log(sigma)
+    if (! is.finite(result)) {
+        warning(paste("Oops!  mu = ", mu, "and sigma =", sigma))
+    }
+    return(result)
+}
+@
+
+\subsection{Laplace Approximation}
+
+To have some idea what we are doing, we first maximize the log unnormalized
+posterior.  To do it helps to have good starting points for the optimization.
+Robust estimators of location and scale are
+<<cauchy-robust>>=
+mu.twiddle <- median(x)
+sigma.twiddle <- IQR(x, type = 1)
+c(mu.twiddle, sigma.twiddle)
+@
+The maximum likelihood estimator (MLE) is
+<<cauchy-posterior-mode>>=
+oout <- optim(c(mu.twiddle, sigma.twiddle), lup,
+    control = list(fnscale = -1))
+stopifnot(oout$convergence == 0)
+mu.hat <- oout$par[1]
+sigma.hat <- oout$par[2]
+c(mu.hat, sigma.hat)
+@
+This is the posterior mode.
+<<cauchy-hessian>>=
+hout <- optimHess(c(mu.hat, sigma.hat), lup)
+hout
+@
+The hessian is nearly diagonal and one can check that theoretically
+is exactly diagonal.  Thus approximate (asymptotic) posterior standard
+deviations are
+<<cauchy-se>>=
+see <- sqrt(- 1 / diag(hout))
+see
+@
+
+\subsection{Theory}
+
+To use the theory in \citet{johnson-geyer} we must verify that the
+target distribution (the unnormalized posterior) is everywhere positive,
+and it isn't (it is zero for $\sigma \le 0$).  We tried makeing $\log(\sigma)$
+the parameter but this didn't work either because $\log(\sigma)$ goes to
+infinity so slowly that this stretches out the tails so much that the
+transformations introduced by \citet{johnson-geyer} can't pull them back
+in again.  We do know \citep[Example~3.4]{johnson-geyer} that if we fix
+$\sigma$ this is a sub-exponentially light target distribution.  Letting
+$\sigma$ vary can only make this worse.  Thus, if we don't do anything
+and just use the \texttt{metrop} function, then performance will be very
+bad.  So we are going to use the transformations and the \texttt{morph.metrop}
+function, even though the theory that motivates them does not hold.
+
+\subsection{Morph}
+
+We want to center the transformation at the posterior mode, and use a
+radius $r$ that doesn't transform until several approximate standard deviations
+<<cauchy-doit>>=
+library(mcmc, lib.loc = "../package/mcmc.Rcheck")
+moo <- morph(b = 0.5, r = 7, center = c(mu.hat, sigma.hat))
+mout <- morph.metrop(lup, c(mu.hat, sigma.hat), 1e4,
+    scale = 3, morph = moo)
+mout$accept
+mout <- morph.metrop(mout)
+@
+Good enough.  An attempt to increase the scale led to error when the
+transformation functions overflowed.  Can't take steps too big with this
+stuff.
+The following code
+<<label=cfig1too,include=FALSE>>=
+acf(mout$batch)
+@
+makes an autocorrelation plot (Figure~\ref{fig:cfig1}).
+\begin{figure}
+\begin{center}
+<<label=cfig1,fig=TRUE,echo=FALSE>>=
+<<cfig1too>>
+@
+\end{center}
+\caption{Autocorrelation plot.  First component is $\mu$, second is $\sigma$.}
+\label{fig:cfig1}
+\end{figure}
+It looks like lag 10 to 15 is enough to get near independence.
+
+Now we want to make marginal density plots.
+If we just feed our MCMC output to the R function \texttt{density}
+it undersmooths because it expects independent and identically distributed
+data rather than autocorrelated
+data.  Thus we feed it subsampled, nearly uncorrelated data to select
+the bandwidth and then use that bandwidth on the full data.  Here's
+how that works.
+The following code
+<<label=cfig2too,include=FALSE>>=
+mu <- mout$batch[ , 1]
+i <- seq(1, mout$nbatch, by = 15)
+out.sub <- density(mu[i])
+out <- density(mu, bw = out.sub$bw)
+plot(out)
+@
+makes the density plot (Figure~\ref{fig:cfig2}).
+\begin{figure}
+\begin{center}
+<<label=cfig2,fig=TRUE,echo=FALSE>>=
+<<cfig2too>>
+@
+\end{center}
+\caption{Density plot for the marginal posterior for $\mu$.}
+\label{fig:cfig2}
+\end{figure}
+And a similar plot for $\sigma$ (Figure~\ref{fig:cfig3})
+\begin{figure}
+\begin{center}
+<<label=cfig3,fig=TRUE,echo=FALSE>>=
+sigma <- mout$batch[ , 2]
+out.sub <- density(sigma[i])
+out <- density(sigma, bw = out.sub$bw)
+plot(out)
+@
+\end{center}
+\caption{Density plot for the marginal posterior for $\sigma$.}
+\label{fig:cfig3}
+\end{figure}
+
 
 \begin{thebibliography}{}
 
@@ -537,6 +758,13 @@ Johnson, L.~T. and C.~J. Geyer (submitted).
     in the Random-walk Metropolis Algorithm.
 \newblock \emph{Annals of Statistics}.
 
+\bibitem[Kass and Wasserman(1996)]{kass-wasserman}
+Kass, R.~E. and Wasserman, L. (1996).
+\newblock Formal rules for selecting prior distributions: A review and
+    annotated bibliography.
+\newblock \emph{Journal of the American Statistical Association},
+    435, 1343--1370.
+
 \bibitem[Mengersen and Tweedie(1996)]{mengersen-tweedie}
   Mengersen, K.L. ad R. L. Tweedie (1996).
 \newblock Rates of convergence of the {H}astings and {M}etropolis algorithms.
@@ -545,3 +773,4 @@ Johnson, L.~T. and C.~J. Geyer (submitted).
 \end{thebibliography}
 
 \end{document}
+

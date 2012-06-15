@@ -44,7 +44,7 @@ newton.raphson <- function(f, df, x, r, x0 = 2 * r) {
 subexponential <- function(b=1) {
   if (missing(b) | is.null(b)) b <- 1
   stopifnot(b > 0)
-  b;
+  force(b)
   f.inv <- function(x) ifelse(x > 1/b,
                               exp(b * x) - exp(1)/3,
                               (x * b)^3 * exp(1) / 6 + x * b * exp(1) / 2)
@@ -88,9 +88,9 @@ exponential <- function(r=1, p=3) {
 }
 
 .make.outfun <- function(out) {
-  out;
+  force(out)
   function(f) {
-    f;
+    force(f)
     if (is.null(f))
       return(out$inverse)
     else if (is.function(f))
@@ -159,18 +159,20 @@ morph <- function(b, r, p, center) {
   out$outfun <- .make.outfun(out)
 
   out$lud <- function(lud) {
-    lud;
-    function(state, ...)
-      lud(out$inverse(state), ...) + out$log.jacobian(state)
+    force(lud)
+    function(state, ...) {
+      foo <- lud(out$inverse(state), ...)
+      if (length(foo) != 1)
+          stop("log unnormalized density function returned vector not scalar")
+      if (is.na(foo))
+          stop("log unnormalized density function returned NA or NaN")
+      if (foo == -Inf) return(foo)
+      if (! is.finite(foo))
+          stop("log unnormalized density function returned +Inf")
+      foo + out$log.jacobian(state)
+    }
   }
 
   return(out)
 }
-
-
-
-
-
-
-
 

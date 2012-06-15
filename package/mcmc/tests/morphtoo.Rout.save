@@ -82,10 +82,10 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 >  z <- unlist(Map(fpo$transform, y))
->  all.equal(z, x, tolerance = 1e-12)
+>  all.equal(z, x, tolerance = 1e-14)
 [1] TRUE
 > 
 > 
 > proc.time()
    user  system elapsed 
-  4.012   0.044   4.037 
+  4.024   0.036   4.038 

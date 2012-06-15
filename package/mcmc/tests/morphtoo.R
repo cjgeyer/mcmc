@@ -57,5 +57,5 @@
  all.equal(y, y2, tolerance = 1e-14)
 
  z <- unlist(Map(fpo$transform, y))
- all.equal(z, x, tolerance = 1e-12)
+ all.equal(z, x, tolerance = 1e-14)
 
