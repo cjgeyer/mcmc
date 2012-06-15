@@ -2,7 +2,7 @@
 R version 2.15.0 (2012-03-30)
 Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
-Platform: i686-pc-linux-gnu (32-bit)
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -65,16 +65,16 @@ Type 'q()' to quit R.
 [16] "accepti"      "initial"      "final"       
 > 
 >  out$acceptx
-[1] 0.6516 0.3924 0.3465 0.2084 0.1928 0.5874
+[1] 0.6336 0.4974 0.3245 0.6022 0.6130 0.5914
 > 
 >  out$accepti
        [,1]   [,2]   [,3]   [,4]   [,5]   [,6]
-[1,]     NA 0.6651 0.4608     NA     NA     NA
-[2,] 0.6346     NA 0.5397 0.2984     NA     NA
-[3,] 0.4796 0.5714     NA 0.4149 0.1031     NA
-[4,]     NA 0.1980 0.3193     NA 0.2621 0.3137
-[5,]     NA     NA 0.1871 0.2609     NA 0.2615
-[6,]     NA     NA     NA 0.3333 0.3174     NA
+[1,]     NA 0.7051 0.5497     NA     NA     NA
+[2,] 0.7523     NA 0.5547 0.6288     NA     NA
+[3,] 0.5794 0.5865     NA 0.5309 0.5476     NA
+[4,]     NA 0.6667 0.5506     NA 0.8272 0.6837
+[5,]     NA     NA 0.5439 0.8926     NA 0.8374
+[6,]     NA     NA     NA 0.8391 0.9023     NA
 > 
 >  ### check that have prob 1 / 2 for corners
 > 
@@ -90,9 +90,9 @@ Type 'q()' to quit R.
 >  out <- temper(out, outfun = outfun)
 > 
 >  colMeans(out$batch)
-[1] 0.5492 0.4800 0.5569 0.7692 0.9246 0.7708
+[1] 0.54923 0.40923 0.39538 0.09692 0.12923 0.60000
 >  apply(out$batch, 2, sd) / sqrt(out$nbatch)
-[1] 0.03585 0.05019 0.05510 0.04775 0.02586 0.05737
+[1] 0.03482 0.04817 0.05464 0.02856 0.02113 0.05131
 > 
 >  ### try again
 > 
@@ -103,14 +103,14 @@ Type 'q()' to quit R.
 >  colnames(foo) <- c("means", "MCSE")
 >  foo
       means    MCSE
-[1,] 0.5033 0.01345
-[2,] 0.5122 0.02469
-[3,] 0.4969 0.03692
-[4,] 0.5283 0.04713
-[5,] 0.4583 0.04743
-[6,] 0.4192 0.05931
+[1,] 0.5231 0.01390
+[2,] 0.5361 0.02213
+[3,] 0.4905 0.03961
+[4,] 0.5652 0.04909
+[5,] 0.4056 0.05107
+[6,] 0.2450 0.05108
 > 
 > 
 > proc.time()
    user  system elapsed 
-  5.452   0.048   5.485 
+  4.316   0.036   4.452 

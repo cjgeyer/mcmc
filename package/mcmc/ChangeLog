@@ -60,3 +60,5 @@
        tempering, ignoring the number of neighbors each component had, hence
        computing wrong answers when components differed in number of neighbors
 
+ 0.9   morph, morph.metrop functions and morph.pdf vignette
+       bumped required R version to 2.10.0 (required by xtable)
