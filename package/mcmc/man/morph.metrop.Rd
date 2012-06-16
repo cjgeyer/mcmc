@@ -2,7 +2,7 @@
 \alias{morph.metrop}
 \alias{morph.metrop.function}
 \alias{morph.metrop.morph.metropolis}
-\title{Morphemetric Metropolis Algorithm}
+\title{Morphometric Metropolis Algorithm}
 \description{
   Markov chain Monte Carlo for continuous random vector using a
   Metropolis algorithm for an induced density.
@@ -25,7 +25,7 @@ morph.metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1,
   \item{...}{see \code{\link{metrop}}.}
 }
 \details{
-  \code{morph.metrop} implements morphemetric methods for Markov
+  \code{morph.metrop} implements morphometric methods for Markov
   chains.  The caller specifies a log unnormalized probability density
   and a transformation.  The transformation specified by the
   \code{morph} parameter is used to induce a new log unnormalized
