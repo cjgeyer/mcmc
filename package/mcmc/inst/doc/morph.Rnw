@@ -664,7 +664,6 @@ function, even though the theory that motivates them does not hold.
 We want to center the transformation at the posterior mode, and use a
 radius $r$ that doesn't transform until several approximate standard deviations
 <<cauchy-doit>>=
-library(mcmc, lib.loc = "../package/mcmc.Rcheck")
 moo <- morph(b = 0.5, r = 7, center = c(mu.hat, sigma.hat))
 mout <- morph.metrop(lup, c(mu.hat, sigma.hat), 1e4,
     scale = 3, morph = moo)
