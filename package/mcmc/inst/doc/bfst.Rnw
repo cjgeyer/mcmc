@@ -550,6 +550,8 @@ if (inherits(lout, "try-error")) {
         if (max(ibar) / min(ibar) < 2) break
     }
     save(out, qux, qux.save, time.save, file = "bfst1.rda")
+} else {
+    .Random.seed <- out$final.seed
 }
 print(qux.save, digits = 3)
 print(qux, digits = 3)
@@ -588,6 +590,8 @@ lout <- suppressWarnings(try(load("bfst2.rda"), silent = TRUE))
 if (inherits(lout, "try-error")) {
     out <- temper(out, blen = 10 * out$blen, log.pseudo.prior = qux)
     save(out, file = "bfst2.rda")
+} else {
+    .Random.seed <- out$final.seed
 }
 time.save <- rbind(time.save, out$time, deparse.level = 0)
 foo <- apply(time.save, 2, sum)

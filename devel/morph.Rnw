@@ -19,10 +19,10 @@
 
 <<foo,include=FALSE,echo=FALSE>>=
 options(keep.source = TRUE, width = 60)
-foo <- packageDescription("mcmc")
+foo <- packageDescription("mcmc", lib.loc = "../package/mcmc.Rcheck")
 @
 
-\title{Morphometric MCMC Example (mcmc Version \Sexpr{foo$Version})}
+\title{Morphometric MCMC (mcmc Package Ver.~\Sexpr{foo$Version})}
 % $ (Just to make emacs syntax highlighting work properly)
 \author{Leif T. Johnson \and Charles J. Geyer}
 \maketitle
@@ -32,7 +32,7 @@ foo <- packageDescription("mcmc")
 This is an example how to use morphometric Markov chains as implemented in
 the \verb@mcmc@ package in R.
 
-Let $X$ be a $\mathbb{R}^k$ valued random variable with probability density
+Let $X$ be an $\mathbb{R}^k$ valued random variable with probability density
 function, $f_X$.  Let $g$ be a diffeomorphism, and $Y=g(X)$.  Then the
 probability density function of $Y$, $f_Y$ is given by
 \begin{equation}\label{eq:def-fy}
@@ -96,7 +96,7 @@ Metropolis random-walk will be geometrically ergodic.
 Passing a positive value for \texttt{b} to \texttt{morph} function will
 create the aforementioned transformation, $h_2$.  It's as simple as
 <<>>=
-library(mcmc)
+library(mcmc, lib.loc = "../package/mcmc.Rcheck")
 h2 <- morph(b=1)
 @
 We can now see the induced density.  Note that \texttt{morph} works for
@@ -133,7 +133,7 @@ is also vectorized, mapping vectors to vectors,
 whereas the function \texttt{lud.induced} is not vectorized,
 mapping vectors to scalars.
 
-Before we start using random numbers, we set the see of the random number
+Before we start using random numbers, we set the seed of the random number
 generator so this document always produces the same results.
 <<set-seed>>=
 set.seed(42)
@@ -213,103 +213,39 @@ We will consider two different estimation methods.
 \item \label{enum:rw-induced} Estimate the mean of the target distribution
   using a random-walk Metropolis algorithm implemented by the
   \texttt{morph.metrop} function with argument \texttt{morph = morph(b=1)}.
-  \citet{johnson-geyer} demonstrate that a central limit does hold for
-  these estimates.
+  \citet{johnson-geyer} demonstrate that a central limit
+  theorem does hold for these estimates.
 \end{enumerate}
 
-We do the latter first, since we are already set up for it.
-But we use an unbatched and longer run.
-<<morph-metrop-t-long-run>>=
-out.morph <- morph.metrop(out, blen = 1, nbatch = 1e5)
-out.morph$accept
-@
-
 For the former, we need to adjust the scale.
-<<>>=
-out <- metrop(lud, 0, blen=1000, nbatch=1)
-out$accept
-out <- metrop(out, scale=4)
-out$accept
-out <- metrop(out, scale=6)
-out$accept
+<<unmorph-metrop-adjust>>=
+out.unmorph <- metrop(lud, 0, blen=1000, nbatch=1)
+out.unmorph$accept
+out.unmorph <- metrop(out.unmorph, scale=4)
+out.unmorph$accept
+out.unmorph <- metrop(out.unmorph, scale=6)
+out.unmorph$accept
 @
-A scale of 6 appears to be about right.  Now we do a similar long run for
+A scale of 6 appears to be about right.  Now we do a long run for
 this sampler.
+Because this run takes longer than CRAN vingettes are supposed to
+take, we save the results to a file
+and load the results from this file if it already exists.
 <<unmorph-metrop-t-long-run>>=
-out.unmorph <- metrop(out, blen = 1, nbatch = 1e5)
+lout <- suppressWarnings(try(load("morph1.rda"), silent = TRUE))
+if (inherits(lout, "try-error")) {
+    out.unmorph <- metrop(out.unmorph, blen = 1e5, nbatch = 1e3)
+    save(out.unmorph, file = "morph1.rda")
+} else {
+    .Random.seed <- out.unmorph$final.seed
+}
 out.unmorph$accept
 @
 
-The following code
-<<label=fig2too,include=FALSE>>=
-oldpar <- par(mar = c(1, 4, 1, 1), mfrow = c(2, 1))
-plot(as.vector(out.morph$batch), xlab = "", axes = FALSE,
-    ylab = "morphed chain", pch = ".")
-axis(side = 2)
-box()
-plot(as.vector(out.unmorph$batch), xlab = "", axes = FALSE,
-    ylab = "unmorphed chain", pch = ".")
-axis(side = 2)
-box()
-par(oldpar)
-@
-makes time series plots for the two chains (Figure~\ref{fig:fig2}).
-\begin{figure}
-\begin{center}
-<<label=fig2,fig=TRUE,echo=FALSE>>=
-<<fig2too>>
-@
-\end{center}
-\caption{Time series plots for morphed and unmorphed chains.}
-\label{fig:fig2}
-\end{figure}
-Both appear stationary and it is hard to tell the difference from these
-plots.  The range of the unmorphed plot appears wider but that is only
-due to a few points and so may not be correct.
-
-The following code
-<<label=fig3too,include=FALSE>>=
-oldpar <- par(mar = c(5, 4, 1, 1), mfrow = c(2, 1))
-acf(as.vector(out.morph$batch), type = "covariance",
-    ylab = "morphed chain")
-acf(as.vector(out.unmorph$batch), type = "covariance",
-    ylab = "unmorphed chain")
-par(oldpar)
-@
-makes autocovariance plots for the two chains (Figure~\ref{fig:fig3}).
-\begin{figure}
-\begin{center}
-<<label=fig3,fig=TRUE,echo=FALSE>>=
-<<fig3too>>
-@
-\end{center}
-\caption{Autocovariance plots for morphed and unmorphed chains.}
-\label{fig:fig3}
-\end{figure}
-Again, not much apparent difference.
-
-The following code compares Monte Carlo standard errors
-<<initseq>>=
-sqrt(initseq(as.vector(out.morph$batch))$var.con / out.morph$nbatch)
-sqrt(initseq(as.vector(out.unmorph$batch))$var.con / out.morph$nbatch)
-initseq(as.vector(out.morph$batch))$Gamma.con
-initseq(as.vector(out.unmorph$batch))$Gamma.con
-@
-Again, not much difference.  Although we know the unmorphed chain
-is much worse in theory, it seems to work in practice.
-(More study is needed here, perhaps looking at longer runs.
-But we don't want to take the time for really long runs in a vignette.)
-
 Let's look at the distribution of batch means.
-<<batch-100>>=
-blen <- 100
-foo <- as.vector(out.unmorph$batch)
-stopifnot(length(foo) %% blen == 0)
-foo <- matrix(foo, nrow = blen)
-foo <- colMeans(foo)
-@
 The following code
 <<label=fig4too,include=FALSE>>=
+foo <- as.vector(out.unmorph$batch)
 qqnorm(foo)
 qqline(foo)
 @
@@ -320,30 +256,33 @@ makes a Q-Q plot of the batch means (Figure~\ref{fig:fig4}).
 <<fig4too>>
 @
 \end{center}
-\caption{Q-Q plot of batch means (batch length \Sexpr{blen})
+\caption{Q-Q plot of batch means (batch length \Sexpr{out.unmorph$blen})
 for the unmorphed chain.}
 \label{fig:fig4}
 \end{figure}
-Finally we see bad behavior of the unmorphed chain.  These batch means
+We see bad behavior of the unmorphed chain.  These batch means
 (or at least some batch means for sufficiently long batch length) should
 look normally distributed, and these don't.  Not even close.
-
-But on further thought, this is just heavy-tailedness of the target
-distribution.  If one makes a Q-Q plot for means of sample size 100
-for independent and identically distributed $t(3)$ random variables
-one sees more or less the same thing.  One needs sample size 300
-for approximate normality (as indicated by a Q-Q plot) for this distribution.
-For MCMC we need about 300 times the lag at which autocorrelations become
-insignificant, so we need batch length about 5000.  Let's try that.
-<<batch-5000>>=
-blen <- 5000
-foo <- as.vector(out.unmorph$batch)
-stopifnot(length(foo) %% blen == 0)
-foo <- matrix(foo, nrow = blen)
-foo <- colMeans(foo)
+We do a formal test just to check our interpretation of the plot
+<<shapiro-wilk>>=
+shapiro.test(foo)
 @
+
+Now for comparison, we check the morphed chain.
+<<morph-metrop-t-long-run>>=
+lout <- suppressWarnings(try(load("morph2.rda"), silent = TRUE))
+if (inherits(lout, "try-error")) {
+    out.morph <- morph.metrop(out, blen = 1e5, nbatch = 1e3)
+    save(out.morph, file = "morph2.rda")
+} else {
+    .Random.seed <- out.morph$final.seed
+}
+out.morph$accept
+@
+
 The following code
 <<label=fig5too,include=FALSE>>=
+foo <- as.vector(out.morph$batch)
 qqnorm(foo)
 qqline(foo)
 @
@@ -354,25 +293,16 @@ makes a Q-Q plot of the batch means (Figure~\ref{fig:fig5}).
 <<fig5too>>
 @
 \end{center}
-\caption{Q-Q plot of batch means (batch length \Sexpr{blen})
-for the unmorphed chain.}
+\caption{Q-Q plot of batch means (batch length \Sexpr{out.unmorph$blen})
+for the morphed chain.}
 \label{fig:fig5}
 \end{figure}
-Better, in fact
+We see good behavior of the morphed chain.  These batch means do
+look normally distributed.
+We do a formal test just to check our interpretation of the plot
 <<shapiro-wilk>>=
 shapiro.test(foo)
 @
-not significantly different from normally distributed (although with such
-a small number of batch means, perhaps that is just low power).
-
-Since last issue we encountered (non-normality of batch means for moderate
-but not really large batch length) is caused by the heavy-tailedness of
-the target distribution, the morphed chain will have all the same issues.
-
-This suggests that we should perhaps use a more robust estimator of scale
-than the standard deviation of the batch means which using small batches
-(length 100), but since there is nothing in the literature about this
-(as far as we know), we will say no more about it.
 
 \section{Binomial Distribution with a Conjugate Prior}
 
@@ -624,7 +554,7 @@ mu.twiddle <- median(x)
 sigma.twiddle <- IQR(x)
 c(mu.twiddle, sigma.twiddle)
 @
-The maximum likelihood estimator (MLE) is
+The posterior mode is
 <<cauchy-posterior-mode>>=
 oout <- optim(c(mu.twiddle, sigma.twiddle), lup,
     control = list(fnscale = -1), hessian = TRUE)
@@ -633,7 +563,8 @@ mu.hat <- oout$par[1]
 sigma.hat <- oout$par[2]
 c(mu.hat, sigma.hat)
 @
-This is the posterior mode.
+and the hessian evaluated at the posterior mode (calculated by
+\texttt{optim} using finite differences) is
 <<cauchy-hessian>>=
 oout$hessian
 @
