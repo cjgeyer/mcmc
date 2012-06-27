@@ -532,28 +532,35 @@ We do this only to make \texttt{qux} more comparable from
 run to run.
 
 Now we repeat this until the log pseudoprior ``converges'' roughly.
+Because this loop takes longer than CRAN vingettes are supposed to
+take, we save the results to a file
+and load the results from this file if it already exists.
 <<iterate>>=
-qux.save <- qux
-time.save <- out$time
-repeat{
-    out <- temper(out, log.pseudo.prior = qux)
-    ibar <- colMeans(out$ibatch)
-    qux <- qux + pmin(log(max(ibar) / ibar), 10)
-    qux <- qux - min(qux)
-    qux.save <- rbind(qux.save, qux, deparse.level = 0)
-    time.save <- rbind(time.save, out$time, deparse.level = 0)
-    if (max(ibar) / min(ibar) < 2) break
+lout <- suppressWarnings(try(load("bfst1.rda"), silent = TRUE))
+if (inherits(lout, "try-error")) {
+    qux.save <- qux
+    time.save <- out$time
+    repeat{
+        out <- temper(out, log.pseudo.prior = qux)
+        ibar <- colMeans(out$ibatch)
+        qux <- qux + pmin(log(max(ibar) / ibar), 10)
+        qux <- qux - min(qux)
+        qux.save <- rbind(qux.save, qux, deparse.level = 0)
+        time.save <- rbind(time.save, out$time, deparse.level = 0)
+        if (max(ibar) / min(ibar) < 2) break
+    }
+    save(out, qux, qux.save, time.save, file = "bfst1.rda")
 }
-qux.save
-qux
+print(qux.save, digits = 3)
+print(qux, digits = 3)
 apply(time.save, 2, sum)
 @
 
 Now that the pseudoprior is adjusted well enough, we need to perhaps
 make other adjustments to get acceptance rates near 20\%.
 <<accept-i-x>>=
-out$accepti
-out$acceptx
+print(out$accepti, digits = 3)
+print(out$acceptx, digits = 3)
 @
 The acceptance rates for swaps seem o. k.
 <<accept-i-min>>=
@@ -565,15 +572,23 @@ acceptance rates for within model moves by adjusting the scaling.
 <<scale>>=
 out <- temper(out, scale = 0.5, log.pseudo.prior = qux)
 time.save <- rbind(time.save, out$time, deparse.level = 0)
-out$acceptx
+print(out$acceptx, digits = 3)
 @
 Looks o.~k.\ now.
 
 Inspection of autocorrelation functions for components
 of \verb@out$ibatch@ (not shown) says batch length needs to be at least
 4 times longer.  We make it 10 times longer for safety.
+
+Because this run takes longer than CRAN vingettes are supposed to
+take, we save the results to a file
+and load the results from this file if it already exists.
 <<try6>>=
-out <- temper(out, blen = 10 * out$blen, log.pseudo.prior = qux)
+lout <- suppressWarnings(try(load("bfst2.rda"), silent = TRUE))
+if (inherits(lout, "try-error")) {
+    out <- temper(out, blen = 10 * out$blen, log.pseudo.prior = qux)
+    save(out, file = "bfst2.rda")
+}
 time.save <- rbind(time.save, out$time, deparse.level = 0)
 foo <- apply(time.save, 2, sum)
 foo.min <- floor(foo[1] / 60)
@@ -782,6 +797,4 @@ Torrie, G.~M., and Valleau, J.~P. (1977).
 \end{thebibliography}
 
 \end{document}
-
-
 

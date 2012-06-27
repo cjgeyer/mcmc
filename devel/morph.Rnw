@@ -22,14 +22,14 @@ options(keep.source = TRUE, width = 60)
 foo <- packageDescription("mcmc")
 @
 
-\title{Morphemetric MCMC Example (mcmc Version \Sexpr{foo$Version})}
+\title{Morphometric MCMC Example (mcmc Version \Sexpr{foo$Version})}
 % $ (Just to make emacs syntax highlighting work properly)
 \author{Leif T. Johnson \and Charles J. Geyer}
 \maketitle
 
 \section{Overview}
 
-This is an example how to use morphemetric Markov chains as implemented in
+This is an example how to use morphometric Markov chains as implemented in
 the \verb@mcmc@ package in R.
 
 Let $X$ be a $\mathbb{R}^k$ valued random variable with probability density
@@ -130,7 +130,7 @@ lud.induced(1)
 @
 Because the function \texttt{dt} is vectorized, the function \texttt{lud}
 is also vectorized, mapping vectors to vectors,
-whereas the function \texttt{lud.induced} is unvectorized,
+whereas the function \texttt{lud.induced} is not vectorized,
 mapping vectors to scalars.
 
 Before we start using random numbers, we set the see of the random number
@@ -179,7 +179,7 @@ makes the autocorrelation plot (Figure~\ref{fig:fig0}).
 \caption{Autocorrelation plot for the sequence of batch means.}
 \label{fig:fig0}
 \end{figure}
-It looks like there is no significant autocorrelation among the batchs
+It looks like there is no significant autocorrelation among the batches
 so the following produces a valid confidence interval for the true
 unknown mean of the target distribution (since this is a toy problem
 we actually know the true ``unknown'' mean is zero, but we pretend we
@@ -211,7 +211,7 @@ We will consider two different estimation methods.
   function.  \citet{jarner-roberts} demonstrate that a central limit
   theorem does not hold for these estimates.
 \item \label{enum:rw-induced} Estimate the mean of the target distribution
-  using a random-walk Metroplis algorithm implemented by the
+  using a random-walk Metropolis algorithm implemented by the
   \texttt{morph.metrop} function with argument \texttt{morph = morph(b=1)}.
   \citet{johnson-geyer} demonstrate that a central limit does hold for
   these estimates.
@@ -324,7 +324,7 @@ makes a Q-Q plot of the batch means (Figure~\ref{fig:fig4}).
 for the unmorphed chain.}
 \label{fig:fig4}
 \end{figure}
-Finally we see bad behavior of the unnmorphed chain.  These batch means
+Finally we see bad behavior of the unmorphed chain.  These batch means
 (or at least some batch means for sufficiently long batch length) should
 look normally distributed, and these don't.  Not even close.
 
@@ -376,7 +376,7 @@ than the standard deviation of the batch means which using small batches
 
 \section{Binomial Distribution with a Conjugate Prior}
 
-We demonstrate a morphemetric Markov chain using the \texttt{UCBAdmisions}
+We demonstrate a morphometric Markov chain using the \texttt{UCBAdmisions}
 data set included in \texttt{R}, (use \texttt{help(UCBAdmissions)} to see
 details of this data set).  We will model the probability of a student
 being admitted or rejected, using the sex of the student and the department
@@ -388,7 +388,7 @@ weight, most of the information in the posterior distribution will be from
 the data.
 
 If we have $L$ observations from a multinomial distribution, then using a
-multinomial logit-link, with model matricies $M^1,\dots,M^L$, regression
+multinomial logit-link, with model matrices $M^1,\dots,M^L$, regression
 parameter $\beta$, observed counts $Y^1,\dots,Y^N$ with observed sample
 sizes $N^1,\dots,N^L$ and prior probabilities $\xi^1, \dots, \xi^L$ and
 prior ``sample sizes'' $\nu^1,\dots,\nu^L$ then the posterior distribution
@@ -408,15 +408,15 @@ Second, to avoid having a direction of recession in $\pi(\beta|\cdot)$, we
 need to fix the elements of $\beta$ that correspond with one of the
 response categories.  Since we are going to fitting a binomial response, if
 we set these elements of $\beta$ to be $0$, we may then replace the
-sequence of model matricies with a single model matrix; $M$ instead of
-$M^1,\dots,M^L$.  The $l^{th}$ row of $M$ will correspond to $M^l$.  Label
+sequence of model matrices with a single model matrix; $M$ instead of
+$M^1,\dots,M^L$.  The $l$-th row of $M$ will correspond to $M^l$.  Label
 the two response categories $A$ and $B$.  Without loss of generality, we
 will fix the elements of $\beta$ corresponding to category $B$ to 0.
 
 Let $x_1,\dots,x_L$ represent the posterior counts of category $A$, and
 $\beta^*$ represent the corresponding elements of $\beta$ --- these are the
 elements of $\beta$ we did not fix as 0.  The meaning of
-$n^{*1},\dots,n^{*L}$ is unchanged.  Then our simplified un-nomralized
+$n^{*1},\dots,n^{*L}$ is unchanged.  Then our simplified unnormalized
 posterior density is
 \begin{equation}\label{eq:simplified-posterior}
   \pi(\beta|x,n^*) \propto
@@ -436,7 +436,7 @@ lud.binom <- function(beta, M, x, n) {
 @
 
 Now that we have a function to calculate a log-unnormalized posterior
-density, we can run the markov chain.  To that, we need the model matrix.
+density, we can run the Markov chain.  To that, we need the model matrix.
 First we convert the \texttt{UCAdmissions} data to a \texttt{data.frame}.
 <<convert>>=
 dat <- as.data.frame(UCBAdmissions)
@@ -452,7 +452,7 @@ dat <- merge(dat.split[[1]], dat.split[[2]])
 @
 
 Next we build the model matrix.  Our model specification allows for an
-interaction between gender and departement, even though our prior assumes
+interaction between gender and department, even though our prior assumes
 that they are independent.
 <<build-model-matrix>>=
 formula <- cbind(Admitted, Rejected) ~ (Gender + Dept)^2
@@ -514,7 +514,7 @@ posterior distribution of the admittance probabilities for each
 gender-department combination.  Figure~\ref{fig:posterior-probs} gives
 the same quantiles, plus the mean posterior-probability for each
 gender-department combination.  From these we can see that for each
-deparmtnet, there is considerable overlap of the distributions of
+department, there is considerable overlap of the distributions of
 probabilities for males and females.
 
 <<calculate-posterior-probabilities>>=
@@ -621,13 +621,13 @@ posterior.  To do it helps to have good starting points for the optimization.
 Robust estimators of location and scale are
 <<cauchy-robust>>=
 mu.twiddle <- median(x)
-sigma.twiddle <- IQR(x, type = 1)
+sigma.twiddle <- IQR(x)
 c(mu.twiddle, sigma.twiddle)
 @
 The maximum likelihood estimator (MLE) is
 <<cauchy-posterior-mode>>=
 oout <- optim(c(mu.twiddle, sigma.twiddle), lup,
-    control = list(fnscale = -1))
+    control = list(fnscale = -1), hessian = TRUE)
 stopifnot(oout$convergence == 0)
 mu.hat <- oout$par[1]
 sigma.hat <- oout$par[2]
@@ -635,22 +635,20 @@ c(mu.hat, sigma.hat)
 @
 This is the posterior mode.
 <<cauchy-hessian>>=
-hout <- optimHess(c(mu.hat, sigma.hat), lup)
-hout
+oout$hessian
 @
 The hessian is nearly diagonal and one can check that theoretically
 is exactly diagonal.  Thus approximate (asymptotic) posterior standard
 deviations are
 <<cauchy-se>>=
-see <- sqrt(- 1 / diag(hout))
-see
+sqrt(- 1 / diag(oout$hessian))
 @
 
 \subsection{Theory}
 
 To use the theory in \citet{johnson-geyer} we must verify that the
 target distribution (the unnormalized posterior) is everywhere positive,
-and it isn't (it is zero for $\sigma \le 0$).  We tried makeing $\log(\sigma)$
+and it isn't (it is zero for $\sigma \le 0$).  We tried making $\log(\sigma)$
 the parameter but this didn't work either because $\log(\sigma)$ goes to
 infinity so slowly that this stretches out the tails so much that the
 transformations introduced by \citet{johnson-geyer} can't pull them back
@@ -666,7 +664,6 @@ function, even though the theory that motivates them does not hold.
 We want to center the transformation at the posterior mode, and use a
 radius $r$ that doesn't transform until several approximate standard deviations
 <<cauchy-doit>>=
-library(mcmc, lib.loc = "../package/mcmc.Rcheck")
 moo <- morph(b = 0.5, r = 7, center = c(mu.hat, sigma.hat))
 mout <- morph.metrop(lup, c(mu.hat, sigma.hat), 1e4,
     scale = 3, morph = moo)
@@ -731,43 +728,42 @@ plot(out)
 \label{fig:cfig3}
 \end{figure}
 
-
 \begin{thebibliography}{}
 
 \bibitem[Jarner and Roberts(2007)]{jarner-roberts}
-Jarner, S.F. and G.O. Roberts (2007).
-\newblock {C}onvergence of {H}eavy-tailed {M}onte {C}arlo {M}arkov {C}hain
-  Algorithms.
+Jarner, S.F., and G.O. Roberts (2007).
+\newblock Convergence of heavy-tailed Monte Carlo Markov chain algorithms.
 \newblock \emph{Scandinavian Journal of Statistics}, 34, 781--815.
 
 \bibitem[Jarner and Tweedie(2003)]{jarner-tweedie}
-Jarner, S.~F. and Tweedie, R.~L. (2003).
+Jarner, S.~F., and Tweedie, R.~L. (2003).
 \newblock Necessary conditions for geometric and polynomial ergodicity of
-    random-walk-type {M}arkov chains.
+    random-walk-type Markov chains.
 \newblock \emph{Bernoulli}, 9, 559--578.
 
 \bibitem[Johnson(2011)]{johnson-thesis}
 Johnson, L.~T. (2011).
 \newblock Geometric Ergodicity of a Random-Walk Metropolis Algorithm via
   Variable Transformation and Computer Aided Reasoning in Statistics.
-\newblock \emph{University of Minesota}. \url{http://purl.umn.edu/113140}
+\newblock Ph.~D. thesis.  University of Minesota.
+  \url{http://purl.umn.edu/113140}
 
 \bibitem[Johnson and Geyer(submitted)]{johnson-geyer}
-Johnson, L.~T. and C.~J. Geyer (submitted).
+Johnson, L.~T., and C.~J. Geyer (submitted).
 \newblock Variable Transformation to Obtain Geometric Ergodicity
     in the Random-walk Metropolis Algorithm.
-\newblock \emph{Annals of Statistics}.
+\newblock Revised and resubmitted to \emph{Annals of Statistics}.
 
 \bibitem[Kass and Wasserman(1996)]{kass-wasserman}
-Kass, R.~E. and Wasserman, L. (1996).
+Kass, R.~E., and Wasserman, L. (1996).
 \newblock Formal rules for selecting prior distributions: A review and
     annotated bibliography.
 \newblock \emph{Journal of the American Statistical Association},
     435, 1343--1370.
 
 \bibitem[Mengersen and Tweedie(1996)]{mengersen-tweedie}
-  Mengersen, K.L. ad R. L. Tweedie (1996).
-\newblock Rates of convergence of the {H}astings and {M}etropolis algorithms.
+  Mengersen, K.L., ad R. L. Tweedie (1996).
+\newblock Rates of convergence of the Hastings and Metropolis algorithms.
 \newblock \emph{Annals of Statistics}, 24, 101--121.
 
 \end{thebibliography}
