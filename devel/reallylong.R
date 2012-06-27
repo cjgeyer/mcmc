@@ -15,8 +15,7 @@ out$accept
 out <- metrop(out, nbatch = 1000)
 out$accept
 
-# comment out for further development
-# out <- metrop(out, blen = 1e6)
+out <- metrop(out, blen = 1e6)
 out$accept
 shapiro.test(as.vector(out$batch))
 
@@ -28,7 +27,7 @@ mout$accept
 mout <- morph.metrop(mout, nbatch = 1000)
 mout$accept
 
-# mout <- morph.metrop(mout, blen = 1e6)
+mout <- morph.metrop(mout, blen = 1e6)
 mout$accept
 shapiro.test(as.vector(mout$batch))
 
