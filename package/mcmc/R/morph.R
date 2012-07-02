@@ -33,12 +33,17 @@ isotropic.logjacobian <- function(f, d.f) {
 # also do one more Newton step after error is < sqrt(machine.eps)
 #     so ultimate error is about machine.eps
 newton.raphson <- function(f, df, x, r, x0 = 2 * r) {
-  repeat {
-      err <- f(x0) - x
-      x0 <- x0 - err / df(x0)
-      if (abs(err) < sqrt(.Machine$double.eps)) break
+  f.err <- function(cur) f(cur) - x
+  step <- function(cur, err=NULL)
+    cur - ifelse(is.null(err), f.err(cur), err) / df(cur)
+  err <- f.err(x0)
+  while(err >= sqrt(.Machine$double.eps)) {
+    x0 <- step(x0, err)
+    err <- f.err(x0)
   }
-  return(x0)
+  # if you don't want to use an extra-step, replace this return with
+  # return(x0)
+  return(step(x0, err))
 }
 
 subexponential <- function(b=1) {
