@@ -61,7 +61,7 @@ temper.function <- function(obj, initial, neighbors, nbatch, blen = 1,
 
     out.time <- system.time(
     out <- .Call("temper", func1, initial, neighbors, nbatch, blen, nspac,
-        scale, func2, debug, parallel, env1, env2)
+        scale, func2, debug, parallel, env1, env2, PACKAGE = "mcmc")
     )
     result <- structure(c(list(lud = obj, initial = initial,
         neighbors = neighbors, nbatch = nbatch, blen = blen, nspac = nspac,

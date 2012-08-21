@@ -19,7 +19,7 @@ olbm <- function(x, batch.length, demean = TRUE) {
     	batch.length=as.integer(batch.length),
     	mean=as.double(mean),
     	var=matrix(as.double(0), p, p),
-    	no.calc.mean=as.logical(no.calc.mean))
+    	no.calc.mean=as.logical(no.calc.mean), PACKAGE = "mcmc")
     return(out$var)
 }
 

@@ -47,7 +47,7 @@ metrop.function <- function(obj, initial, nbatch, blen = 1,
 
     out.time <- system.time(
     out <- .Call("metrop", func1, initial, nbatch, blen, nspac,
-        scale, func2, debug, env1, env2)
+        scale, func2, debug, env1, env2, PACKAGE = "mcmc")
     )
     out$initial.seed <- saveseed
     out$final.seed <- .Random.seed

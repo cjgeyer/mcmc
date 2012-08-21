@@ -62,3 +62,6 @@
 
  0.9   morph, morph.metrop functions and morph.pdf vignette
        bumped required R version to 2.10.0 (required by xtable)
+
+ 0.9-1 added PACKAGE = "mcmc" where missing to .C and .Call
+
