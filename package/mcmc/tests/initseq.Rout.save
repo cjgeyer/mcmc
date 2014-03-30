@@ -1,8 +1,7 @@
 
-R version 2.13.1 (2011-07-08)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: x86_64-pc-linux-gnu (64-bit)
+R version 3.0.3 (2014-03-06) -- "Warm Puppy"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -53,7 +52,7 @@ Type 'q()' to quit R.
 [1] TRUE
 >  
 > library(Iso)
-Iso 0.0-10
+Iso 0.0-15
 >  Gamma.con <- Gamma.dec[1] + cumsum(c(0, pava(diff(Gamma.dec))))
 >  all.equal(out$Gamma.con, Gamma.con)
 [1] TRUE
@@ -83,3 +82,6 @@ Iso 0.0-10
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  1.323   0.028   1.364 
