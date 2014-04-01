@@ -66,3 +66,4 @@
  0.9-1 added PACKAGE = "mcmc" where missing to .C and .Call
 
  0.9-3 move vignettes to vignettes directory
+       changed LICENCE file yet again as per CRAN requirements
