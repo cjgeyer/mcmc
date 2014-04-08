@@ -88,12 +88,88 @@ nrow(vrep1) > 0
 all(vrep1[ , 1] == "0")
 all(vrep1[ , 2] == "1")
 @
+The three \texttt{TRUE}'s printed above should also be \texttt{TRUE} for
+any allowable constraints.  The codes 0 and 1 indicate that all the generators
+are points, so the convex polyhedron is the convex hull of the points that
+are the rest of the rows of the V-representation.
+
 Then we eliminate redundant constraints from the H-representation.
 <<hrep-too>>=
 rout <- redundant(d2q(hrep1))
 hrep2 <- rout$output
 identical(rout$new.position, 1:nrow(hrep1))
 @
+This \texttt{TRUE} says that there was no point to the \texttt{redundant}
+call: nothing needed to be done.  In general, this will be \texttt{FALSE},
+so this check is just for this example.
+
+We do, in general, need to make one use of \texttt{vrep1} and that is to
+find a point in the relative interior of the polytope.
+<<ri>>=
+v <- vrep1[ , - c(1, 2)]
+x <- apply(v, 2, qsum)
+x <- qdq(x, rep(as.character(nrow(v)), length(x)))
+x <- q2d(x)
+x
+@
+
+Now we need to deal with equality constraints and inequality constraints
+separately.
+<<sep>>=
+hrep3 <- hrep2[hrep2[ , 1] == "1", ]
+hrep4 <- hrep2[hrep2[ , 1] == "0", ]
+@
+
+The equality constraints give us the affine hull of the polytope.
+<<affine-hull>>=
+vrep3 <- scdd(hrep3, rep = "H")$output
+vrep3
+is.line <- vrep3[ , 1] == "1" & vrep3[ , 2] == "0"
+is.point <- vrep3[ , 1] == "0" & vrep3[ , 2] == "1"
+all(is.point | is.line)
+sum(is.point) == 1
+sum(is.line) == d - nrow(hrep3)
+@
+The codes in columns 1 and 2 are 0 and 1 (in that order) for a point and
+1 and 0 (in that order) for a line.  The affine hull of the convex polytope
+is the vector subspace spanned by the points that are linear generators
+translated by the point that is a punctate generator.
+<<coordinates>>=
+foo <- vrep3[ , - c(1, 2)]
+origin <- foo[is.point, ]
+basis <- foo[is.line, ]
+origin <- q2d(origin)
+basis <- q2d(basis)
+basis <- t(basis)
+round(origin, 4)
+round(basis, 4)
+@
+(the transpose is because we want the columns of the matrix \texttt{basis}
+to be the basis vectors).
+If we denote the vector \texttt{origin} as $u$ and the matrix \texttt{basis}
+as $V$, then the transformation $x \mapsto u + V x$ maps
+\Sexpr{nrow(basis)}-dimensional space to the affine hull of the convex
+polytope considered as an affine subspace of \Sexpr{d}-dimensional
+space.
+
+We now need to make the inequality constraints refer to the other coordinate
+system.  If the constraints are $A y \le b$, then for the new coordinates,
+they are $A(u + V x) \le b$ or $A V x \le b - A u$ so we need to construct
+the matrix $A V$ and the vector $b - A u$ to hand to the MCMC algorithm.
+<<ineq>>=
+amat <- qneg(hrep4[ , - c(1, 2)])
+bvec <- hrep4[ , 2]
+bvec <- qmq(bvec, qmatmult(amat, cbind(origin)))
+amat <- qmatmult(amat, basis)
+bvec <- q2d(bvec)
+amat <- q2d(amat)
+amat
+bvec
+@
+Now we are ready.  If the the unnormalized density function provided by
+the user is $h$, then we supply to the hit and run simulator function the
+unnormalized density function $h_2 : x \mapsto h(u + V x)$ and the inequality
+constraints specified by \texttt{amat} and \texttt{bvec} as calculated above.
 
 
 \end{document}
