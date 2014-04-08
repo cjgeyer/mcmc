@@ -1,0 +1,100 @@
+
+\documentclass[11pt]{article}
+
+\begin{document}
+
+\title{Design Document for Hit and Run Function}
+
+\author{Charles J. Geyer}
+
+\maketitle
+
+The problem is to simulate a distribution having an unnormalized density that
+is a convex function on a convex polytope.  The unnormalized density is
+provided by the user as an R function of one argument (a numeric vector).
+The convex polytope is provided by the user as a finite set
+of linear equalities and inequalities (the polytope is the set of points
+satisfying them).  The method of simulation is Markov chain Monte Carlo
+using the hit and run algorithm.
+
+Before we can simulate we must do a dimension reduction,
+finding the dimension of the convex polytope, and finding a coordinate
+system in which the convex polytope has full dimension.  We use functions
+in the R package \texttt{rcdd}, which does computational geometry.
+
+To explain the computational geometry part, we do an example.
+<<d>>=
+d <- 10
+@
+dimensions, we simulated a probability distribution on the integers
+1 to $d$.  Suppose we want both the mean and the median to be exactly
+$(d + 1) / 2$.
+That gives us two inequality constraints.  Suppose
+$p$ is the state vector, then the first constraint is
+$$
+   \sum_{k = 1}^d k p_k = \frac{d + 1}{2}
+$$
+and the second is 
+$$
+   \sum_{k = 1}^{\lfloor (d + 1) / 2 \rfloor} p_k
+   =
+   \sum_{k = \lceil (d + 1) / 2 \rceil}^d p_k
+$$
+And suppose we want the median absolute deviation to be at least
+<<r>>=
+r <- floor((d - 1) / 4)
+@
+That gives us one inequality constraint
+$$
+   \sum_{k = 1}^{\lfloor (d + 1) / 2 - r \rfloor} p_k
+   +
+   \sum_{k = \lceil (d + 1) / 2 + r \rceil}^d p_k
+   \ge
+   \frac{1}{2}
+$$
+These are in addition to probabilities being nonnegative and summing to one.
+We express the equality constraints as $A_1 p = b_1$, where $A_1$ is a matrix
+and $b_1$ a vector,
+and we express the equality constraints as $A_2 p = b_2$, where $A_2$ is
+a matrix, $b_2$ a vector, and the inequality operates componentwise.
+<<cons>>=
+i <- 1:d
+a1 <- rbind(rep(1, d), i, as.numeric(i <= (d + 1) / 2) -
+    as.numeric(i >= (d + 1) / 2))
+b1 <- c(1, (d + 1) / 2, 0)
+a2 <- - diag(d)
+b2 <- rep(0, d)
+a2 <- rbind(a2, - as.numeric(i <= (d + 1) / 2 - r) -
+    as.numeric(i >= (d + 1) / 2 + r))
+b2 <- c(b2, - 1 / 2)
+@
+Now we dump this into \texttt{rcdd}.
+<<hrep>>=
+library(rcdd)
+hrep1 <- makeH(a2, b2, a1, b1)
+hrep1
+@
+The first column is a secret code (1 indicates an equality constraint,
+0 indicates an inequality constraint).  The second column is the right-hand
+side vector.  The rest of each row is the negative of some row of $A_1$
+or $A_2$.
+
+We now do several operations that are not needed for this example but
+are needed if we allow the user to input general constraint matrices
+and vectors.  First we check that the polytope is indeed bounded.
+<<vrep>>=
+vrep1 <- scdd(d2q(hrep1))$output
+nrow(vrep1) > 0
+all(vrep1[ , 1] == "0")
+all(vrep1[ , 2] == "1")
+@
+Then we eliminate redundant constraints from the H-representation.
+<<hrep-too>>=
+rout <- redundant(d2q(hrep1))
+hrep2 <- rout$output
+identical(rout$new.position, 1:nrow(hrep1))
+@
+
+
+\end{document}
+
