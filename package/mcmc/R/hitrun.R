@@ -1,16 +1,25 @@
 
+# a1 and b1 define inequality constraints (a1 %*% x <= b1)
+# a2 and b2 define inequality constraints (a2 %*% x == b2)
+# as in the makeH function in the rcdd package
+# otherwise arguments are like metrop in this package
+# a1 and b1 cannot be missing (necessarily results in unbounded polyhedron)
+# a2 and b2 can be missing
+
 hitrun <- function(obj, initial, nbatch, blen = 1,
-    nspac = 1, amat, bvec, outfun, debug = FALSE, ...)
+    nspac = 1, a1, b1, a2, b2, outfun, debug = FALSE, ...)
 UseMethod("hitrun")
 
 hitrun.hitrun <- function(obj, initial, nbatch, blen = 1,
-    nspac = 1, amat, bvec, outfun, debug = FALSE, ...)
+    nspac = 1, a1, b1, a2, b2, outfun, debug = FALSE, ...)
 {
     if (missing(nbatch)) nbatch <- obj$nbatch
     if (missing(blen)) blen <- obj$blen
     if (missing(nspac)) nspac <- obj$nspac
-    if (missing(amat)) amat <- obj$amat
-    if (missing(bvec)) bvec <- obj$bvec
+    if (missing(a1)) a1 <- obj$a1
+    if (missing(b1)) b1 <- obj$b1
+    if (missing(a2)) a1 <- obj$a2
+    if (missing(b2)) b1 <- obj$b2
     if (missing(debug)) debug <- obj$debug
     assign(".Random.seed", obj$final.seed, .GlobalEnv)
     if (missing(outfun)) {
@@ -23,41 +32,124 @@ hitrun.hitrun <- function(obj, initial, nbatch, blen = 1,
         }
     } else {
         hitrun.function(obj$lud, obj$final, nbatch, blen,
-            nspac, scale, outfun, debug, ...)
+            nspac, a1, b1, a2, b2, outfun, debug, ...)
     }
 }
 
 hitrun.function <- function(obj, initial, nbatch, blen = 1,
-    nspac = 1, amat, bvec, outfun, debug = FALSE, ...)
+    nspac = 1, a1, b1, a2, b2, outfun, debug = FALSE, ...)
 {
     if (! exists(".Random.seed")) runif(1)
     saveseed <- .Random.seed
-    func1 <- function(state) obj(state, ...)
+
+    stopifnot(is.numeric(initial))
+    stopifnot(is.finite(initial))
+    stopifnot(is.numeric(nbatch))
+    stopifnot(length(nbatch) == 1)
+    stopifnot(nbatch == round(nbatch))
+    stopifnot(nbatch >= 1)
+    stopifnot(is.numeric(blen))
+    stopifnot(length(blen) == 1)
+    stopifnot(blen == round(blen))
+    stopifnot(blen >= 1)
+    stopifnot(is.numeric(nspac))
+    stopifnot(length(nspac) == 1)
+    stopifnot(nspac == round(nspac))
+    stopifnot(nspac >= 1)
+    stopifnot(is.numeric(a1))
+    stopifnot(is.finite(a1))
+    stopifnot(is.matrix(a1))
+    stopifnot(is.numeric(b1))
+    stopifnot(is.finite(b1))
+    stopifnot(is.vector(b1))
+    stopifnot(nrow(a1) == length(b1))
+    stopifnot(missing(a1) == missing(b1))
+    if (! missing(a1)) {
+        stopifnot(is.numeric(a2))
+        stopifnot(is.finite(a2))
+        stopifnot(is.matrix(a2))
+        stopifnot(is.numeric(b2))
+        stopifnot(is.finite(b2))
+        stopifnot(is.vector(b2))
+        stopifnot(nrow(a2) == length(b2))
+    }
+    stopifnot(is.logical(debug))
+    stopifnot(length(debug) == 1)
+
+    hrep1 <- makeH(a1, b1, a2, b2)
+    hrep1 <- d2q(hrep1)
+    vrep1 <- scdd(hrep1)$output
+    if (nrow(vrep1) == 0)
+        stop("empty constraint set")
+    is.point <- vrep1[ , 1] == "0" & vrep1[ , 2] == "1"
+    if (! all(is.point))
+        stop("unbounded constraint set")
+    v <- vrep1[ , - c(1, 2)]
+    rip <- apply(v, 2, qsum)
+    rip <- qdq(rip, rep(as.character(nrow(v)), length(rip)))
+    rip <- q2d(rip)
+    # rip is relative interior point of constraint set (see design doc)
+
+    hrep2 <- redundant(hrep1)$output
+
+    hrep3 <- hrep2[hrep2[ , 1] == "1", ]
+    hrep4 <- hrep2[hrep2[ , 1] == "0", ]
+    vrep3 <- scdd(hrep3, rep = "H")$output
+    is.line <- vrep3[ , 1] == "1" & vrep3[ , 2] == "0"
+    is.point <- vrep3[ , 1] == "0" & vrep3[ , 2] == "1"
+    if (! all(is.point | is.line))
+        stop("unexpected V-representation of affine hull of constraint set")
+    if (sum(is.point) != 1)
+        stop("unexpected V-representation of affine hull of constraint set")
+    if (sum(is.line) != d - nrow(hrep3))
+        stop("unexpected V-representation of affine hull of constraint set")
+
+    foo <- vrep3[ , - c(1, 2)]
+    origin <- foo[is.point, ]
+    basis <- foo[is.line, ]
+    origin <- q2d(origin)
+    basis <- q2d(basis)
+    basis <- t(basis)
+
+    amat <- qneg(hrep4[ , - c(1, 2)])
+    bvec <- hrep4[ , 2]
+    bvec <- qmq(bvec, qmatmult(amat, cbind(origin)))
+    amat <- qmatmult(amat, basis)
+    bvec <- q2d(bvec)
+    amat <- q2d(amat)
+
+    func1 <- function(state) {
+        userstate <- origin + as.numeric(basis %*% state)
+        obj(userstate, ...)
+    }
     env1 <- environment(fun = func1)
+
     if (missing(outfun)) {
         func2 <- NULL
         env2 <- NULL
         outfun <- NULL
     } else if (is.function(outfun)) {
-        func2 <- function(state) outfun(state, ...)
+        func2 <- function(state) {
+            userstate <- origin + as.numeric(basis %*% state)
+            outfun(userstate, ...)
+        }
         env2 <- environment(fun = func2)
     } else {
         stop("outfun must be function or missing")
     }
 
-    hrep <- makeH(amat, bvec)
-    vrep <- q2d(scdd(d2q(hrep)))
-    if (any(vrep[ , 2] == 0))
-        stop("unbounded constraint set")
-    hrep2 <- q2d(redundant(d2q(hrep)))
-    hrep3 <- hrep2[hrep2[ , 1] == 1]
-    vrep3 <- q2d(scdd(d2q(hrep3, rep = "H")))
-    hrep4 <- hrep2[hrep2[ , 1] == 0]
-
     out.time <- system.time(
     out <- .Call("har", func1, initial, nbatch, blen, nspac,
         amat, bvec, func2, debug, env1, env2, PACKAGE = "mcmc")
     )
+
+    if (missing(outfun)) {
+        foo <- out$batch
+        foo <- foo %*% t(basis)
+        foo <- sweep(foo, 2, origin, "+")
+        out$batch <- foo
+    }
+
     out$initial.seed <- saveseed
     out$final.seed <- .Random.seed
     out$time <- out.time
@@ -65,7 +157,10 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
     out$nbatch <- nbatch
     out$blen <- blen
     out$nspac <- nspac
-    out$scale <- scale
+    out$a1 <- a1
+    out$b1 <- b1
+    out$a2 <- a2
+    out$b2 <- b2
     out$outfun <- outfun
     out$batch <- t(out$batch)
     out$debug <- debug

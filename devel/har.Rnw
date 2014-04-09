@@ -148,7 +148,7 @@ round(basis, 4)
 to be the basis vectors).
 If we denote the vector \texttt{origin} as $u$ and the matrix \texttt{basis}
 as $V$, then the transformation $x \mapsto u + V x$ maps
-\Sexpr{nrow(basis)}-dimensional space to the affine hull of the convex
+\Sexpr{ncol(basis)}-dimensional space to the affine hull of the convex
 polytope considered as an affine subspace of \Sexpr{d}-dimensional
 space.
 
@@ -170,6 +170,12 @@ Now we are ready.  If the the unnormalized density function provided by
 the user is $h$, then we supply to the hit and run simulator function the
 unnormalized density function $h_2 : x \mapsto h(u + V x)$ and the inequality
 constraints specified by \texttt{amat} and \texttt{bvec} as calculated above.
+
+Note that the algorithm thinks the state vector is $x$, but the user
+thinks the state vector is $u + V x$, so the \texttt{outfun} supplied
+to the C function must do this coordinate transformation and if no
+\texttt{outfun} is supplied, we must still do this transformation on
+the batch means.
 
 
 \end{document}
