@@ -5,7 +5,7 @@ Title: Markov Chain Monte Carlo
 Author: Charles J. Geyer <charlie@stat.umn.edu> and Leif T. Johnson
      <ltjohnson@google.com>
 Maintainer: Charles J. Geyer <charlie@stat.umn.edu>
-Depends: R (>= 2.10.0), gmp, rcdd (>= 1.1-5)
+Depends: R (>= 2.10.0), rcdd (>= 1.1-5)
 Suggests: xtable, Iso
 ByteCompile: TRUE
 Description: functions for Markov chain Monte Carlo (MCMC).

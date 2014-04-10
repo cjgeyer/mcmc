@@ -35,7 +35,8 @@
 #include <Rmath.h>
 #include "myutil.h"
 
-void propose(SEXP state, SEXP proposal, int d, SEXP amat, SEXP bvec);
+void propose(SEXP state, SEXP proposal, SEXP amat, SEXP bvec,
+    double *z, double *smax, double *smin, double *u);
 
 static double logh(SEXP func, SEXP state, SEXP rho);
 
@@ -104,8 +105,8 @@ SEXP har(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
          PROTECT(result = allocVector(VECSXP, 3));
          PROTECT(resultnames = allocVector(STRSXP, 3));
      } else {
-         PROTECT(result = allocVector(VECSXP, 10));
-         PROTECT(resultnames = allocVector(STRSXP, 10));
+         PROTECT(result = allocVector(VECSXP, 11));
+         PROTECT(resultnames = allocVector(STRSXP, 11));
      }
      PROTECT(path = allocMatrix(REALSXP, dim_out, int_nbatch));
      SET_VECTOR_ELT(result, 0, path);
@@ -116,21 +117,33 @@ SEXP har(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
      SET_STRING_ELT(resultnames, 1, mkChar("initial"));
      SET_STRING_ELT(resultnames, 2, mkChar("final"));
      if (int_debug) {
-         SEXP spath, ppath, gpath, upath;
+         SEXP spath, ppath, zpath, u1path, u2path, s1path, s2path, gpath;
          int nn = int_nbatch * int_blen * int_nspac;
          PROTECT(spath = allocMatrix(REALSXP, dim_state, nn));
          SET_VECTOR_ELT(result, 3, spath);
          PROTECT(ppath = allocMatrix(REALSXP, dim_state, nn));
          SET_VECTOR_ELT(result, 4, ppath);
+         PROTECT(zpath = allocMatrix(REALSXP, dim_state, nn));
+         SET_VECTOR_ELT(result, 5, zpath);
+         PROTECT(u1path = allocVector(REALSXP, nn));
+         SET_VECTOR_ELT(result, 6, u1path);
+         PROTECT(u2path = allocVector(REALSXP, nn));
+         SET_VECTOR_ELT(result, 7, u2path);
+         PROTECT(s1path = allocVector(REALSXP, nn));
+         SET_VECTOR_ELT(result, 8, s1path);
+         PROTECT(s2path = allocVector(REALSXP, nn));
+         SET_VECTOR_ELT(result, 9, s2path);
          PROTECT(gpath = allocVector(REALSXP, nn));
-         SET_VECTOR_ELT(result, 5, gpath);
-         PROTECT(upath = allocVector(REALSXP, nn));
-         SET_VECTOR_ELT(result, 6, upath);
-         UNPROTECT(4);
+         SET_VECTOR_ELT(result, 10, gpath);
+         UNPROTECT(8);
          SET_STRING_ELT(resultnames, 3, mkChar("current"));
          SET_STRING_ELT(resultnames, 4, mkChar("proposal"));
-         SET_STRING_ELT(resultnames, 5, mkChar("log.green"));
-         SET_STRING_ELT(resultnames, 6, mkChar("u"));
+         SET_STRING_ELT(resultnames, 5, mkChar("z"));
+         SET_STRING_ELT(resultnames, 6, mkChar("u1"));
+         SET_STRING_ELT(resultnames, 7, mkChar("u2"));
+         SET_STRING_ELT(resultnames, 8, mkChar("s1"));
+         SET_STRING_ELT(resultnames, 9, mkChar("s2"));
+         SET_STRING_ELT(resultnames, 10, mkChar("log.green"));
      }
      namesgets(result, resultnames);
      UNPROTECT(1);
@@ -154,25 +167,29 @@ SEXP har(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
 
              for (int ispac = 0; ispac < int_nspac; ispac++) {
 
-                 double u = -1.0; /* impossible return from unif_rand() */
-
                  /* Note: should never happen! */
                  if (current_log_dens == R_NegInf)
                      error("log density -Inf at current state");
 
-                 propose(state, proposal, dim_state, amat, bvec);
+                 double u1 = R_NaReal;
+                 double u2 = R_NaReal;
+                 double smax = R_NaReal;
+                 double smin = R_NaReal;
+                 double z[dim_state];
+
+                 propose(state, proposal, amat, bvec, z, &smax, &smin, &u1);
 
                  proposal_log_dens = logh(func1, proposal, rho1);
 
                  int accept = FALSE;
                  if (proposal_log_dens != R_NegInf) {
-                     if (proposal_log_dens > current_log_dens) {
+                     if (proposal_log_dens >= current_log_dens) {
                          accept = TRUE;
                      } else {
                          double green = exp(proposal_log_dens
                              - current_log_dens);
-                         u = unif_rand();
-                         accept = u < green;
+                         u2 = unif_rand();
+                         accept = u2 < green;
                      }
                  }
 
@@ -181,17 +198,22 @@ SEXP har(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
                      int lbase = l * dim_state;
                      SEXP spath = VECTOR_ELT(result, 3);
                      SEXP ppath = VECTOR_ELT(result, 4);
-                     SEXP gpath = VECTOR_ELT(result, 5);
-                     SEXP upath = VECTOR_ELT(result, 6);
+                     SEXP zpath = VECTOR_ELT(result, 5);
+                     SEXP u1path = VECTOR_ELT(result, 6);
+                     SEXP u2path = VECTOR_ELT(result, 7);
+                     SEXP s1path = VECTOR_ELT(result, 9);
+                     SEXP s2path = VECTOR_ELT(result, 0);
+                     SEXP gpath = VECTOR_ELT(result, 10);
                      for (int lj = 0; lj < dim_state; lj++) {
                          REAL(spath)[lbase + lj] = REAL(state)[lj];
                          REAL(ppath)[lbase + lj] = REAL(proposal)[lj];
+                         REAL(zpath)[lbase + lj] = z[lj];
                      }
+                     REAL(u1path)[l] = u1;
+                     REAL(u2path)[l] = u2;
+                     REAL(s1path)[l] = smin;
+                     REAL(s2path)[l] = smax;
                      REAL(gpath)[l] = proposal_log_dens - current_log_dens;
-                     if (u == -1.0)
-                         REAL(upath)[l] = NA_REAL;
-                     else
-                         REAL(upath)[l] = u;
                  }
 
                  if (accept) {
@@ -243,17 +265,20 @@ static double logh(SEXP func, SEXP state, SEXP rho)
      return bar;
 }
 
-void propose(SEXP state, SEXP proposal, int d, SEXP amat, SEXP bvec)
+void propose(SEXP state, SEXP proposal, SEXP amat, SEXP bvec,
+    double *z, double *smax_out, double *smin_out, double *u_out)
 {
-    double z[d];
+    int d = LENGTH(state);
+    if (LENGTH(proposal) != d)
+        error("propose: length(state) != length(proposal)");
     double *a = REAL(amat);
     double *b = REAL(bvec);
     double *x = REAL(state);
     int n = nrows(amat);
     if (ncols(amat) != d)
-        error("ncol(amat) != length(state)");
+        error("propose: ncol(amat) != length(state)");
     if (n != LENGTH(bvec))
-        error("nrow(amat) != length(bvec)");
+        error("propose: nrow(amat) != length(bvec)");
 
     for (int i = 0; i < d; i++) {
         z[i] = norm_rand();
@@ -281,6 +306,10 @@ void propose(SEXP state, SEXP proposal, int d, SEXP amat, SEXP bvec)
 
     for (int i = 0; i < d; i++)
         REAL(proposal)[i] = x[i] + (u * smin + (1.0 - u) * smax) * z[i];
+
+    *smax_out = smax;
+    *smin_out = smin;
+    *u_out = u;
 }
 
 static SEXP out_func;

@@ -63,8 +63,9 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
     stopifnot(is.finite(b1))
     stopifnot(is.vector(b1))
     stopifnot(nrow(a1) == length(b1))
-    stopifnot(missing(a1) == missing(b1))
-    if (! missing(a1)) {
+    stopifnot(ncol(a1) == length(initial))
+    stopifnot(missing(a2) == missing(b2))
+    if (! missing(a2)) {
         stopifnot(is.numeric(a2))
         stopifnot(is.finite(a2))
         stopifnot(is.matrix(a2))
@@ -72,36 +73,25 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
         stopifnot(is.finite(b2))
         stopifnot(is.vector(b2))
         stopifnot(nrow(a2) == length(b2))
+        stopifnot(ncol(a2) == length(initial))
     }
     stopifnot(is.logical(debug))
     stopifnot(length(debug) == 1)
 
     hrep1 <- makeH(a1, b1, a2, b2)
     hrep1 <- d2q(hrep1)
-    vrep1 <- scdd(hrep1)$output
-    if (nrow(vrep1) == 0)
-        stop("empty constraint set")
-    is.point <- vrep1[ , 1] == "0" & vrep1[ , 2] == "1"
-    if (! all(is.point))
-        stop("unbounded constraint set")
-    v <- vrep1[ , - c(1, 2)]
-    rip <- apply(v, 2, qsum)
-    rip <- qdq(rip, rep(as.character(nrow(v)), length(rip)))
-    rip <- q2d(rip)
-    # rip is relative interior point of constraint set (see design doc)
-
     hrep2 <- redundant(hrep1)$output
+    hrep3 <- hrep2[hrep2[ , 1] == "1", , drop = FALSE]
+    hrep4 <- hrep2[hrep2[ , 1] == "0", , drop = FALSE]
 
-    hrep3 <- hrep2[hrep2[ , 1] == "1", ]
-    hrep4 <- hrep2[hrep2[ , 1] == "0", ]
-    vrep3 <- scdd(hrep3, rep = "H")$output
+    vrep3 <- scdd(hrep3, representation = "H")$output
     is.line <- vrep3[ , 1] == "1" & vrep3[ , 2] == "0"
     is.point <- vrep3[ , 1] == "0" & vrep3[ , 2] == "1"
     if (! all(is.point | is.line))
         stop("unexpected V-representation of affine hull of constraint set")
     if (sum(is.point) != 1)
         stop("unexpected V-representation of affine hull of constraint set")
-    if (sum(is.line) != d - nrow(hrep3))
+    if (sum(is.line) != length(initial) - nrow(hrep3))
         stop("unexpected V-representation of affine hull of constraint set")
 
     foo <- vrep3[ , - c(1, 2)]
@@ -115,6 +105,20 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
     bvec <- hrep4[ , 2]
     bvec <- qmq(bvec, qmatmult(amat, cbind(origin)))
     amat <- qmatmult(amat, basis)
+
+    hrep5 <- cbind("0", bvec, qneg(amat))
+    vrep5 <- scdd(hrep5, representation = "H")$output
+    if (nrow(vrep5) == 0)
+        stop("empty constraint set")
+    is.point <- vrep5[ , 1] == "0" & vrep5[ , 2] == "1"
+    if (! all(is.point))
+        stop("unbounded constraint set")
+    v <- vrep5[ , - c(1, 2)]
+    rip <- apply(v, 2, qsum)
+    rip <- qdq(rip, rep(as.character(nrow(v)), length(rip)))
+    rip <- q2d(rip)
+    # rip is relative interior point of constraint set (see design doc)
+
     bvec <- q2d(bvec)
     amat <- q2d(amat)
 
@@ -139,14 +143,14 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
     }
 
     out.time <- system.time(
-    out <- .Call("har", func1, initial, nbatch, blen, nspac,
+    out <- .Call("har", func1, rip, nbatch, blen, nspac,
         amat, bvec, func2, debug, env1, env2, PACKAGE = "mcmc")
     )
 
-    if (missing(outfun)) {
+    if (is.null(outfun)) {
         foo <- out$batch
-        foo <- foo %*% t(basis)
-        foo <- sweep(foo, 2, origin, "+")
+        foo <- basis %*% foo
+        foo <- sweep(foo, 1, origin, "+")
         out$batch <- foo
     }
 
@@ -164,8 +168,16 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
     out$outfun <- outfun
     out$batch <- t(out$batch)
     out$debug <- debug
-    if (! is.null(out$current)) out$current <- t(out$current)
-    if (! is.null(out$proposal)) out$proposal <- t(out$proposal)
+    if (debug) {
+        out$current <- t(out$current)
+        out$proposal <- t(out$proposal)
+        out$z <- t(out$z)
+        out$origin <- origin
+        out$basis <- basis
+        out$amat <- amat
+        out$bvec <- bvec
+        out$rip <- rip
+    }
     class(out) <- c("mcmc", "hitrun")
     return(out)
 }

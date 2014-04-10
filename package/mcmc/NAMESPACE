@@ -1,8 +1,11 @@
 
 useDynLib(mcmc)
 
+import(rcdd)
+
 export(metrop)
 export(morph)
+export(hitrun)
 export(olbm)
 export(initseq)
 export(temper)
@@ -16,4 +19,6 @@ S3method(morph.metrop, morph.metropolis)
 S3method(morph.metrop, "function")
 S3method(temper, tempering)
 S3method(temper, "function")
+S3method(hitrun, hitrun)
+S3method(hitrun, "function")
 

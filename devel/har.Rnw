@@ -104,7 +104,9 @@ call: nothing needed to be done.  In general, this will be \texttt{FALSE},
 so this check is just for this example.
 
 We do, in general, need to make one use of \texttt{vrep1} and that is to
-find a point in the relative interior of the polytope.
+find a point in the relative interior of the polytope.  (Actually, this
+turns out to not be useful.  We will actually need \texttt{vrep4} below
+do deal with this issue.)
 <<ri>>=
 v <- vrep1[ , - c(1, 2)]
 x <- apply(v, 2, qsum)
@@ -161,10 +163,6 @@ amat <- qneg(hrep4[ , - c(1, 2)])
 bvec <- hrep4[ , 2]
 bvec <- qmq(bvec, qmatmult(amat, cbind(origin)))
 amat <- qmatmult(amat, basis)
-bvec <- q2d(bvec)
-amat <- q2d(amat)
-amat
-bvec
 @
 Now we are ready.  If the the unnormalized density function provided by
 the user is $h$, then we supply to the hit and run simulator function the
@@ -177,6 +175,43 @@ to the C function must do this coordinate transformation and if no
 \texttt{outfun} is supplied, we must still do this transformation on
 the batch means.
 
+Actually, we are almost ready, but need one more step, a point in the
+relative interior of the constraint set \emph{in the new coordinates}.
+<<hrep5>>=
+hrep5 <- cbind("0", bvec, qneg(amat))
+vrep5 <- scdd(hrep5, rep = "H")$output
+v <- vrep5[ , - c(1, 2)]
+x <- apply(v, 2, qsum)
+x <- qdq(x, rep(as.character(nrow(v)), length(x)))
+@
+This \texttt{x} is a possible starting value for the Markov chain.
+@
+Now we convert the arguments to the MCMC function to conventional
+computer so-called real numbers.
+<<convert>>=
+bvec <- q2d(bvec)
+amat <- q2d(amat)
+x <- q2d(x)
+amat
+bvec
+round(x, 4)
+@
+
+How does hit and run work?  It generates a random direction (we use the
+direction along a standard normal random vector), then calculates the
+section of the line through the current position in that direction that
+lies in the constraint set (the constraint set in the new coordinates
+determined by \texttt{amat} and \texttt{bvec}).  That is, we want to know
+the maximum and minimum values of $s$ such that
+$$
+   A (x + s z) \le b
+$$
+holds where $x$ is the current position and $z$ is the standard normal
+random vector.  Since this is the same as
+$$
+   s A z \le b - A x
+$$
+we find the range of $s$ values such that this holds.
 
 \end{document}
 
