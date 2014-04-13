@@ -22,7 +22,9 @@ hitrun(obj, initial, nbatch, blen = 1, nspac = 1, a1, b1, a2, b2, outfun,
       previous run can be supplied, in which case any missing arguments
       (including the log unnormalized density function) are taken from
       this object.}
-  \item{initial}{a real vector, the initial state of the Markov chain.}
+  \item{initial}{a real vector, the initial state of the Markov chain.
+      May be missing if \code{obj} is the result of a previous run, in
+      which case this run starts where the previous one finished.}
   \item{nbatch}{the number of batches.}
   \item{blen}{the length of batches.}
   \item{nspac}{the spacing of iterations that contribute to batches.}

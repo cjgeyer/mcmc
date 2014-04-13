@@ -201,8 +201,8 @@ SEXP har(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
                      SEXP zpath = VECTOR_ELT(result, 5);
                      SEXP u1path = VECTOR_ELT(result, 6);
                      SEXP u2path = VECTOR_ELT(result, 7);
-                     SEXP s1path = VECTOR_ELT(result, 9);
-                     SEXP s2path = VECTOR_ELT(result, 0);
+                     SEXP s1path = VECTOR_ELT(result, 8);
+                     SEXP s2path = VECTOR_ELT(result, 9);
                      SEXP gpath = VECTOR_ELT(result, 10);
                      for (int lj = 0; lj < dim_state; lj++) {
                          REAL(spath)[lbase + lj] = REAL(state)[lj];
@@ -269,16 +269,16 @@ void propose(SEXP state, SEXP proposal, SEXP amat, SEXP bvec,
     double *z, double *smax_out, double *smin_out, double *u_out)
 {
     int d = LENGTH(state);
+    int n = nrows(amat);
     if (LENGTH(proposal) != d)
         error("propose: length(state) != length(proposal)");
-    double *a = REAL(amat);
-    double *b = REAL(bvec);
-    double *x = REAL(state);
-    int n = nrows(amat);
     if (ncols(amat) != d)
         error("propose: ncol(amat) != length(state)");
     if (n != LENGTH(bvec))
         error("propose: nrow(amat) != length(bvec)");
+    double *a = REAL(amat);
+    double *b = REAL(bvec);
+    double *x = REAL(state);
 
     for (int i = 0; i < d; i++) {
         z[i] = norm_rand();
@@ -292,8 +292,8 @@ void propose(SEXP state, SEXP proposal, SEXP amat, SEXP bvec,
         double ax = 0.0;
         double az = 0.0;
         for (int j = 0; j < d; j++) {
-            ax += a[i + j * d] * x[j];
-            az += a[i + j * d] * z[j];
+            ax += a[i + j * n] * x[j];
+            az += a[i + j * n] * z[j];
         }
         double bound = (b[i] - ax) / az;
         if (az > 0 && bound < smax)

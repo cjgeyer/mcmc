@@ -10,3 +10,4 @@ mcmc.Rcheck
 mcmc*.tar.gz
 [bd]*.tex
 morph.tex
+.build.timestamp

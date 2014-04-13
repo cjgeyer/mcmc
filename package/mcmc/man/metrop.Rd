@@ -23,7 +23,9 @@ metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1, outfun,
       (including the log unnormalized density function) are taken from
       this object (up until version 0.7-2 this was incorrect with respect
       to the \code{debug} argument, now it applies to it too).}
-  \item{initial}{a real vector, the initial state of the Markov chain.}
+  \item{initial}{a real vector, the initial state of the Markov chain.
+      Ignored if \code{obj} is the result of a previous run and
+      this run starts where the previous one finished.}
   \item{nbatch}{the number of batches.}
   \item{blen}{the length of batches.}
   \item{nspac}{the spacing of iterations that contribute to batches.}

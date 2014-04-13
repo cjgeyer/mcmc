@@ -36,8 +36,10 @@ identical(myz, hout$z)
 identical(myu1, hout$u1)
 identical(myu2, hout$u2)
 
+# check green ratios (trivial for this problem)
 all(hout$log.green == 0)
 
+# check construction of basis, origin, amat, bvec, rip
 hrep4 <- makeH(a1 = a1, b1 = b1)
 hrep3 <- makeH(a2 = a2, b2 = b2)
 hrep4 <- d2q(hrep4)
@@ -78,29 +80,77 @@ identical(bvec, hout$bvec)
 identical(x.initial, hout$rip)
 identical(x.initial, hout$current[1, ])
 
+# check bounds
 mys1 <- rep(Inf, nrow(hout$current))
 mys2 <- rep(-Inf, nrow(hout$current))
 for (i in seq(along = myu1)) {
-   z <- myz[i, ]
+   z <- hout$z[i, ]
    x <- hout$current[i, ]
    ax <- as.numeric(amat %*% x)
    az <- as.numeric(amat %*% z)
-   bmax <- bvec - ax
-   mys1[i] <- min(ifelse(az > 0, bmax / az, Inf))
-   mys2[i] <- max(ifelse(az < 0, bmax / az, -Inf))
+   bnd <- (bvec - ax) / az
+   mys1[i] <- max(bnd[az < 0])
+   mys2[i] <- min(bnd[az > 0])
 }
-identical(mys1, hout$s1)
-identical(mys2, hout$s2)
-head(mys1)
-head(hout$s1)
-head(mys2)
-head(hout$s2)
+all.equal(mys1, hout$s1)
+all.equal(mys2, hout$s2)
 
-dim(hout$batch)
-dim(a1)
-length(b1)
+# check proposal
+myproposal <- matrix(NA, nrow(hout$current), ncol(hout$current))
+for (i in seq(along = myu1)) {
+   x <- hout$current[i, ]
+   z <- hout$z[i, ]
+   smin <- hout$s1[i]
+   smax <- hout$s2[i]
+   u <- hout$u1[i]
+   myproposal[i, ] <- x + z * (u * smin + (1 - u) * smax)
+}
+all.equal(myproposal, hout$proposal)
+identical(hout$current[- 1, ], hout$proposal[- nrow(hout$proposal), ])
+identical(hout$current[1, ], hout$rip)
+identical(hout$proposal[nrow(hout$proposal), ], hout$final)
+
+# check path is feasible (reduced coordinates)
+foo <- hout$current %*% t(amat)
+foo <- sweep(foo, 2, bvec)
+all(foo <= 0)
+
+# check transformation
+foo <- hout$proposal %*% t(basis)
+foo <- sweep(foo, 2, origin, "+")
+identical(foo, hout$batch)
+
+# check path is feasible (original coordinates)
 foo <- hout$batch %*% t(a1)
 foo <- sweep(foo, 2, b1)
-foo <- apply(foo, 1, max)
-max(foo)
+bar <- hout$batch %*% t(a2)
+bar <- sweep(bar, 2, b2)
+all(foo <= sqrt(.Machine$double.eps))
+all(abs(bar) <= sqrt(.Machine$double.eps))
 
+# everything checks when ludfun is flat, now for non-flat
+ludfun <- function(x) {
+    stopifnot(is.numeric(x))
+    stopifnot(is.finite(x))
+    stopifnot(length(x) == d)
+    1.3 * sum(log(x))
+}
+hout <- hitrun(ludfun, rep(0, d), nbatch = 100,
+    a1 = a1, b1 = b1, a2 = a2, b2 = b2, debug = TRUE)
+
+foo <- hout$current %*% t(basis)
+foo <- sweep(foo, 2, origin, "+")
+bar <- hout$proposal %*% t(basis)
+bar <- sweep(bar, 2, origin, "+")
+my.log.green <- apply(bar, 1, ludfun) - apply(foo, 1, ludfun)
+identical(my.log.green, hout$log.green)
+identical(is.na(hout$u2), hout$log.green >= 0)
+my.accept.1 <- is.na(hout$u2) | hout$u2 < exp(hout$log.green)
+foo <- hout$proposal
+bar <- hout$current[- 1, ]
+bar <- rbind(bar, hout$final)
+baz <- foo - bar
+my.accept.2 <- apply(baz == 0, 1, all)
+identical(my.accept.1, my.accept.2)
+
+# now check restart property

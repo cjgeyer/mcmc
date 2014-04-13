@@ -1,6 +1,12 @@
 
 \documentclass[11pt]{article}
 
+\usepackage{amsmath}
+\usepackage{indentfirst}
+
+\newcommand{\opand}{\mathbin{\rm and}}
+\newcommand{\opor}{\mathbin{\rm or}}
+
 \begin{document}
 
 \title{Design Document for Hit and Run Function}
@@ -9,28 +15,34 @@
 
 \maketitle
 
+\section{The Problem}
+
 The problem is to simulate a distribution having an unnormalized density that
-is a convex function on a convex polytope.  The unnormalized density is
+is a continuous function on a convex polytope.  The unnormalized density is
 provided by the user as an R function of one argument (a numeric vector).
 The convex polytope is provided by the user as a finite set
 of linear equalities and inequalities (the polytope is the set of points
 satisfying them).  The method of simulation is Markov chain Monte Carlo
 using the hit and run algorithm.
 
-Before we can simulate we must do a dimension reduction,
-finding the dimension of the convex polytope, and finding a coordinate
-system in which the convex polytope has full dimension.  We use functions
-in the R package \texttt{rcdd}, which does computational geometry.
+\section{Example}
 
-To explain the computational geometry part, we do an example.
+We do an example with
 <<d>>=
 d <- 10
 @
-dimensions, we simulated a probability distribution on the integers
-1 to $d$.  Suppose we want both the mean and the median to be exactly
+dimensions.  Suppose we observe data having a probability distribution
+on a state space having $d$ points, which we take to be
+\begin{equation} \label{eq:state-space}
+   D = \{ 1, \ldots, d \}
+\end{equation}
+And suppose we want to do Bayesian inference.  The parameter
+vector is the probability vector $p$ on these points.   We have, of
+course, the constraints that the probabilities are nonnegative and
+sum to one ($d$ inequality constraints and 1 equality constraint),
+but suppose we also want both the mean and the median to be exactly
 $(d + 1) / 2$.
-That gives us two inequality constraints.  Suppose
-$p$ is the state vector, then the first constraint is
+That gives us two inequality constraints.  The first is
 $$
    \sum_{k = 1}^d k p_k = \frac{d + 1}{2}
 $$
@@ -52,48 +64,49 @@ $$
    \ge
    \frac{1}{2}
 $$
-These are in addition to probabilities being nonnegative and summing to one.
-We express the equality constraints as $A_1 p = b_1$, where $A_1$ is a matrix
-and $b_1$ a vector,
+
+\section{Computational Geometry}
+
+Before we can simulate we must do a dimension reduction,
+finding the dimension of the convex polytope and finding a coordinate
+system in which the convex polytope has full dimension.  We use functions
+in the R package \texttt{rcdd}, which does computational geometry.
+
+We express the inequality constraints as $A_1 p \le b_1$,
+where $A_1$ is a matrix, $b_1$ a vector,
+and the inequality operates componentwise,
 and we express the equality constraints as $A_2 p = b_2$, where $A_2$ is
-a matrix, $b_2$ a vector, and the inequality operates componentwise.
+a matrix, $b_2$ a vector.
 <<cons>>=
 i <- 1:d
-a1 <- rbind(rep(1, d), i, as.numeric(i <= (d + 1) / 2) -
+a2 <- rbind(rep(1, d), i, as.numeric(i <= (d + 1) / 2) -
     as.numeric(i >= (d + 1) / 2))
-b1 <- c(1, (d + 1) / 2, 0)
-a2 <- - diag(d)
-b2 <- rep(0, d)
-a2 <- rbind(a2, - as.numeric(i <= (d + 1) / 2 - r) -
+b2 <- c(1, (d + 1) / 2, 0)
+a1 <- - diag(d)
+b1 <- rep(0, d)
+a1 <- rbind(a1, - as.numeric(i <= (d + 1) / 2 - r) -
     as.numeric(i >= (d + 1) / 2 + r))
-b2 <- c(b2, - 1 / 2)
+b1 <- c(b1, - 1 / 2)
 @
-Now we dump this into \texttt{rcdd}.
+Now we dump this into \texttt{rcdd}.  The constraint set is represented
+by constraints as an H-representation.  The function \texttt{makeH} makes
+that.
 <<hrep>>=
 library(rcdd)
-hrep1 <- makeH(a2, b2, a1, b1)
+hrep1 <- makeH(a1, b1, a2, b2)
 hrep1
 @
-The first column is a secret code (1 indicates an equality constraint,
-0 indicates an inequality constraint).  The second column is the right-hand
+The first column is a code: 1 indicates an equality constraint,
+0 indicates an inequality constraint.  The second column is the right-hand
 side vector.  The rest of each row is the negative of some row of $A_1$
 or $A_2$.
 
-We now do several operations that are not needed for this example but
-are needed if we allow the user to input general constraint matrices
-and vectors.  First we check that the polytope is indeed bounded.
-<<vrep>>=
-vrep1 <- scdd(d2q(hrep1))$output
-nrow(vrep1) > 0
-all(vrep1[ , 1] == "0")
-all(vrep1[ , 2] == "1")
-@
-The three \texttt{TRUE}'s printed above should also be \texttt{TRUE} for
-any allowable constraints.  The codes 0 and 1 indicate that all the generators
-are points, so the convex polyhedron is the convex hull of the points that
-are the rest of the rows of the V-representation.
+\subsection{Eliminating Redundant Constraints}
 
-Then we eliminate redundant constraints from the H-representation.
+We now do an operation that is not needed for this example but
+is needed if we allow the user to input general constraint matrices
+and vectors.
+This is elimination of redundant constraints from the H-representation.
 <<hrep-too>>=
 rout <- redundant(d2q(hrep1))
 hrep2 <- rout$output
@@ -103,18 +116,6 @@ This \texttt{TRUE} says that there was no point to the \texttt{redundant}
 call: nothing needed to be done.  In general, this will be \texttt{FALSE},
 so this check is just for this example.
 
-We do, in general, need to make one use of \texttt{vrep1} and that is to
-find a point in the relative interior of the polytope.  (Actually, this
-turns out to not be useful.  We will actually need \texttt{vrep4} below
-do deal with this issue.)
-<<ri>>=
-v <- vrep1[ , - c(1, 2)]
-x <- apply(v, 2, qsum)
-x <- qdq(x, rep(as.character(nrow(v)), length(x)))
-x <- q2d(x)
-x
-@
-
 Now we need to deal with equality constraints and inequality constraints
 separately.
 <<sep>>=
@@ -122,9 +123,11 @@ hrep3 <- hrep2[hrep2[ , 1] == "1", ]
 hrep4 <- hrep2[hrep2[ , 1] == "0", ]
 @
 
+\subsection{Change of Variable}
+
 The equality constraints give us the affine hull of the polytope.
 <<affine-hull>>=
-vrep3 <- scdd(hrep3, rep = "H")$output
+vrep3 <- scdd(hrep3, representation = "H")$output
 vrep3
 is.line <- vrep3[ , 1] == "1" & vrep3[ , 2] == "0"
 is.point <- vrep3[ , 1] == "0" & vrep3[ , 2] == "1"
@@ -132,10 +135,11 @@ all(is.point | is.line)
 sum(is.point) == 1
 sum(is.line) == d - nrow(hrep3)
 @
-The codes in columns 1 and 2 are 0 and 1 (in that order) for a point and
-1 and 0 (in that order) for a line.  The affine hull of the convex polytope
-is the vector subspace spanned by the points that are linear generators
-translated by the point that is a punctate generator.
+The codes in the first and second columns are 0 and 1 (in that order) for
+points and 1 and 0 (in that order) for directions.  The affine hull of the
+convex polytope
+is the vector subspace spanned by the directions
+translated by the point.
 <<coordinates>>=
 foo <- vrep3[ , - c(1, 2)]
 origin <- foo[is.point, ]
@@ -151,51 +155,94 @@ to be the basis vectors).
 If we denote the vector \texttt{origin} as $u$ and the matrix \texttt{basis}
 as $V$, then the transformation $x \mapsto u + V x$ maps
 \Sexpr{ncol(basis)}-dimensional space to the affine hull of the convex
-polytope considered as an affine subspace of \Sexpr{d}-dimensional
-space.
+polytope.
 
-We now need to make the inequality constraints refer to the other coordinate
-system.  If the constraints are $A y \le b$, then for the new coordinates,
-they are $A(u + V x) \le b$ or $A V x \le b - A u$ so we need to construct
-the matrix $A V$ and the vector $b - A u$ to hand to the MCMC algorithm.
+\subsection{Inequality Constraints in New Coordinates}
+
+The change of variable takes care of the equality constraints.  By
+construction $u + V x$ satisfies the equality constraints for all $x$.
+
+We now need to make the inequality constraints refer to the new coordinate
+system.  If the constraints are $A y \le b$ in the old coordinate system,
+then they are $A(u + V x) \le b$ in the new coordinate system, or,
+what is equivalent $A V x \le b - A u$.  Thus we need to construct
+the matrix $A V$ and the vector $b - A u$.
 <<ineq>>=
 amat <- qneg(hrep4[ , - c(1, 2)])
 bvec <- hrep4[ , 2]
 bvec <- qmq(bvec, qmatmult(amat, cbind(origin)))
 amat <- qmatmult(amat, basis)
 @
-Now we are ready.  If the the unnormalized density function provided by
-the user is $h$, then we supply to the hit and run simulator function the
-unnormalized density function $h_2 : x \mapsto h(u + V x)$ and the inequality
-constraints specified by \texttt{amat} and \texttt{bvec} as calculated above.
 
-Note that the algorithm thinks the state vector is $x$, but the user
-thinks the state vector is $u + V x$, so the \texttt{outfun} supplied
-to the C function must do this coordinate transformation and if no
-\texttt{outfun} is supplied, we must still do this transformation on
-the batch means.
+\subsection{Functions in New Coordinates}
 
-Actually, we are almost ready, but need one more step, a point in the
-relative interior of the constraint set \emph{in the new coordinates}.
+If the the log unnormalized density function provided by
+the user is $h$, then the log unnormalized density function for the
+Markov chain (which uses the new coordinates) is
+$h_2 : x \mapsto h(u + V x)$.
+
+If the the output function provided by
+the user is $o$, then the output function for the
+Markov chain (which uses the new coordinates) is
+$o_2 : x \mapsto o(u + V x)$.
+
+If no output function is supplied, this is equivalent to using
+the identify output function.  Thus we must use the output function
+$o_2 : x \mapsto u + V x$.  We do not have to actually implement
+this as a function.  By linearity of expectation if $\bar{x}$ is
+a batch mean in the new coordinates, then $u + V \bar{x}$ is the
+corresponding batch mean in the old coordinates.  Thus we can
+apply the transformation to the old coordinates at the end after
+batch means have been done.
+
+\subsection{Initial State and Boundedness Check}
+
+There are two remaining issues involving computational geometry.
+Both involve the V-representation of the constraint set in the new coordinates.
 <<hrep5>>=
 hrep5 <- cbind("0", bvec, qneg(amat))
-vrep5 <- scdd(hrep5, rep = "H")$output
+vrep5 <- scdd(hrep5, representation = "H")$output
+nrow(vrep5) > 0
+all(vrep5[ , 1] == 0 & vrep5[ , 2] == 1)
+@
+These checks prove that the convex polytope is nonempty and bounded.
+<<initial>>=
 v <- vrep5[ , - c(1, 2)]
 x <- apply(v, 2, qsum)
 x <- qdq(x, rep(as.character(nrow(v)), length(x)))
 @
-This \texttt{x} is a possible starting value for the Markov chain.
-@
+The point $x$ is in the
+relative interior of the constraint set in the new coordinates.
+It is a possible starting value for the Markov chain.
+
+% As another check that our transformations make sense, let us map the
+% vertices in the new coordinates to the old coordinates and check that
+% they satisfy the constraints in the old coordinates
+% <<transform>>=
+% vold <- qmatmult(v, t(basis))
+% vold <- sweep(vold, 2, origin, qpq)
+% foo <- qmatmult(vold, t(a2))
+% foo <- sweep(foo, 2, b2, qmq)
+% all(qsign(foo) == 0)
+% foo <- qmatmult(vold, t(a1))
+% foo <- sweep(foo, 2, b1, qmq)
+% all(qsign(foo) <= 0)
+% @
+
+\subsection{Conversion from Rational to Floating Point}
+
 Now we convert the arguments to the MCMC function to conventional
 computer so-called real numbers.
 <<convert>>=
 bvec <- q2d(bvec)
 amat <- q2d(amat)
 x <- q2d(x)
-amat
 bvec
+amat
 round(x, 4)
 @
+
+\section{Hit and Run Sampler}
 
 How does hit and run work?  It generates a random direction (we use the
 direction along a standard normal random vector), then calculates the
@@ -212,6 +259,36 @@ $$
    s A z \le b - A x
 $$
 we find the range of $s$ values such that this holds.
+Write
+\begin{align*}
+   q & = A z
+   \\
+   r & = b - A x
+\end{align*}
+so the inequalities are
+\begin{equation} \label{eq:ineq}
+   s q_i \le r_i, \qquad i = 1, \ldots, n
+\end{equation}
+where $n$ is the row dimension of \texttt{amat} and the length
+of \texttt{bvec}.
+We know that the current state $x$ satisfies the constraints $A x \le b$,
+hence \eqref{eq:ineq} is satisfied when $s = 0$.  When $q_i < 0$ dividing
+through by $q_i$ reverses the inequality, thus the inequalities \eqref{eq:ineq}
+become
+\begin{align*}
+   s & \le r_i / q_i, \qquad i \in D \opand q_i > 0
+   \\
+   s & \ge r_i / q_i, \qquad i \in D \opand q_i < 0
+\end{align*}
+(where $D$ is given by \eqref{eq:state-space}).  So, defining
+\begin{align*}
+   s_{\text{max}} & = \min_{\substack{i \in D \\ q_i > 0}} \frac{r_i}{q_i}
+   \\
+   s_{\text{min}} & = \max_{\substack{i \in D \\ q_i < 0}} \frac{r_i}{q_i}
+\end{align*}
+the set of points of the form $x + s z$ that lie in the convex polytope
+are those for which $s_{\text{min}} \le s \le s_{\text{max}}$.
+And (as mentioned above) we always have $s_{\text{min}} < 0 < s_{\text{max}}$.
 
 \end{document}
 
