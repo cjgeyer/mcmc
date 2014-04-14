@@ -1,0 +1,71 @@
+Who puts what in an object of class "hitrun"?
+
+har (in C)
+    batch (but needs to be transposed)
+    initial
+    final
+    and if (debug)
+        current (but needs to be transposed)
+        proposal (but needs to be transposed)
+        z (but needs to be transposed)
+        u1
+        u2
+        s1
+        s2
+        log.green
+hitrunHelperNC
+    initial.seed
+    final.seed
+    time
+    ludfun (in new coordinates)
+    outfun (in new coordinates)
+    nbatch
+    blen
+    nspac
+    amat
+    bvec
+    debug
+    transposes
+        batch
+        current (if debug)
+        proposal (if debug)
+        z (if debug)
+    note: batch still needs to be mapped to old coordinates if
+        outfun was missing
+hitrun.hitrun and hitrun.function
+    a1
+    b1
+    a2
+    b2
+    origin
+    basis
+    map batch to original coordinates (OC) if outfun was missing
+
+Who creates what in an object of class "hitrun"?
+
+User
+    ludfun in original coordinates (OC)
+    outfun in OC (may be missing)
+    nbatch
+    blen (may be set by default)
+    nspac (may be set by default)
+    a1
+    b1
+    a2 (may be missing)
+    b2 (may be missing)
+    debug (may be set by default)
+    ...
+hitrun.function
+    origin
+    basis
+    amat
+    bvec
+    initial (a. k. a. rip)
+    ludfun in new coordinates (NC)
+    outfun in NC (if not missing)
+hitrun.hitrun
+    nothing (everything comes either from user or from hitrun object)
+    except if outfun comes from user mapped from OC to NC
+hitrunHelperNC
+    env1
+    env2

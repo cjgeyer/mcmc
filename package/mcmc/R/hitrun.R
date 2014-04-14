@@ -6,56 +6,56 @@
 # a1 and b1 cannot be missing (necessarily results in unbounded polyhedron)
 # a2 and b2 can be missing
 
-hitrun <- function(obj, initial, nbatch, blen = 1,
+hitrun <- function(obj, nbatch, blen = 1,
     nspac = 1, a1, b1, a2, b2, outfun, debug = FALSE, ...)
 UseMethod("hitrun")
 
-hitrun.hitrun <- function(obj, initial, nbatch, blen = 1,
+hitrun.hitrun <- function(obj, nbatch, blen = 1,
     nspac = 1, a1, b1, a2, b2, outfun, debug = FALSE, ...)
 {
     if (missing(nbatch)) nbatch <- obj$nbatch
     if (missing(blen)) blen <- obj$blen
     if (missing(nspac)) nspac <- obj$nspac
-    if (missing(a1)) a1 <- obj$a1
-    if (missing(b1)) b1 <- obj$b1
-    if (missing(a2)) a1 <- obj$a2
-    if (missing(b2)) b1 <- obj$b2
     if (missing(debug)) debug <- obj$debug
     assign(".Random.seed", obj$final.seed, .GlobalEnv)
+    basis <- obj$basis
+    origin <- obj$origin
+    amat <- obj$amat
+    bvec <- obj$bvec
     if (missing(outfun)) {
-        if (is.null(obj$outfun)) {
-            hitrun.function(obj$lud, obj$final, nbatch, blen,
-                nspac, scale, debug = debug, ...)
-        } else {
-            hitrun.function(obj$lud, obj$final, nbatch, blen,
-                nspac, scale, obj$outfun, debug, ...)
-        }
+        outfunNC <- obj$outfun
     } else {
-        hitrun.function(obj$lud, obj$final, nbatch, blen,
-            nspac, a1, b1, a2, b2, outfun, debug, ...)
+        outfunNC <- function(state) {
+            userstate <- origin + as.numeric(basis %*% state)
+            outfun(userstate, ...)
     }
+
+    out <- hitrunHelperNC(obj$ludfun, obj$final, nbatch, blen, nspac,
+        amat, bvec, outfunNC, debug)
+
+    if (is.null(outfunNC)) {
+        foo <- out$batch
+        foo <- foo %*% t(basis)
+        foo <- sweep(foo, 2, origin, "+")
+        out$batch <- foo
+    }
+
+    out$a1 <- obj$a1
+    out$b1 <- obj$b1
+    out$a2 <- obj$a2
+    out$b2 <- obj$b2
+    out$origin <- origin
+    out$basis <- basis
+    class(out) <- c("mcmc", "hitrun")
+    return(out)
 }
 
-hitrun.function <- function(obj, initial, nbatch, blen = 1,
+hitrun.function <- function(obj, nbatch, blen = 1,
     nspac = 1, a1, b1, a2, b2, outfun, debug = FALSE, ...)
 {
     if (! exists(".Random.seed")) runif(1)
     saveseed <- .Random.seed
 
-    stopifnot(is.numeric(initial))
-    stopifnot(is.finite(initial))
-    stopifnot(is.numeric(nbatch))
-    stopifnot(length(nbatch) == 1)
-    stopifnot(nbatch == round(nbatch))
-    stopifnot(nbatch >= 1)
-    stopifnot(is.numeric(blen))
-    stopifnot(length(blen) == 1)
-    stopifnot(blen == round(blen))
-    stopifnot(blen >= 1)
-    stopifnot(is.numeric(nspac))
-    stopifnot(length(nspac) == 1)
-    stopifnot(nspac == round(nspac))
-    stopifnot(nspac >= 1)
     stopifnot(is.numeric(a1))
     stopifnot(is.finite(a1))
     stopifnot(is.matrix(a1))
@@ -63,7 +63,6 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
     stopifnot(is.finite(b1))
     stopifnot(is.vector(b1))
     stopifnot(nrow(a1) == length(b1))
-    stopifnot(ncol(a1) == length(initial))
     stopifnot(missing(a2) == missing(b2))
     if (! missing(a2)) {
         stopifnot(is.numeric(a2))
@@ -73,10 +72,8 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
         stopifnot(is.finite(b2))
         stopifnot(is.vector(b2))
         stopifnot(nrow(a2) == length(b2))
-        stopifnot(ncol(a2) == length(initial))
+        stopifnot(ncol(a2) == ncol(a1))
     }
-    stopifnot(is.logical(debug))
-    stopifnot(length(debug) == 1)
 
     hrep1 <- makeH(a1, b1, a2, b2)
     hrep1 <- d2q(hrep1)
@@ -97,8 +94,6 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
     foo <- vrep3[ , - c(1, 2)]
     origin <- foo[is.point, ]
     basis <- foo[is.line, ]
-    origin <- q2d(origin)
-    basis <- q2d(basis)
     basis <- t(basis)
 
     amat <- qneg(hrep4[ , - c(1, 2)])
@@ -119,6 +114,8 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
     rip <- q2d(rip)
     # rip is relative interior point of constraint set (see design doc)
 
+    origin <- q2d(origin)
+    basis <- q2d(basis)
     bvec <- q2d(bvec)
     amat <- q2d(amat)
 
@@ -126,45 +123,99 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
         userstate <- origin + as.numeric(basis %*% state)
         obj(userstate, ...)
     }
-    env1 <- environment(fun = func1)
 
     if (missing(outfun)) {
         func2 <- NULL
-        env2 <- NULL
-        outfun <- NULL
     } else if (is.function(outfun)) {
         func2 <- function(state) {
             userstate <- origin + as.numeric(basis %*% state)
             outfun(userstate, ...)
         }
-        env2 <- environment(fun = func2)
     } else {
         stop("outfun must be function or missing")
     }
 
-    out.time <- system.time(
-    out <- .Call("har", func1, rip, nbatch, blen, nspac,
-        amat, bvec, func2, debug, env1, env2, PACKAGE = "mcmc")
-    )
+    out <- hitrunHelperNC(func1, rip, nbatch, blen, nspac,
+        amat, bvec, func2, debug)
 
-    if (is.null(outfun)) {
+    if (is.null(func2)) {
         foo <- out$batch
-        foo <- basis %*% foo
-        foo <- sweep(foo, 1, origin, "+")
+        foo <- foo %*% t(basis)
+        foo <- sweep(foo, 2, origin, "+")
         out$batch <- foo
     }
+
+    out$a1 <- obj$a1
+    out$b1 <- obj$b1
+    out$a2 <- obj$a2
+    out$b2 <- obj$b2
+    out$origin <- origin
+    out$basis <- basis
+    class(out) <- c("mcmc", "hitrun")
+    return(out)
+}
+
+# only knows about new coordinates (NC)
+# ludfun is log unnormalized density with argument in NC
+# initial is vector in NC
+# outfun is output function with argument in NC
+# constraint set (in NC) is x such that amat %*% x <= bvec
+hitrunHelperNC <- function(ludfun, initial, nbatch, blen, nspac,
+    amat, bvec, outfun, debug)
+{
+    if (! exists(".Random.seed")) runif(1)
+    saveseed <- .Random.seed
+
+    stopifnot(is.numeric(initial))
+    stopifnot(is.finite(initial))
+    stopifnot(is.numeric(nbatch))
+    stopifnot(length(nbatch) == 1)
+    stopifnot(nbatch == round(nbatch))
+    stopifnot(nbatch >= 1)
+    stopifnot(is.numeric(blen))
+    stopifnot(length(blen) == 1)
+    stopifnot(blen == round(blen))
+    stopifnot(blen >= 1)
+    stopifnot(is.numeric(nspac))
+    stopifnot(length(nspac) == 1)
+    stopifnot(nspac == round(nspac))
+    stopifnot(nspac >= 1)
+    stopifnot(is.numeric(amat))
+    stopifnot(is.finite(amat))
+    stopifnot(is.matrix(amat))
+    stopifnot(is.numeric(bvec))
+    stopifnot(is.finite(bvec))
+    stopifnot(is.vector(bvec))
+    stopifnot(nrow(amat) == length(bvec))
+    stopifnot(ncol(amat) == length(initial))
+    stopifnot(is.logical(debug))
+    stopifnot(length(debug) == 1)
+
+    stopifnot(is.function(ludfun))
+    env1 <- environment(fun = ludfun)
+
+    if (is.null(outfun)) {
+        env2 <- NULL
+    } else if (is.function(outfun)) {
+        env2 <- environment(fun = func2)
+    } else {
+        stop("outfun must be function or NULL")
+    }
+
+    out.time <- system.time(
+    out <- .Call("har", ludfun, initial, nbatch, blen, nspac,
+        amat, bvec, outfun, debug, env1, env2, PACKAGE = "mcmc")
+    )
 
     out$initial.seed <- saveseed
     out$final.seed <- .Random.seed
     out$time <- out.time
-    out$lud <- obj
+    out$lud <- ludfun
     out$nbatch <- nbatch
     out$blen <- blen
     out$nspac <- nspac
-    out$a1 <- a1
-    out$b1 <- b1
-    out$a2 <- a2
-    out$b2 <- b2
+    out$amat <- amat
+    out$bvec <- bvec
     out$outfun <- outfun
     out$batch <- t(out$batch)
     out$debug <- debug
@@ -172,11 +223,6 @@ hitrun.function <- function(obj, initial, nbatch, blen = 1,
         out$current <- t(out$current)
         out$proposal <- t(out$proposal)
         out$z <- t(out$z)
-        out$origin <- origin
-        out$basis <- basis
-        out$amat <- amat
-        out$bvec <- bvec
-        out$rip <- rip
     }
     class(out) <- c("mcmc", "hitrun")
     return(out)
