@@ -17,7 +17,7 @@ a1 <- rbind(a1, - as.numeric(i <= (d + 1) / 2 - r) -
 b1 <- c(b1, - 1 / 2)
 dimnames(a2) <- NULL
 
-hout <- hitrun(function(x) return(0), rep(0, d), nbatch = 100,
+hout <- hitrun(function(x) return(0), nbatch = 100,
     a1 = a1, b1 = b1, a2 = a2, b2 = b2, debug = TRUE)
 names(hout)
 
@@ -77,7 +77,7 @@ identical(origin, hout$origin)
 identical(basis, hout$basis)
 identical(amat, hout$amat)
 identical(bvec, hout$bvec)
-identical(x.initial, hout$rip)
+identical(x.initial, hout$initial)
 identical(x.initial, hout$current[1, ])
 
 # check bounds
@@ -107,7 +107,7 @@ for (i in seq(along = myu1)) {
 }
 all.equal(myproposal, hout$proposal)
 identical(hout$current[- 1, ], hout$proposal[- nrow(hout$proposal), ])
-identical(hout$current[1, ], hout$rip)
+identical(hout$current[1, ], hout$initial)
 identical(hout$proposal[nrow(hout$proposal), ], hout$final)
 
 # check path is feasible (reduced coordinates)
@@ -135,7 +135,7 @@ ludfun <- function(x) {
     stopifnot(length(x) == d)
     1.3 * sum(log(x))
 }
-hout <- hitrun(ludfun, rep(0, d), nbatch = 100,
+hout <- hitrun(ludfun, nbatch = 100,
     a1 = a1, b1 = b1, a2 = a2, b2 = b2, debug = TRUE)
 
 foo <- hout$current %*% t(basis)

@@ -8,7 +8,7 @@
     using a hit and run algorithm.
 }
 \usage{
-hitrun(obj, initial, nbatch, blen = 1, nspac = 1, a1, b1, a2, b2, outfun,
+hitrun(obj, nbatch, blen = 1, nspac = 1, a1, b1, a2, b2, outfun,
     debug = FALSE, ...)
 }
 \arguments{
@@ -22,9 +22,6 @@ hitrun(obj, initial, nbatch, blen = 1, nspac = 1, a1, b1, a2, b2, outfun,
       previous run can be supplied, in which case any missing arguments
       (including the log unnormalized density function) are taken from
       this object.}
-  \item{initial}{a real vector, the initial state of the Markov chain.
-      May be missing if \code{obj} is the result of a previous run, in
-      which case this run starts where the previous one finished.}
   \item{nbatch}{the number of batches.}
   \item{blen}{the length of batches.}
   \item{nspac}{the spacing of iterations that contribute to batches.}
@@ -54,13 +51,8 @@ And by a polyhedral constraint set specified by the arguments
 }
 Since the constraint set must be bounded \code{a1} and \code{b2} are not
 allowed to be missing.  But \code{a2} and \code{b2} are allowed to be missing.
-
-The initial state must be in the support of the equilibrium distribution.
-That is, it must be in the constraint set and also must have a finite
-value of the log unnormalized density function, that is,
-\code{obj(initial, ...)} is finite.  Normally, the log unnormalized density
-function is written that it never returns infinite values, so the constraints
-define the support.
+\code{a1}, \code{b1}, \code{a2}, and \code{b2} are ignored if \code{obj}
+is an object of class \code{"hitrun"}.
 
 Suppose the function coded by the log unnormalized function is continuous
 and nonzero on the constraint set.  Then the sampler is uniformly ergodic.

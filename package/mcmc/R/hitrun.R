@@ -28,6 +28,7 @@ hitrun.hitrun <- function(obj, nbatch, blen = 1,
         outfunNC <- function(state) {
             userstate <- origin + as.numeric(basis %*% state)
             outfun(userstate, ...)
+        }
     }
 
     out <- hitrunHelperNC(obj$ludfun, obj$final, nbatch, blen, nspac,
@@ -88,7 +89,7 @@ hitrun.function <- function(obj, nbatch, blen = 1,
         stop("unexpected V-representation of affine hull of constraint set")
     if (sum(is.point) != 1)
         stop("unexpected V-representation of affine hull of constraint set")
-    if (sum(is.line) != length(initial) - nrow(hrep3))
+    if (sum(is.line) != ncol(a1) - nrow(hrep3))
         stop("unexpected V-representation of affine hull of constraint set")
 
     foo <- vrep3[ , - c(1, 2)]
@@ -145,10 +146,12 @@ hitrun.function <- function(obj, nbatch, blen = 1,
         out$batch <- foo
     }
 
-    out$a1 <- obj$a1
-    out$b1 <- obj$b1
-    out$a2 <- obj$a2
-    out$b2 <- obj$b2
+    out$a1 <- a1
+    out$b1 <- b1
+    if (! missing(a2)) {
+        out$a2 <- a2
+        out$b2 <- b2
+    }
     out$origin <- origin
     out$basis <- basis
     class(out) <- c("mcmc", "hitrun")
@@ -197,7 +200,7 @@ hitrunHelperNC <- function(ludfun, initial, nbatch, blen, nspac,
     if (is.null(outfun)) {
         env2 <- NULL
     } else if (is.function(outfun)) {
-        env2 <- environment(fun = func2)
+        env2 <- environment(fun = outfun)
     } else {
         stop("outfun must be function or NULL")
     }
