@@ -144,10 +144,18 @@
 
  ### check batch means
 
- foo <- after[seq(1, niter) %% out$nspac == 0, ]
+ foo <- after[ , - 1]
+ foo <- foo[seq(1, niter) %% out$nspac == 0, ]
  foo <- array(as.vector(foo), dim = c(out$blen, out$nbatch, dim(foo)[2]))
  foo <- apply(foo, c(2, 3), mean)
  all.equal(foo, out$batch)
+
+ ifoo <- matrix(0, nrow(after), ncol(out$ibatch))
+ for (i in 1:niter) ifoo[i, after[i, 1]] <- 1
+ ifoo <- ifoo[seq(1, niter) %% out$nspac == 0, ]
+ ifoo <- array(as.vector(ifoo), dim = c(out$blen, out$nbatch, dim(ifoo)[2]))
+ ifoo <- apply(ifoo, c(2, 3), mean)
+ all.equal(ifoo, out$ibatch)
 
  ### check acceptance rates
 

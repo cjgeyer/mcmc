@@ -213,7 +213,7 @@ hitrunHelperNC <- function(ludfun, initial, nbatch, blen, nspac,
     out$initial.seed <- saveseed
     out$final.seed <- .Random.seed
     out$time <- out.time
-    out$lud <- ludfun
+    out$ludfun <- ludfun
     out$nbatch <- nbatch
     out$blen <- blen
     out$nspac <- nspac

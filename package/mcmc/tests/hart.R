@@ -1,5 +1,5 @@
 
-library(mcmc, lib.loc = "../package/mcmc.Rcheck")
+library(mcmc)
 
 set.seed(42)
 
@@ -154,3 +154,25 @@ my.accept.2 <- apply(baz == 0, 1, all)
 identical(my.accept.1, my.accept.2)
 
 # now check restart property
+
+.Random.seed <- hout$initial.seed
+hout1 <- hitrun(ludfun, nbatch = 50, a1 = a1, b1 = b1, a2 = a2, b2 = b2)
+hout2 <- hitrun(hout1)
+identical(hout$batch, rbind(hout1$batch, hout2$batch))
+identical(hout$final, hout2$final)
+identical(hout$final.seed, hout2$final.seed)
+
+# now check batching and spacing
+
+hout3 <- hitrun(hout, nbatch = 17, nspac = 3, blen = 11)
+hout4 <- hitrun(hout, nspac = 1, blen = 1,
+    nbatch = hout3$nbatch * hout3$blen * hout3$nspac)
+mybatch <- hout4$batch[seq(1, hout4$nbatch) %% hout3$nspac == 0, ]
+dim(mybatch)
+mybatch <- array(as.vector(mybatch),
+    c(hout3$blen, hout3$nbatch, ncol(mybatch)))
+dim(mybatch)
+mybatch <- apply(mybatch, c(2, 3), mean)
+dim(mybatch)
+all.equal(mybatch, hout3$batch)
+
