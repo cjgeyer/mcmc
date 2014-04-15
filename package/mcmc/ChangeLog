@@ -67,3 +67,5 @@
 
  0.9-3 move vignettes to vignettes directory
        changed LICENCE file yet again as per CRAN requirements
+
+ 1.0   added function hitrun

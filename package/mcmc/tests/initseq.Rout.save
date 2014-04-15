@@ -1,5 +1,5 @@
 
-R version 3.0.3 (2014-03-06) -- "Warm Puppy"
+R version 3.1.0 (2014-04-10) -- "Spring Dance"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -17,6 +17,11 @@ Type 'q()' to quit R.
 
 > 
 >  library(mcmc)
+Loading required package: rcdd
+If you want correct answers, use rational arithmetic.
+See the Warnings sections added to help pages for
+    functions that do computational geometry.
+
 > 
 >  set.seed(42)
 > 
@@ -84,4 +89,4 @@ Iso 0.0-15
 > 
 > proc.time()
    user  system elapsed 
-  1.323   0.028   1.364 
+  1.314   0.029   1.383 

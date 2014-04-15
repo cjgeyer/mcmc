@@ -1,5 +1,5 @@
 
-R version 3.0.3 (2014-03-06) -- "Warm Puppy"
+R version 3.1.0 (2014-04-10) -- "Spring Dance"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -19,6 +19,11 @@ Type 'q()' to quit R.
 >  epsilon <- 1e-15
 > 
 >  library(mcmc)
+Loading required package: rcdd
+If you want correct answers, use rational arithmetic.
+See the Warnings sections added to help pages for
+    functions that do computational geometry.
+
 > 
 >  RNGkind("Marsaglia-Multicarry")
 >  set.seed(42)
@@ -174,4 +179,4 @@ Current iterate is probably solution.
 > 
 > proc.time()
    user  system elapsed 
-  0.306   0.034   0.343 
+  0.262   0.025   0.297 

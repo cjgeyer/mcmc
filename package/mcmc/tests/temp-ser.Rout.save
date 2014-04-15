@@ -1,8 +1,7 @@
 
-R version 2.13.1 (2011-07-08)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: x86_64-pc-linux-gnu (64-bit)
+R version 3.1.0 (2014-04-10) -- "Spring Dance"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,6 +17,11 @@ Type 'q()' to quit R.
 
 > 
 >  library(mcmc)
+Loading required package: rcdd
+If you want correct answers, use rational arithmetic.
+See the Warnings sections added to help pages for
+    functions that do computational geometry.
+
 > 
 >  set.seed(42)
 > 
@@ -41,7 +45,7 @@ x1            0.3362     0.4256   0.790 0.429672
 x2            0.8475     0.4701   1.803 0.071394 .  
 x3            1.5143     0.4426   3.422 0.000622 ***
 ---
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
@@ -219,12 +223,20 @@ Number of Fisher Scoring iterations: 5
 > 
 >  ### check batch means
 > 
->  foo <- after[seq(1, niter) %% out$nspac == 0, ]
+>  foo <- after[ , - 1]
+>  foo <- foo[seq(1, niter) %% out$nspac == 0, ]
 >  foo <- array(as.vector(foo), dim = c(out$blen, out$nbatch, dim(foo)[2]))
 >  foo <- apply(foo, c(2, 3), mean)
 >  all.equal(foo, out$batch)
-[1] "Attributes: < Component 1: Mean relative difference: 0.2 >"
-[2] "Numeric: lengths (125, 100) differ"                        
+[1] TRUE
+> 
+>  ifoo <- matrix(0, nrow(after), ncol(out$ibatch))
+>  for (i in 1:niter) ifoo[i, after[i, 1]] <- 1
+>  ifoo <- ifoo[seq(1, niter) %% out$nspac == 0, ]
+>  ifoo <- array(as.vector(ifoo), dim = c(out$blen, out$nbatch, dim(ifoo)[2]))
+>  ifoo <- apply(ifoo, c(2, 3), mean)
+>  all.equal(ifoo, out$ibatch)
+[1] TRUE
 > 
 >  ### check acceptance rates
 > 
@@ -363,3 +375,6 @@ Number of Fisher Scoring iterations: 5
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  2.606   0.024   2.651 
