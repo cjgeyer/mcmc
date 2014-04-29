@@ -92,12 +92,12 @@ hitrun.function <- function(obj, nbatch, blen = 1,
     if (sum(is.line) != ncol(a1) - nrow(hrep3))
         stop("unexpected V-representation of affine hull of constraint set")
 
-    foo <- vrep3[ , - c(1, 2)]
+    foo <- vrep3[ , - c(1, 2), drop = FALSE]
     origin <- foo[is.point, ]
-    basis <- foo[is.line, ]
+    basis <- foo[is.line, , drop = FALSE]
     basis <- t(basis)
 
-    amat <- qneg(hrep4[ , - c(1, 2)])
+    amat <- qneg(hrep4[ , - c(1, 2), drop = FALSE])
     bvec <- hrep4[ , 2]
     bvec <- qmq(bvec, qmatmult(amat, cbind(origin)))
     amat <- qmatmult(amat, basis)
@@ -109,7 +109,7 @@ hitrun.function <- function(obj, nbatch, blen = 1,
     is.point <- vrep5[ , 1] == "0" & vrep5[ , 2] == "1"
     if (! all(is.point))
         stop("unbounded constraint set")
-    v <- vrep5[ , - c(1, 2)]
+    v <- vrep5[ , - c(1, 2), drop = FALSE]
     rip <- apply(v, 2, qsum)
     rip <- qdq(rip, rep(as.character(nrow(v)), length(rip)))
     rip <- q2d(rip)

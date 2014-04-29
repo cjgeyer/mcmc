@@ -69,3 +69,6 @@
        changed LICENCE file yet again as per CRAN requirements
 
  1.0   added function hitrun
+
+ 1.0-1 missing drop = FALSE bug found by Glen Meeden
+
