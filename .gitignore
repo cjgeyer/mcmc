@@ -8,6 +8,8 @@
 *.Rout
 mcmc.Rcheck
 mcmc*.tar.gz
-[bd]*.tex
+bfst.tex
+debug.tex
+demo.tex
 morph.tex
 .build.timestamp

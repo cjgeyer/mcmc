@@ -1,0 +1,317 @@
+
+\documentclass[11pt]{article}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{indentfirst}
+\usepackage{natbib}
+\usepackage{url}
+
+\DeclareMathOperator{\aff}{aff}
+
+\newcommand{\real}{\mathbb{R}}
+
+\newcommand{\set}[1]{\{\, #1 \,\}}
+
+\begin{document}
+
+\title{Sampling Constrained Dirichlet Distributions}
+
+\author{Charles J. Geyer}
+
+\maketitle
+
+\section{Introduction}
+
+Let $C$ denote the convex polytope that consists of all points $x$ in
+$d$-dimensional Euclidean space satisfying the constraints
+\begin{enumerate}
+\item[(i)] $x \ge 0$,
+\item[(ii)] $\sum_{i = 1}^d x_i = 1$,
+\item[(iii)] $A_1 x \le b_1$, and
+\item[(iv)] $A_2 x = b_2$,
+\end{enumerate}
+where the inequalities work componentwise (as in R), where $A_1$ is a matrix
+and $b_1$ is a vector having dimensions such that (iii) makes sense and
+similarly for $A_2$ and $b_2$, and where either or both of (iii) and (iv)
+may be absent.  Let $\alpha$ be a vector having positive-real-valued
+components.  We call the probability distribution having unnormalized density
+\begin{equation} \label{eq:unnormalized-density}
+   h(x) = \prod_{i = 1}^d x_i^{\alpha_i - 1}
+\end{equation}
+with respect to Lebesgue measure on $C$ the \emph{constrained Dirichlet
+distribution} on $C$ having parameter vector $\alpha$.
+By Lebesgue measure on $C$ we mean Lebesgue measure on the affine hull
+of $C$ restricted to $C$ (more on this below).
+
+We discuss efficient Markov chain sampling of such distributions.
+The R package \texttt{polyapost} \citep{polyapost} already does this
+for the special case when the Dirichlet distribution is uniform
+($\alpha_i = 1$ for all $i$), and we will use some
+of their ideas, in particular, the hit-and-run sampler
+\citep*{smith,hit-run-one,hit-run-two}, but we will also use some other ideas.
+The R package \texttt{hitandrun} also does the uniform distribution on a
+convex polytope using a hit-and-run sampler (competing with \texttt{polyapost}).
+
+There do not appear to be any R packages on CRAN that do constrained Dirichlet
+distribution sampling, other than general purpose MCMC packages like
+the R package \texttt{mcmc} \citep{mcmc}, which uses a Metropolis
+random-walk sampler and simulates any distribution specified by a user
+supplied function.  We do not use this because we want to make a sampler
+specifically tuned to the constrained Dirichlet problem.
+
+We will use the R package \texttt{rcdd} \citep*{rcdd} to handle
+the computational geometry of the constraint set $C$.
+
+Define the vector $\lambda$ having components
+\begin{equation} \label{eq:lambda}
+   \lambda_i = \frac{\alpha_i}{\alpha_1 + \cdots + \alpha_d}
+\end{equation}
+and let $\Lambda$ denote the diagonal matrix having the vector $\lambda$
+as its diagonal.  Then the normal approximation to the constrained
+Dirichlet distribution is
+the $\text{Normal}(\lambda, \Lambda)$ distribution
+restricted to $C$ \citep[Theorem~4.2]{geyer-meeden}.  For $\alpha$ having
+all components ``large'' this will be a very good approximation, so we want
+to use this to speed up the simulation.  Otherwise, this may be a bad
+approximation, so we want to use the approximation in a way that still
+allows simulation of the exact distribution of interest.
+
+Using ``independence'' updates \citep[Section~2.3.3]{tierney} does this.
+In detail, propose $y$ from this constrained normal distribution,
+then do Metropolis-Hastings rejection: calculate
+$$
+    R = \frac{f(y) \varphi(x)}{f(x) \varphi(y)}
+$$
+where $\varphi$ is the density of the normal proposal and accept the
+proposal with probability $\min(1, R)$.
+We combine hit-and-run and independence updates to make a hybrid sampler
+\citep[Section~2.4]{tierney} better than either update used by itself.
+
+\section{Details}
+
+\subsection{Computational Geometry}
+
+A convex polytope like our constraint set $C$ has two different
+representations, as the set satisfying a finite set of linear equalities
+and inequalities, like those in the list above, and as the convex hull
+of the vertices of the set.   The R package \texttt{rcdd} calls these
+the H-representation and the V-representation
+(H for half space and V for vertex).  The function
+\texttt{scdd} in that package goes between them.
+
+Modify the definition of $A_1$, $b_1$, $A_2$, and $b_2$ in the list above
+so that $A_1$ and $b_1$ include the nonnegativity constraints (i) and
+$A_2$ and $b_2$ include the sum to one constraint (ii).  Then the
+R function \texttt{makeH} in the \texttt{rcdd} package makes
+an H-representation for $C$.
+
+\subsubsection{Vertices}
+
+Apply the \texttt{scdd} function to the H-representation.
+It produces the V-representation which gives the set of vertices of $C$.
+Call this vertex set $V$.
+
+If $V$ is empty or a singleton set, we return an error to the user.
+If $V$ is empty, then $C$ is empty too, so the user has indeed made an
+error in specifying inconsistent constraints.  There is no probability
+distribution on the empty set.
+If $V$ is a singleton set, then $C = V$, so while, strictly speaking,
+the user has not made an error, the probability distribution is trivial.
+There is only one probability distribution on a one-point sample space,
+and we do not need MCMC to describe it.
+
+Thus in what follows we assume $C$ has at least two vertices.
+
+Let $x_V$ denote any convex combination of the points in $V$.
+This is a point known to be in $C$, which we can use as the starting
+point for our MCMC sampler.
+
+\subsubsection{Affine Hull}
+
+The first issue we have to deal with is that $C$ is not $d$-dimensional.
+What dimension is it?  We can't tell from our H-representation, which may
+have hidden redundancies.  The R function \texttt{redundant}
+in the \texttt{rcdd} package produces an equivalent H-representation that
+is non-redundant (the equality constraints are linearly independent,
+and the inequality constraints are true inequalities rather than equalities,
+that is, they actually hold with strict inequality for some points in $C$).
+
+For our purposes here we only need the equality constraints from
+this non-redundant H-representation.  Extract its rows
+representing equality constraints, giving yet another H-representation,
+which represents the affine hull of $C$, denoted $\aff C$.
+
+Apply the \texttt{scdd} function to the H-representation of $\aff C$.
+It produces the V-representation of $\aff C$, which (unlike the
+V-representation of a polytope) contains both points and directions.
+In this case there will be exactly one point and one or more directions
+(this follows from our assumption that $C$ has at least two vertices,
+which implies that the dimension of $\aff C$ is at least one).
+
+Let $M$ denote the matrix whose columns are the directions in the
+V-representation of $\aff C$ so the column space of $M$ is the vector
+subspace of $\real^d$ that is parallel to $\aff C$.  Let $p$ be the
+column dimension of $M$ (the number of directions in the V-representation
+of $\aff C$).  Then
+\begin{equation} \label{eq:map}
+   w \mapsto x_V + M w
+\end{equation}
+is an isomorphism between $\real^p$ and $\aff C$ (it is one-to-one and onto).
+We think of \eqref{eq:map} as providing a coordinatization of $C$.
+
+In order to finish our description of $C$ we need to describe the inequality
+constraints in our new coordinates.  The constraints $A_1 x \le b_1$ in
+the original coordinates are $A_1 x_V + A_1 M w \le b_1$
+in the new coordinates, and we denote this $A_3 w \le b_3$ where
+\begin{align*}
+   A_3 & = A_1 M
+   \\
+   b_3 & = b_1 - A_1 x_V
+\end{align*}
+Define
+$$
+   C_3 = \set{ w \in \real^p : A_3 w \le b_3 }.
+$$
+This is our constraint set $C$ expressed in our new coordinates
+(note that there are now no equality constraints).
+
+\subsection{The Distribution}
+
+\subsubsection{Exact}
+
+We now need to map the unnormalized density \eqref{eq:unnormalized-density}
+to the new coordinates.  Define $h_3$ by
+$$
+   h_3(w) = h(x_v + M w), \qquad w \in C_3.
+$$
+Our problem is now to sample the distribution having unnormalized density
+$h_3$ with respect to Lebesgue measure.
+
+The map \eqref{eq:map} maps Lebesgue measure on $\real^p$ to Lebesgue measure
+on $\aff C$.  Different choices of $M$ (only the column space of $M$ matters,
+not its actual components) give different notions of Lebesgue measure on
+$\aff C$, but since the Jacobian of a linear transformation is constant,
+these different notions of Lebesgue measure are scalar multiples of each other.
+Since we are using unnormalized densities, it does not matter which choice
+of Lebesgue measure on $\aff C$ (which choice of $M$) is used.
+We always get the same distribution after normalization.
+
+\subsubsection{Approximate}
+
+The normal approximation to the Dirichlet distribution with
+parameter vector $\alpha$ has unnormalized density
+$$
+   h_{\text{approx}}(x)
+   =
+   \exp\left(- \tfrac{1}{2} (x - \lambda)^T \Lambda^{- 1} (x - \lambda) \right)
+$$
+where $\lambda$ is given by \eqref{eq:lambda} and $\Lambda$ is diagonal
+with $\lambda$ on the diagonal \citep[Theorem~4.2]{geyer-meeden}.
+
+We need to move this to the new coordinates.  Define
+$$
+   h_4(w)
+   =
+   \exp\left(- \tfrac{1}{2} (x_V + M w - \lambda)^T
+   \Lambda^{- 1} (x_V + M w - \lambda) \right).
+$$
+The definition of $h_4$ given above is perfectly good for running
+Metropolis-Hastings algorithm to sample it.  But we also want to
+be able to generate independent samples from this normal distribution.
+And for that we need to know its mean vector and variance matrix.
+Let them be denoted $\mu$ and $\Sigma$.  Then we have
+$$
+   (x_V + M w - \lambda)^T \Lambda^{- 1} (x_V + M w - \lambda)
+   =
+   (w - \mu)^T \Sigma^{- 1} (w - \mu) + \text{constant}
+$$
+from which we see that
+$$
+   \Sigma^{- 1} = M \Lambda^{- 1} M
+$$
+and
+$$
+   M^T \Lambda^{- 1} (\lambda - x_V) = \Sigma^{- 1} \mu
+$$
+so
+$$
+   \mu = \left( M \Lambda^{- 1} M \right)^{- 1}
+   M^T \Lambda^{- 1} (\lambda - x_V)
+$$
+\citep[compare equation (25) in][]{geyer-meeden}.
+
+\section{Sampler}
+
+\subsection{Hit-and-Run Updates}
+
+The basic idea of a hit-and-run update is to make a move along a randomly
+chosen direction.    If $w \in C_3$ is the current position of the Markov
+chain, choose a random direction $u \in \real^p$ and then propose to move
+to $z = w + s u$, where $s$ is any real number such that $z \in C_3$.
+The proposal is then Metropolis rejected so update preserves the desired
+stationary distribution.
+
+\begin{thebibliography}{}
+
+\bibitem[B\'elisle et~al.(1993)B\'{e}lisle, Romeijn and Smith]{hit-run-one}
+B\'{e}lisle, C. J.~P., Romeijn, H.~E., and Smith, R.~L. (1993).
+\newblock Hit-and-run algorithms for generating multivariate distributions.
+\newblock \emph{Mathematics of Operations Research}, \textbf{18}, 255--266.
+
+\bibitem[Chen and Schmeiser(1993)]{hit-run-two}
+Chen, M.-H. and Schmeiser, B. (1993).
+\newblock Performance of the Gibbs, hit-and-run, and Metropolis samplers.
+\newblock \emph{Journal of Computational and Graphical Statistics},
+   \textbf{2}, 251--272.
+
+\bibitem[Geyer and Johnson(2014)]{mcmc}
+Geyer, C.~J. and Johnson, L.~T. (2014).
+\newblock R package \texttt{mcmc}: Markov chain Monte Carlo,
+    version 0.9-3.
+\newblock \url{http://cran.r-project.org/package=mcmc}.
+
+\bibitem[Geyer and Meeden(2013)]{geyer-meeden}
+Geyer, C.~J. and Meeden, G.~D. (2013).
+\newblock Asymptotics for Constrained Dirichlet Distributions.
+\newblock \emph{Bayesian Analysis}, \textbf{8}, 89--110.
+
+\bibitem[Geyer, et al.(2014)Geyer, Meeden and Fukuda]{rcdd}
+Geyer, C.~J., Meeden, G.~D. and Fukuda, K. (2014).
+\newblock R package \texttt{rcdd}: Computational geometry,
+    version 1.1-8.
+\newblock \url{http://cran.r-project.org/package=rcdd}
+
+\bibitem[{Lazar et~al.(2008)Lazar, Meeden, and Nelson}]{lazar-meeden-nelson}
+Lazar, R., Meeden, G., and Nelson, D. (2008).
+\newblock A noninformative {B}ayesian approach to finite population sampling
+  using auxiliary variables.
+\newblock \emph{Survey Methodology}, \textbf{34}, 51--64.
+
+\bibitem[{Meeden and Lazar(2014)}]{polyapost}
+Meeden, G. and Lazar, R. (2014).
+\newblock R package \texttt{polyapost}: Simulating from the Polya posterior,
+    version 1.1-6.
+\newblock \url{http://cran.r-project.org/package=polyapost}.
+
+\bibitem[Smith(1984)]{smith}
+Smith, R.~L. (1984).
+\newblock "Efficient Monte Carlo procedures for generating points
+    uniformly distributed over bounded regions.
+\newblock \emph{Operations Research}, \textbf{32}, 1296--1308.
+
+\bibitem[Tierney(1994)]{tierney}
+Tierney, L. (1994).
+\newblock Markov chains for exploring posterior distributions (with discussion).
+\newblock \emph{Annals of Statistics}, \textbf{22}, 1701--1762.
+
+\bibitem[van Valkenhoef(2014)]{hitandrun}
+van Valkenhoef, G. (2014).
+\newblock R package \texttt{hitandrun}: ``Hit and run'' method for sampling
+    uniformly from convex shapes, version 0.4-1.
+\newblock \url{http://cran.r-project.org/package=hitandrun}.
+
+\end{thebibliography}
+
+\end{document}
+
