@@ -50,13 +50,16 @@ for the special case when the Dirichlet distribution is uniform
 ($\alpha_i = 1$ for all $i$), and we will use some
 of their ideas, in particular, the hit-and-run sampler
 \citep*{smith,hit-run-one,hit-run-two}, but we will also use some other ideas.
-The R package \texttt{hitandrun} also does the uniform distribution on a
+The R package \texttt{hitandrun} \citep{hitandrun}
+also does the uniform distribution on a
 convex polytope using a hit-and-run sampler (competing with \texttt{polyapost}).
 
 There do not appear to be any R packages on CRAN that do constrained Dirichlet
 distribution sampling, other than general purpose MCMC packages like
 the R package \texttt{mcmc} \citep{mcmc}, which uses a Metropolis
-random-walk sampler and simulates any distribution specified by a user
+random-walk sampler (\citealp{metropolis-et-al};
+\citealp[Section~2.3.2]{tierney})
+and simulates any distribution specified by a user
 supplied function.  We do not use this because we want to make a sampler
 specifically tuned to the constrained Dirichlet problem.
 
@@ -77,7 +80,8 @@ to use this to speed up the simulation.  Otherwise, this may be a bad
 approximation, so we want to use the approximation in a way that still
 allows simulation of the exact distribution of interest.
 
-Using ``independence'' updates \citep[Section~2.3.3]{tierney} does this.
+``Independence'' updates (\citealp{hastings};
+\citealp[Section~2.3.3]{tierney}) do this.
 In detail, propose $y$ from this constrained normal distribution,
 then do Metropolis-Hastings rejection: calculate
 $$
@@ -252,6 +256,56 @@ to $z = w + s u$, where $s$ is any real number such that $z \in C_3$.
 The proposal is then Metropolis rejected so update preserves the desired
 stationary distribution.
 
+Hit-and-run samplers differ in how the random direction is chosen and in
+how the proposal is made given the chosen direction.  So we have two
+different issues to consider.
+
+\subsubsection{Choosing the Direction}
+
+The conventional way to choose a random direction is to generate
+a random vector from a spherically symmetric normal distribution.
+The R packages \texttt{polyapost} and \texttt{hitandrun} do this.
+This choice is very problematic, however because it has no relation
+to the problem at hand.  We see this in the map \eqref{eq:map} which
+is arbitrary (recall that only the column space of $M$ matters) but
+which affects how the unit ball in $\real^p$ maps onto $\aff C$,
+which is what really matters.  Moreover, this method pays no attention
+to the inequality constraints (specified by $A_3$ and $b_3$) nor any
+attention to the unnormalized density $h_3$.
+
+There is no reason to follow this convention.  Any method of choosing
+a random direction will do.  \citet{smith} and \citet{hit-run-one}
+discuss choosing the random direction to be along one of the coordinate axes,
+so the directions are chosen from a discrete set, not a continuum.
+But even more generality is possible.
+\citet[Section~1.12.8]{geyer-intro} points out
+that any state-independent mixture of updates that preserve the desired
+stationary distribution also preserves that distribution.  In this context
+that means any distribution on directions whatsoever works, so long as the
+distribution on directions is fixed (it does not change from iteration
+to iteration and does not depend on the state of the Markov chain).
+
+We want a proposal that pays attention to the problem at hand, in particular,
+to the convex polytope $C_3$ that is the constraint set in our new coordinates.
+Let $V_3$ denote the set of vertices of $C_3$.  These can be found either
+by mapping the points of $V$ (vertices in old coordinates) through the
+inverse mapping of \eqref{eq:map} or by running the R function \texttt{scdd}
+on the H-representation given by $A_3$ and $b_3$.  Every ordered pair of
+distinct points of $V_3$ determines a direction (from the first point to the
+second point).  We propose to choose hit-and-run directions from this
+(finite) set of directions.  There is no need to choose these directions
+with equal probability; it seems more reasonable to choose so that directions
+between vertices that are farther apart are chosen with higher probability
+(the idea being that the main thing that makes a hit-and-run sampler mix
+slowly is difficulty finding directions in the polytope in which long moves
+can be made).  Exactly what nonuniform distribution should be used is an
+open question for which we have no good argument.  For now we propose
+(without having given the subject much thought) to have the probability
+of a direction proportional to the distance between the vertices that
+specify the direction.
+
+\subsubsection{Proposal given the Direction}
+
 \begin{thebibliography}{}
 
 \bibitem[B\'elisle et~al.(1993)B\'{e}lisle, Romeijn and Smith]{hit-run-one}
@@ -264,6 +318,13 @@ Chen, M.-H. and Schmeiser, B. (1993).
 \newblock Performance of the Gibbs, hit-and-run, and Metropolis samplers.
 \newblock \emph{Journal of Computational and Graphical Statistics},
    \textbf{2}, 251--272.
+
+\bibitem[Geyer(2011)]{geyer-intro}
+Geyer, C. J. (2011).
+\newblock Introduction to Markov chain Monte Carlo.
+\newblock In \emph{Handbook of Markov Chain Monte Carlo}, edited by
+    Brooks, S., Gelman, A., Jones, G., and Meng, X.-L., pp.~3--48.
+\newblock Boca Raton, FL: Chapman \& Hall/CRC.
 
 \bibitem[Geyer and Johnson(2014)]{mcmc}
 Geyer, C.~J. and Johnson, L.~T. (2014).
@@ -282,6 +343,12 @@ Geyer, C.~J., Meeden, G.~D. and Fukuda, K. (2014).
     version 1.1-8.
 \newblock \url{http://cran.r-project.org/package=rcdd}
 
+\bibitem[Hastings(1970)]{hastings}
+Hastings, W.~K. (1970).
+\newblock Monte Carlo sampling methods using Markov chains and their
+    applications.
+\newblock \emph{Biometrika}, \textbf{57}, 97--109.
+
 \bibitem[{Lazar et~al.(2008)Lazar, Meeden, and Nelson}]{lazar-meeden-nelson}
 Lazar, R., Meeden, G., and Nelson, D. (2008).
 \newblock A noninformative {B}ayesian approach to finite population sampling
@@ -293,6 +360,13 @@ Meeden, G. and Lazar, R. (2014).
 \newblock R package \texttt{polyapost}: Simulating from the Polya posterior,
     version 1.1-6.
 \newblock \url{http://cran.r-project.org/package=polyapost}.
+
+\bibitem[Metropolis, et al.(1953)Metropolis, Rosenbluth, Rosenbluth, Teller
+    and Teller]{metropolis-et-al}
+Metropolis, N., Rosenbluth, A.~W., Rosenbluth, M.~N., Teller, A.~H., and
+    Teller, E. (1953).
+\newblock Equation of state calculations by fast computing machines.
+\newblock \emph{Journal of Chemical Physics}, \textbf{21}, 1087--1092.
 
 \bibitem[Smith(1984)]{smith}
 Smith, R.~L. (1984).
