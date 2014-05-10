@@ -21,7 +21,7 @@
 
 \maketitle
 
-\section{Introduction}
+\section{Introduction} \label{sec:intro}
 
 Let $C$ denote the convex polytope that consists of all points $x$ in
 $d$-dimensional Euclidean space satisfying the constraints
@@ -31,7 +31,8 @@ $d$-dimensional Euclidean space satisfying the constraints
 \item[(iii)] $A_1 x \le b_1$, and
 \item[(iv)] $A_2 x = b_2$,
 \end{enumerate}
-where the inequalities work componentwise (as in R), where $A_1$ is a matrix
+where the inequalities work componentwise, as in R \citep{r},
+where $A_1$ is a matrix
 and $b_1$ is a vector having dimensions such that (iii) makes sense and
 similarly for $A_2$ and $b_2$, and where either or both of (iii) and (iv)
 may be absent.  Let $\alpha$ be a vector having positive-real-valued
@@ -98,13 +99,15 @@ We combine hit-and-run and independence updates to make a hybrid sampler
 
 A convex polytope like our constraint set $C$ has two different
 representations, as the set satisfying a finite set of linear equalities
-and inequalities, like those in the list above, and as the convex hull
+and inequalities, like those in the list in Section~\ref{sec:intro},
+and as the convex hull
 of the vertices of the set.   The R package \texttt{rcdd} calls these
 the H-representation and the V-representation
 (H for half space and V for vertex).  The function
 \texttt{scdd} in that package goes between them.
 
-Modify the definition of $A_1$, $b_1$, $A_2$, and $b_2$ in the list above
+Modify the definition of $A_1$, $b_1$, $A_2$, and $b_2$ in the list in
+Section~\ref{sec:intro}
 so that $A_1$ and $b_1$ include the nonnegativity constraints (i) and
 $A_2$ and $b_2$ include the sum to one constraint (ii).  Then the
 R function \texttt{makeH} in the \texttt{rcdd} package makes
@@ -151,7 +154,11 @@ It produces the V-representation of $\aff C$, which (unlike the
 V-representation of a polytope) contains both points and directions.
 In this case there will be exactly one point and one or more directions
 (this follows from our assumption that $C$ has at least two vertices,
-which implies that the dimension of $\aff C$ is at least one).
+which implies that the dimension of $\aff C$ is at least one and from
+our assumption that $C$ is contained in the unit simplex so it does
+not contain the origin, $\aff C$ is not a vector space but rather a
+translate of a vector space, so there must be one point in the
+V-representation, which is the translation).
 
 Let $M$ denote the matrix whose columns are the directions in the
 V-representation of $\aff C$ so the column space of $M$ is the vector
@@ -162,7 +169,7 @@ of $\aff C$).  Then
    w \mapsto x_V + M w
 \end{equation}
 is an isomorphism between $\real^p$ and $\aff C$ (it is one-to-one and onto).
-We think of \eqref{eq:map} as providing a coordinatization of $C$.
+We think of \eqref{eq:map} as providing a coordinatization of $\aff C$.
 
 In order to finish our description of $C$ we need to describe the inequality
 constraints in our new coordinates.  The constraints $A_1 x \le b_1$ in
@@ -179,6 +186,9 @@ $$
 $$
 This is our constraint set $C$ expressed in our new coordinates
 (note that there are now no equality constraints).
+We are using the convention here, mentioned at the beginning of this section,
+that $A_1$ and $b_1$ now determine all inequality constraints, items (i)
+and (iii) on the list in Section~\ref{sec:intro}, rather than just (iii).
 
 \subsection{The Distribution}
 
@@ -186,11 +196,14 @@ This is our constraint set $C$ expressed in our new coordinates
 
 We now need to map the unnormalized density \eqref{eq:unnormalized-density}
 to the new coordinates.  Define $h_3$ by
-$$
-   h_3(w) = h(x_v + M w), \qquad w \in C_3.
-$$
-Our problem is now to sample the distribution having unnormalized density
-$h_3$ with respect to Lebesgue measure.
+\begin{equation} \label{eq:h-new}
+   h_3(w) = h(x_V + M w), \qquad w \in C_3.
+\end{equation}
+Our problem is now to sample the distribution concentrated on $C_3$
+having unnormalized density $h_3$ with respect to Lebesgue measure.
+The map \eqref{eq:map} maps our samples of this distribution back to
+the original coordinates (which are the only coordinates the user knows
+about).
 
 The map \eqref{eq:map} maps Lebesgue measure on $\real^p$ to Lebesgue measure
 on $\aff C$.  Different choices of $M$ (only the column space of $M$ matters,
@@ -214,14 +227,14 @@ where $\lambda$ is given by \eqref{eq:lambda} and $\Lambda$ is diagonal
 with $\lambda$ on the diagonal \citep[Theorem~4.2]{geyer-meeden}.
 
 We need to move this to the new coordinates.  Define
-$$
+\begin{equation} \label{eq:h-approx-new}
    h_4(w)
    =
    \exp\left(- \tfrac{1}{2} (x_V + M w - \lambda)^T
    \Lambda^{- 1} (x_V + M w - \lambda) \right).
-$$
+\end{equation}
 The definition of $h_4$ given above is perfectly good for running
-Metropolis-Hastings algorithm to sample it.  But we also want to
+Metropolis-Hastings updates to sample it.  But we also want to
 be able to generate independent samples from this normal distribution.
 And for that we need to know its mean vector and variance matrix.
 Let them be denoted $\mu$ and $\Sigma$.  Then we have
@@ -231,18 +244,18 @@ $$
    (w - \mu)^T \Sigma^{- 1} (w - \mu) + \text{constant}
 $$
 from which we see that
-$$
+\begin{equation} \label{eq:h-approx-new-variance}
    \Sigma^{- 1} = M \Lambda^{- 1} M
-$$
+\end{equation}
 and
 $$
    M^T \Lambda^{- 1} (\lambda - x_V) = \Sigma^{- 1} \mu
 $$
 so
-$$
+\begin{equation} \label{eq:h-approx-new-mean}
    \mu = \left( M \Lambda^{- 1} M \right)^{- 1}
    M^T \Lambda^{- 1} (\lambda - x_V)
-$$
+\end{equation}
 \citep[compare equation (25) in][]{geyer-meeden}.
 
 \section{Sampler}
@@ -251,8 +264,8 @@ $$
 
 The basic idea of a hit-and-run update is to make a move along a randomly
 chosen direction.    If $w \in C_3$ is the current position of the Markov
-chain, choose a random direction $u \in \real^p$ and then propose to move
-to $z = w + s u$, where $s$ is any real number such that $z \in C_3$.
+chain, choose a random direction $d \in \real^p$ and then propose to move
+to $z = w + s d$, where $s$ is any real number such that $z \in C_3$.
 The proposal is then Metropolis rejected so update preserves the desired
 stationary distribution.
 
@@ -268,8 +281,13 @@ The R packages \texttt{polyapost} and \texttt{hitandrun} do this.
 This choice is very problematic, however because it has no relation
 to the problem at hand.  We see this in the map \eqref{eq:map} which
 is arbitrary (recall that only the column space of $M$ matters) but
-which affects how the unit ball in $\real^p$ maps onto $\aff C$,
-which is what really matters.  Moreover, this method pays no attention
+which affects how the unit ball in $\real^p$ maps into $\aff C$,
+which is what really matters.  (Spherical symmetry in $\aff C$ is not
+even well defined, but however one might define it, the definition
+should not be arbitrary, and the map \eqref{eq:map} is arbitrary,
+in the sense that if $M$ is changed but its column space is not changed,
+then the map works just as well.)
+Moreover, this method pays no attention
 to the inequality constraints (specified by $A_3$ and $b_3$) nor any
 attention to the unnormalized density $h_3$.
 
@@ -304,7 +322,62 @@ open question for which we have no good argument.  For now we propose
 of a direction proportional to the distance between the vertices that
 specify the direction.
 
+Since we are now proposing to sample a fairly complicated discrete
+distribution, how do we do that?  An efficient method is Walker's method
+of aliases \citep{walker}.  Rather than bother to implement it ourselves,
+we propose to steal the code
+in the C function \verb@walker_ProbSampleReplace@ in the file
+\texttt{src/main/random.c} in the current R distribution \citep{r},
+which is 3.1.0 at the time of this writing.  This is the function R
+itself uses to implement the R function \texttt{sample} when sampling
+with replacement is requested and the number of samples requested
+is greater than 200.  We would have to break up the function
+\verb@walker_ProbSampleReplace@ in R into two functions, which is
+easy to do, since the two parts are commented.  The first part creates
+the alias tables, the second part generates samples, and both parts
+are commented as such.  We would generate the alias tables exactly once,
+and generate one ``sample'' for each hit-and-run update we do.
+There is no problem in our stealing this code because R is free software
+(GPL version 2 or any later version) so we only need use a GPL-compatible
+licence for our software, which is required to be a CRAN package anyway.
+
 \subsubsection{Proposal given the Direction}
+
+Given the direction, we need to propose a point on the line
+$$
+   L = \set{ x + s d : s \in \real }
+$$
+where $x$ is the current point and $d$ is the chosen direction.  Again
+there is a standard proposal, and it is uniform on the part of the line
+$L \cap C_3$ that is in the constraint set.
+
+This uniform proposal has the virtue of being a Metropolis proposal,
+so one uses the odds ratio
+$$
+   R = \frac{h_3(y)}{h_3(x)}
+$$
+where $x$ is the current state of the Markov chain and $y$ is the proposal
+uniformly distributed on $L \cap C_3$, to do Metropolis rejection: accept
+the proposal with probability $\min(1, R)$.
+
+\subsection{Independence Updates}
+
+All of the work in setting this up has already been described.  Simulate
+a multivariate normal random vector $y$ in $\real^p$ having mean vector $\mu$
+and variance matrix $\Sigma$ given by \eqref{eq:h-approx-new-mean}
+and \eqref{eq:h-approx-new-variance}.  Calculate the Hastings ratio
+$$
+    R = \frac{h_3(y) h_4(x)}{h_3(x) h_4(y)}
+$$
+where $x$ is the current state and $h_3$ and $h_4$ are as described above
+\eqref{eq:h-new} and \eqref{eq:h-approx-new}.  Accept this proposal
+with probability $\min(1, R)$.
+
+Note that all of these proposals are from exactly the same normal distribution.
+Hence we need not do the set-up more than once.  One Cholesky decomposition
+of $\Sigma$ suffices.  If $\Gamma \Gamma^T = \Sigma$,
+then $z = \mu + \Gamma u$, has the desired normal distribution when $u$
+is standard multivariate normal.
 
 \begin{thebibliography}{}
 
@@ -368,6 +441,12 @@ Metropolis, N., Rosenbluth, A.~W., Rosenbluth, M.~N., Teller, A.~H., and
 \newblock Equation of state calculations by fast computing machines.
 \newblock \emph{Journal of Chemical Physics}, \textbf{21}, 1087--1092.
 
+\bibitem[R Core Team(2014)]{r}
+R Core Team (2014).
+\newblock R: A language and environment for statistical computing.
+\newblock Vienna: R Foundation for Statistical Computing.
+\newblock \url{http://www.R-project.org/}.
+
 \bibitem[Smith(1984)]{smith}
 Smith, R.~L. (1984).
 \newblock "Efficient Monte Carlo procedures for generating points
@@ -384,6 +463,13 @@ van Valkenhoef, G. (2014).
 \newblock R package \texttt{hitandrun}: ``Hit and run'' method for sampling
     uniformly from convex shapes, version 0.4-1.
 \newblock \url{http://cran.r-project.org/package=hitandrun}.
+
+\bibitem[Walker(1977)]{walker}
+Walker, A.~J. (1977).
+\newblock An efficient method for generating discrete random variables
+    with general distributions.
+\newblock \emph{ACM Transactions on Mathematical Software}, \textbf{3},
+    253--256.
 
 \end{thebibliography}
 
