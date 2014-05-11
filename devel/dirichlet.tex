@@ -353,9 +353,9 @@ $L \cap C_3$ that is in the constraint set.
 
 This uniform proposal has the virtue of being a Metropolis proposal,
 so one uses the odds ratio
-$$
+\begin{equation} \label{eq:metropolis-ratio}
    R = \frac{h_3(y)}{h_3(x)}
-$$
+\end{equation}
 where $x$ is the current state of the Markov chain and $y$ is the proposal
 uniformly distributed on $L \cap C_3$, to do Metropolis rejection: accept
 the proposal with probability $\min(1, R)$.
@@ -378,6 +378,35 @@ Hence we need not do the set-up more than once.  One Cholesky decomposition
 of $\Sigma$ suffices.  If $\Gamma \Gamma^T = \Sigma$,
 then $z = \mu + \Gamma u$, has the desired normal distribution when $u$
 is standard multivariate normal.
+
+\subsection{Near Vertex Updates}
+
+We are concerned that none of the updates described above will work well
+when all of the components of the parameter vector $\alpha$ of the Dirichlet
+distribution are near zero, in which case the distribution will be concentrated
+near some of the vertices of $C_3$ (recall that we are denoting this set
+of vertices $V_3$).  In particular, it is concentrated near vertices having
+some components equal to zero when expressed in the original coordinates,
+but we won't bother to distinguish these vertices.
+
+We are going to do something rather tricky that is not a special case
+of the Metropolis-Hastings algorithm, although it is a special case
+of what \citet{geyer-intro} calls the Metropolis-Hastings-Green algorithm.
+In particular, it uses what \citet[Section~1.17.1]{geyer-intro} calls
+state-dependent mixing.
+
+Fix $\varepsilon > 0$ less than half minimum distance between any pair of
+elements of $V_3$.  We only do the update described here when the
+current state $x$ of the Markov chain has distance less than $\varepsilon$
+from some element of $V_3$.  Then we propose $y$ uniformly
+distributed on the $\varepsilon$-balls centered at the elements of $V_3$
+except for the $\varepsilon$-ball containing the current state $x$.
+This is a Metropolis proposal. Hence the proposal is accepted with
+probability $\min(1, R)$ where $R$ is given by \eqref{eq:metropolis-ratio}.
+
+The fact that it only kicks in when the current state is within $\varepsilon$
+of some vertex does not matter; this is taken care of by the state-dependent
+mixing argument.
 
 \begin{thebibliography}{}
 
