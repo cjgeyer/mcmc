@@ -21,7 +21,9 @@
 
 \maketitle
 
-\section{Introduction} \label{sec:intro}
+\section{Introduction}
+
+\subsection{Problem Specification} \label{sec:specification}
 
 Let $C$ denote the convex polytope that consists of all points $x$ in
 $d$-dimensional Euclidean space satisfying the constraints
@@ -45,7 +47,11 @@ distribution} on $C$ having parameter vector $\alpha$.
 By Lebesgue measure on $C$ we mean Lebesgue measure on the affine hull
 of $C$ restricted to $C$ (more on this below).
 
+This is the problem specified by the user.
 We discuss efficient Markov chain sampling of such distributions.
+
+\subsection{Hit-and-Run Samplers}
+
 The R package \texttt{polyapost} \citep{polyapost} already does this
 for the special case when the Dirichlet distribution is uniform
 ($\alpha_i = 1$ for all $i$), and we will use some
@@ -64,8 +70,12 @@ and simulates any distribution specified by a user
 supplied function.  We do not use this because we want to make a sampler
 specifically tuned to the constrained Dirichlet problem.
 
+\subsection{Computational Geometry}
+
 We will use the R package \texttt{rcdd} \citep*{rcdd} to handle
 the computational geometry of the constraint set $C$.
+
+\subsection{Asymptotic Approximation}
 
 Define the vector $\lambda$ having components
 \begin{equation} \label{eq:lambda}
@@ -81,8 +91,12 @@ to use this to speed up the simulation.  Otherwise, this may be a bad
 approximation, so we want to use the approximation in a way that still
 allows simulation of the exact distribution of interest.
 
-``Independence'' updates (\citealp{hastings};
-\citealp[Section~2.3.3]{tierney}) do this.
+\subsection{Independence Samplers}
+
+Independence updates (\citealp{hastings};
+\citealp[Section~2.3.3]{tierney}) use the asymptotic approximation
+to simulate the exact distribution of interest.
+
 In detail, propose $y$ from this constrained normal distribution,
 then do Metropolis-Hastings rejection: calculate
 $$
@@ -93,13 +107,11 @@ proposal with probability $\min(1, R)$.
 We combine hit-and-run and independence updates to make a hybrid sampler
 \citep[Section~2.4]{tierney} better than either update used by itself.
 
-\section{Details}
-
-\subsection{Computational Geometry}
+\section{Computational Geometry} \label{sec:computational-geometry}
 
 A convex polytope like our constraint set $C$ has two different
 representations, as the set satisfying a finite set of linear equalities
-and inequalities, like those in the list in Section~\ref{sec:intro},
+and inequalities, like those in the list in Section~\ref{sec:specification},
 and as the convex hull
 of the vertices of the set.   The R package \texttt{rcdd} calls these
 the H-representation and the V-representation
@@ -107,13 +119,13 @@ the H-representation and the V-representation
 \texttt{scdd} in that package goes between them.
 
 Modify the definition of $A_1$, $b_1$, $A_2$, and $b_2$ in the list in
-Section~\ref{sec:intro}
+Section~\ref{sec:specification}
 so that $A_1$ and $b_1$ include the nonnegativity constraints (i) and
 $A_2$ and $b_2$ include the sum to one constraint (ii).  Then the
 R function \texttt{makeH} in the \texttt{rcdd} package makes
 an H-representation for $C$.
 
-\subsubsection{Vertices}
+\subsection{Vertices}
 
 Apply the \texttt{scdd} function to the H-representation.
 It produces the V-representation which gives the set of vertices of $C$.
@@ -134,7 +146,7 @@ Let $x_V$ denote any convex combination of the points in $V$.
 This is a point known to be in $C$, which we can use as the starting
 point for our MCMC sampler.
 
-\subsubsection{Affine Hull}
+\subsection{Affine Hull}
 
 The first issue we have to deal with is that $C$ is not $d$-dimensional.
 What dimension is it?  We can't tell from our H-representation, which may
@@ -144,7 +156,7 @@ is non-redundant (the equality constraints are linearly independent,
 and the inequality constraints are true inequalities rather than equalities,
 that is, they actually hold with strict inequality for some points in $C$).
 
-For our purposes here we only need the equality constraints from
+In this section we only need the equality constraints from
 this non-redundant H-representation.  Extract its rows
 representing equality constraints, giving yet another H-representation,
 which represents the affine hull of $C$, denoted $\aff C$.
@@ -170,40 +182,39 @@ of $\aff C$).  Then
 \end{equation}
 is an isomorphism between $\real^p$ and $\aff C$ (it is one-to-one and onto).
 We think of \eqref{eq:map} as providing a coordinatization of $\aff C$.
+We also say that \eqref{eq:map} goes from the new coordinates (NC) to
+the original coordinates (OC).  Our sampler runs in NC.  The output
+must be mapped via \eqref{eq:map} back to OC for presentation to the user
+(the OC are the only coordinates the user knows about).
+
+\subsection{Constraint Set in New Coordinates}
 
 In order to finish our description of $C$ we need to describe the inequality
-constraints in our new coordinates.  The constraints $A_1 x \le b_1$ in
-the original coordinates are $A_1 x_V + A_1 M w \le b_1$
-in the new coordinates, and we denote this $A_3 w \le b_3$ where
+constraints in our new coordinates.  Let $A x \le b$ denote the inequality
+constraints in the original coordinates, which combine items (i) and (iii)
+in the list in Section~\ref{sec:specification}.
+In NC these constraints are $A x_V + A M w \le b_1$,
+and we denote this $A_3 w \le b_3$ where
 \begin{align*}
-   A_3 & = A_1 M
+   A_3 & = A M
    \\
-   b_3 & = b_1 - A_1 x_V
+   b_3 & = b - A x_V
 \end{align*}
 Define
 $$
    C_3 = \set{ w \in \real^p : A_3 w \le b_3 }.
 $$
-This is our constraint set $C$ expressed in our new coordinates
-(note that there are now no equality constraints).
-We are using the convention here, mentioned at the beginning of this section,
-that $A_1$ and $b_1$ now determine all inequality constraints, items (i)
-and (iii) on the list in Section~\ref{sec:intro}, rather than just (iii).
+In NC there are no equality constraints (that is the point of NC).
+$C_3$ is the constraint set in NC.
+Let $V_3$ denote the set of vertices of $C_3$.
+The mapping \eqref{eq:map} maps $V_3$ one-to-one and onto $V$.
 
-\subsection{The Distribution}
+As in this section, we will use subscript 3 to mean NC throughout
+this whole document.
 
-\subsubsection{Exact}
+\section{The Distribution}
 
-We now need to map the unnormalized density \eqref{eq:unnormalized-density}
-to the new coordinates.  Define $h_3$ by
-\begin{equation} \label{eq:h-new}
-   h_3(w) = h(x_V + M w), \qquad w \in C_3.
-\end{equation}
-Our problem is now to sample the distribution concentrated on $C_3$
-having unnormalized density $h_3$ with respect to Lebesgue measure.
-The map \eqref{eq:map} maps our samples of this distribution back to
-the original coordinates (which are the only coordinates the user knows
-about).
+\subsection{Lebesgue Measure}
 
 The map \eqref{eq:map} maps Lebesgue measure on $\real^p$ to Lebesgue measure
 on $\aff C$.  Different choices of $M$ (only the column space of $M$ matters,
@@ -214,7 +225,17 @@ Since we are using unnormalized densities, it does not matter which choice
 of Lebesgue measure on $\aff C$ (which choice of $M$) is used.
 We always get the same distribution after normalization.
 
-\subsubsection{Approximate}
+\subsection{Exact}
+
+We now need to map the unnormalized density \eqref{eq:unnormalized-density}
+to the new coordinates.  Define $h_3$ by
+\begin{equation} \label{eq:h-new}
+   h_3(w) = h(x_V + M w), \qquad w \in C_3.
+\end{equation}
+Our problem is now to sample the distribution concentrated on $C_3$
+having unnormalized density $h_3$ with respect to Lebesgue measure.
+
+\subsection{Approximate}
 
 The normal approximation to the Dirichlet distribution with
 parameter vector $\alpha$ has unnormalized density
@@ -245,7 +266,7 @@ $$
 $$
 from which we see that
 \begin{equation} \label{eq:h-approx-new-variance}
-   \Sigma^{- 1} = M \Lambda^{- 1} M
+   \Sigma^{- 1} = M^T \Lambda^{- 1} M
 \end{equation}
 and
 $$
@@ -253,7 +274,7 @@ $$
 $$
 so
 \begin{equation} \label{eq:h-approx-new-mean}
-   \mu = \left( M \Lambda^{- 1} M \right)^{- 1}
+   \mu = \left( M^T \Lambda^{- 1} M \right)^{- 1}
    M^T \Lambda^{- 1} (\lambda - x_V)
 \end{equation}
 \citep[compare equation (25) in][]{geyer-meeden}.
@@ -341,34 +362,127 @@ There is no problem in our stealing this code because R is free software
 (GPL version 2 or any later version) so we only need use a GPL-compatible
 licence for our software, which is required to be a CRAN package anyway.
 
-\subsubsection{Proposal given the Direction}
+\subsubsection{Proposal given the Direction} \label{sec:proposal-uniform}
 
 Given the direction, we need to propose a point on the line
-$$
-   L = \set{ x + s d : s \in \real }
-$$
-where $x$ is the current point and $d$ is the chosen direction.  Again
+\begin{equation} \label{eq:line}
+   L = \set{ w + s d : s \in \real }
+\end{equation}
+where $w$ is the current point and $d$ is the chosen direction.  Again
 there is a standard proposal, and it is uniform on the part of the line
 $L \cap C_3$ that is in the constraint set.
 
 This uniform proposal has the virtue of being a Metropolis proposal,
 so one uses the odds ratio
 \begin{equation} \label{eq:metropolis-ratio}
-   R = \frac{h_3(y)}{h_3(x)}
+   R = \frac{h_3(y)}{h_3(w)}
 \end{equation}
-where $x$ is the current state of the Markov chain and $y$ is the proposal
+where $w$ is the current state of the Markov chain and $y$ is the proposal
 uniformly distributed on $L \cap C_3$, to do Metropolis rejection: accept
 the proposal with probability $\min(1, R)$.
 
-\subsection{Independence Updates}
+The next section generalizes this proposal.
+
+\subsubsection{Yet Another Proposal given the Direction}
+
+We are concerned that the hit-and-run proposals described in the
+preceding section will work well when some of the components of the
+parameter vector $\alpha$ of the Dirichlet distribution are near zero nor
+will it work well when some of the components of $\alpha$ are very large.
+More generally, we are concerned that the hit-and-run proposals described
+in the preceding section pay no attention to the desired stationary
+distribution having unnormalized density $h_3$.
+
+So in this section we concoct a proposal that does pay (some attention)
+to $h_3$.  Again let the current point be $w$ and the direction chosen $d$.
+Let $s_\text{low}$ and $s_\text{hig}$ be such that the segment of the line
+\eqref{eq:line} that is in $C_3$ is
+$$
+   \set{ w + s d : s_\text{low} < s < s_\text{hig} }
+$$
+and define
+\begin{align*}
+   w_\text{low} & = w + s_\text{low} d
+   \\
+   w_\text{hig} & = w + s_\text{hig} d
+\end{align*}
+The corresponding points in OC are
+\begin{align*}
+   x_\text{low} & = x_V + M w_\text{low}
+   \\
+   x_\text{hig} & = x_V + M w_\text{hig}
+\end{align*}
+In general, there will be exactly one inequality constraint satisfied with
+equality at these points.
+Another way of saying this is that $x_\text{low}$ and $x_\text{hig}$ will
+have at most one component exactly equal to zero (ideally, if infinite
+precision arithmetic had been used, in inexact computer arithmetic only
+approximately zero).  It will be one component equal to zero if the constraint
+involved was one of those in item (i) in the list
+in Section~\ref{sec:specification}.  And it will be no components equal to zero
+if the constraint involved was one of those in item (iii) in the list in
+Section~\ref{sec:specification}.
+
+Let $\alpha_\text{low}$ denote the
+component of $\alpha$ corresponding to the component of $x_\text{low}$ that
+is equal to zero, if there is one, and otherwise set $\alpha_\text{low} = 1$.
+Similarly, for $\alpha_\text{hig}$.
+
+We propose to use the proposal distribution having a transformed
+beta distribution.  Let $v$ be a
+$\text{Beta}(\alpha_\text{low}, \alpha_\text{hig})$ random variate.
+Then we propose the point
+\begin{equation} \label{eq:u-to-y}
+   y = (1 - u) w_\text{low} + u w_\text{hig}
+\end{equation}
+The proposal density is
+$$
+   q_L(w, y)
+   =
+   \frac{\Gamma(\alpha_\text{low} + \alpha_\text{hig})}
+   {\Gamma(\alpha_\text{low}) \Gamma(\alpha_\text{hig})}
+   \cdot
+   \frac{u^{\alpha_\text{low} - 1} (1 - u)^{\alpha_\text{hig} - 1}}
+   {s_\text{hig} - s_\text{low}}
+$$
+In considering a Metropolis-Hastings update, we need to evaluate
+the ratio of $q_L(w, y)$ and $q_L(y, w)$.  Clearly everything cancels
+in the ratio except the part involving $u$.  If we solve \eqref{eq:u-to-y}
+for $u$ we get
+\begin{align*}
+   u & = \frac{y - w_\text{low}}{w_\text{hig} - w_\text{low}}
+   \\
+   1 - u & = \frac{w_\text{hig} - y}{w_\text{hig} - w_\text{low}}
+\end{align*}
+and
+$$
+   \frac{q_L(y, w)}{q_L(w, y)}
+   =
+   \left( \frac{w - w_\text{low}}{y - w_\text{low}}
+   \right)^{\alpha_\text{low} - 1}
+   \left( \frac{w_\text{hig} - w}{w_\text{hig} - y}
+   \right)^{\alpha_\text{hig} - 1}
+$$
+and the Hastings ratio is
+\begin{equation} \label{eq:ratio-beta-hastings}
+   R = \frac{h_3(y) q_L(y, w)}{h_3(w) q_L(w, y)}
+   =
+   \frac{h_3(y)}{h_3(w)}
+   \left( \frac{w - w_\text{low}}{y - w_\text{low}}
+   \right)^{\alpha_\text{low} - 1}
+   \left( \frac{w_\text{hig} - w}{w_\text{hig} - y}
+   \right)^{\alpha_\text{hig} - 1}
+\end{equation}
+
+\subsection{Independence Updates} \label{sec:independence}
 
 All of the work in setting this up has already been described.  Simulate
 a multivariate normal random vector $y$ in $\real^p$ having mean vector $\mu$
 and variance matrix $\Sigma$ given by \eqref{eq:h-approx-new-mean}
 and \eqref{eq:h-approx-new-variance}.  Calculate the Hastings ratio
-$$
+\begin{equation} \label{eq:ratio-independence}
     R = \frac{h_3(y) h_4(x)}{h_3(x) h_4(y)}
-$$
+\end{equation}
 where $x$ is the current state and $h_3$ and $h_4$ are as described above
 \eqref{eq:h-new} and \eqref{eq:h-approx-new}.  Accept this proposal
 with probability $\min(1, R)$.
@@ -379,34 +493,88 @@ of $\Sigma$ suffices.  If $\Gamma \Gamma^T = \Sigma$,
 then $z = \mu + \Gamma u$, has the desired normal distribution when $u$
 is standard multivariate normal.
 
-\subsection{Near Vertex Updates}
+\section{Care about Computer Arithmetic}
 
-We are concerned that none of the updates described above will work well
-when all of the components of the parameter vector $\alpha$ of the Dirichlet
-distribution are near zero, in which case the distribution will be concentrated
-near some of the vertices of $C_3$ (recall that we are denoting this set
-of vertices $V_3$).  In particular, it is concentrated near vertices having
-some components equal to zero when expressed in the original coordinates,
-but we won't bother to distinguish these vertices.
+All of this assumes exact computer arithmetic or, at least, does not
+worry enough about the effects of inexact computer arithmetic.
+So now we start worrying.
 
-We are going to do something rather tricky that is not a special case
-of the Metropolis-Hastings algorithm, although it is a special case
-of what \citet{geyer-intro} calls the Metropolis-Hastings-Green algorithm.
-In particular, it uses what \citet[Section~1.17.1]{geyer-intro} calls
-state-dependent mixing.
+\subsection{Computational Geometry}
 
-Fix $\varepsilon > 0$ less than half minimum distance between any pair of
-elements of $V_3$.  We only do the update described here when the
-current state $x$ of the Markov chain has distance less than $\varepsilon$
-from some element of $V_3$.  Then we propose $y$ uniformly
-distributed on the $\varepsilon$-balls centered at the elements of $V_3$
-except for the $\varepsilon$-ball containing the current state $x$.
-This is a Metropolis proposal. Hence the proposal is accepted with
-probability $\min(1, R)$ where $R$ is given by \eqref{eq:metropolis-ratio}.
+The R package \texttt{rcdd} that we are using for computational geometry
+allows computation using exact infinite-precision rational arithmetic.
+Thus we allow the user to specify the constraints, the matrices $A_1$ and
+$A_2$ and the vectors $b_1$ and $b_2$ in the list
+in Section~\ref{sec:specification}, using infinite-precision rational numbers.
+These are specified using character strings like \verb@"2/3"@
+or \verb@"-17/4"@ or \verb@"0"@.
 
-The fact that it only kicks in when the current state is within $\varepsilon$
-of some vertex does not matter; this is taken care of by the state-dependent
-mixing argument.
+Whether the user specifies these matrices using rational numbers or
+the computer's usual numbers (which are inexact having only about 16
+decimal places of precision), our computer code immediately converts
+these matrices to rational numbers using the R function \texttt{d2q}
+in the \texttt{rcdd} package.
+All of the computations described in Section~\ref{sec:computational-geometry}
+are then done using infinite-precision rational arithmetic.  Hence they
+are exact.
+
+Because the rest of R uses ordinary computer arithmetic, our computer code
+must convert the vector $x_V$ and the matrix $M$ in the map \eqref{eq:map},
+the vector $b_3$ and the matrix $A_3$ that express the inequality constraints
+in NC, and the matrix $V_3$ whose rows are the vertices of the constraint
+set $C_3$ in NC, all of which are originally computed in infinite-precision
+rational arithmetic back to ordinary computer numbers using the R function
+\texttt{q2d} in the \texttt{rcdd} package.
+
+We then use ordinary computer arithmetic for the sampler.  This is essential
+because we are using uniform, normal, and beta random variates that come
+from the R random number generators and these use ordinary computer numbers.
+It is also essential because after millions of iterations the state of our
+Markov chain would have humongous numerators and denominators if its
+components were expressed in infinite precision rational numbers.
+
+\subsection{Sampling}
+
+However, we do have one very difficult issue using ordinary computer
+arithmetic in the sampler.  This issue is evaluating
+$x_i^{\alpha_i - 1}$ where $x_i$ is some component of either the
+current state or the proposal in OC, which happens when we evaluate
+$h_3(y)$ or $h_3(w)$ in \eqref{eq:metropolis-ratio} or
+\eqref{eq:ratio-beta-hastings} or \eqref{eq:ratio-independence}.
+We must assure $x_i > 0$,
+and ordinary computer arithmetic cannot guarantee that.
+Similarly, when we evaluate
+$$
+   \left( \frac{w - w_\text{low}}{y - w_\text{low}}
+   \right)^{\alpha_\text{low} - 1}
+   \left( \frac{w_\text{hig} - w}{w_\text{hig} - y}
+   \right)^{\alpha_\text{hig} - 1}
+$$
+in \eqref{eq:ratio-beta-hastings}, we must assure
+\begin{align*}
+   w - w_\text{low} & > 0
+   \\
+   y - w_\text{low} & > 0
+   \\
+   w_\text{hig} - w & > 0
+   \\
+   w_\text{hig} - y & > 0
+\end{align*}
+and ordinary computer arithmetic cannot guarantee that.
+
+In neither case is it sufficient to merely round negative numbers to zero.
+We cannot evaluate $x_i^{\alpha_i - 1}$ when $\alpha_i < 1$ and $x_i \le 0$.
+We have to guarantee the proposal in OC has all components strictly positive.
+
+What we do in this case is what the Metropolis-Hastings algorithm usually
+does with proposals outside of the state space: it rejects them with
+probability one.  So all we need to do is be careful and get this case right.
+
+This extra care does not affect the validity of our sampler.  Such validity
+is usually talked about pretending that the computer has real real numbers
+(with an infinite number of decimal places).  Our algorithm is correct in
+that sense.  No one takes inexact computer arithmetic fully into account
+when discussing MCMC.
 
 \begin{thebibliography}{}
 
