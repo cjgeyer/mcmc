@@ -45,7 +45,7 @@ components.  We call the probability distribution having unnormalized density
 with respect to Lebesgue measure on $C$ the \emph{constrained Dirichlet
 distribution} on $C$ having parameter vector $\alpha$.
 By Lebesgue measure on $C$ we mean Lebesgue measure on the affine hull
-of $C$ restricted to $C$ (more on this below).
+of $C$ restricted to $C$ (more on this in Section~\ref{sec:lebesgue} below).
 
 This is the problem specified by the user.
 We discuss efficient Markov chain sampling of such distributions.
@@ -73,7 +73,8 @@ specifically tuned to the constrained Dirichlet problem.
 \subsection{Computational Geometry}
 
 We will use the R package \texttt{rcdd} \citep*{rcdd} to handle
-the computational geometry of the constraint set $C$.
+the computational geometry of the constraint set $C$
+(more on this in Section~\ref{sec:computational-geometry} below).
 
 \subsection{Asymptotic Approximation}
 
@@ -85,7 +86,10 @@ and let $\Lambda$ denote the diagonal matrix having the vector $\lambda$
 as its diagonal.  Then the normal approximation to the constrained
 Dirichlet distribution is
 the $\text{Normal}(\lambda, \Lambda)$ distribution
-restricted to $C$ \citep[Theorem~4.2]{geyer-meeden}.  For $\alpha$ having
+restricted to $C$ \citep[Theorem~4.2]{geyer-meeden}
+(more on this in Section~\ref{sec:approximate} below).
+
+For $\alpha$ having
 all components ``large'' this will be a very good approximation, so we want
 to use this to speed up the simulation.  Otherwise, this may be a bad
 approximation, so we want to use the approximation in a way that still
@@ -127,7 +131,7 @@ an H-representation for $C$.
 
 \subsection{Vertices}
 
-Apply the \texttt{scdd} function to the H-representation.
+Apply the R function \texttt{scdd} to the H-representation.
 It produces the V-representation which gives the set of vertices of $C$.
 Call this vertex set $V$.
 
@@ -139,7 +143,6 @@ If $V$ is a singleton set, then $C = V$, so while, strictly speaking,
 the user has not made an error, the probability distribution is trivial.
 There is only one probability distribution on a one-point sample space,
 and we do not need MCMC to describe it.
-
 Thus in what follows we assume $C$ has at least two vertices.
 
 Let $x_V$ denote any convex combination of the points in $V$.
@@ -149,19 +152,37 @@ point for our MCMC sampler.
 \subsection{Affine Hull}
 
 The first issue we have to deal with is that $C$ is not $d$-dimensional.
-What dimension is it?  We can't tell from our H-representation, which may
-have hidden redundancies.  The R function \texttt{redundant}
+Since we cannot deal with a distribution that is singular with respect to
+Lebesgue measure, we must reduce the dimension.  The \emph{affine hull}
+of $C$, denoted $\aff C$, is the smallest affine space (translate of a
+vector subspace) that contains $C$.  By definition, the dimension of $C$
+is the dimension of $\aff C$.
+
+In order to sample effectively we must ``find'' $\aff C$, which means
+we need to find an invertible linear map from $\real^p$ to $\aff C$.
+
+\subsubsection{Redundancy}
+
+What is the dimension of $C$?  We can't tell from our H-representation,
+which may have hidden redundancies.  The R function \texttt{redundant}
 in the \texttt{rcdd} package produces an equivalent H-representation that
 is non-redundant (the equality constraints are linearly independent,
 and the inequality constraints are true inequalities rather than equalities,
 that is, they actually hold with strict inequality for some points in $C$).
 
+Now from the non-redundant H-representation, we know that the dimension of
+$C$ is $p = d - l$, where $l$ is the number of equality constraints in the
+non-redundant H-representation.  We know that $p \ge 1$ from our check that
+$C$ has at least two vertices (preceding section).
+
+\subsubsection{Map}
+
 In this section we only need the equality constraints from
 this non-redundant H-representation.  Extract its rows
 representing equality constraints, giving yet another H-representation,
-which represents the affine hull of $C$, denoted $\aff C$.
+which represents $\aff C$.
 
-Apply the \texttt{scdd} function to the H-representation of $\aff C$.
+Apply the R function \texttt{scdd} to the H-representation of $\aff C$.
 It produces the V-representation of $\aff C$, which (unlike the
 V-representation of a polytope) contains both points and directions.
 In this case there will be exactly one point and one or more directions
@@ -214,7 +235,7 @@ this whole document.
 
 \section{The Distribution}
 
-\subsection{Lebesgue Measure}
+\subsection{Lebesgue Measure} \label{sec:lebesgue}
 
 The map \eqref{eq:map} maps Lebesgue measure on $\real^p$ to Lebesgue measure
 on $\aff C$.  Different choices of $M$ (only the column space of $M$ matters,
@@ -235,7 +256,7 @@ to the new coordinates.  Define $h_3$ by
 Our problem is now to sample the distribution concentrated on $C_3$
 having unnormalized density $h_3$ with respect to Lebesgue measure.
 
-\subsection{Approximate}
+\subsection{Approximate} \label{sec:approximate}
 
 The normal approximation to the Dirichlet distribution with
 parameter vector $\alpha$ has unnormalized density
@@ -607,7 +628,7 @@ Geyer, C.~J. and Meeden, G.~D. (2013).
 \newblock Asymptotics for Constrained Dirichlet Distributions.
 \newblock \emph{Bayesian Analysis}, \textbf{8}, 89--110.
 
-\bibitem[Geyer, et al.(2014)Geyer, Meeden and Fukuda]{rcdd}
+\bibitem[Geyer, et al.(2014)Geyer, Meeden, and Fukuda]{rcdd}
 Geyer, C.~J., Meeden, G.~D. and Fukuda, K. (2014).
 \newblock R package \texttt{rcdd}: Computational geometry,
     version 1.1-8.
