@@ -12,6 +12,17 @@
  a2 <- matrix(0, 1, d)
  a2[ , x < (d + 1) / 2] <- 1
  b2 <- 1 / 2
+ # maximum change in adjacent probabilities is 1 / 16
+ foo <- matrix(0, 2 * (d - 1), d)
+ for (i in 1:(d - 1)) {
+     foo[2 * i - 1, i] <- 1
+     foo[2 * i - 1, i + 1] <- - 1
+     foo[2 * i, i] <- - 1
+     foo[2 * i, i + 1] <- 1
+ }
+ bar <- rep(1 / 16, 2 * (d - 1))
+ a1 <- rbind(a1, foo)
+ b1 <- c(b1, bar)
 
  # problem as specified by the computer
  a1 <- rbind(- diag(d), a1)
@@ -20,22 +31,33 @@
  b2 <- c(1, b2)
 
  # H-representation
- hrep1 <- makeH(a1, b1, a2, b2)
+ # to keep track of nonnegativity constraints, don't use makeH
+ hrep1 <- rbind(cbind(0, b1, - a1), cbind(1, b2, - a2))
+ dimnames(hrep1) <- NULL
+ attr(hrep1, "representation") <- "H"
  hrep1 <- d2q(hrep1)
  hrep1
 
  # V-representation
  vrep1 <- scdd(hrep1)$output
  # check that there are at least 2 vertices
- nrow(vrep1)
+ nrow(vrep1) >= 2
+ apply(vrep1[ , - c(1, 2)], 2, qmin)
+ # round(q2d(vrep1[ , - c(1, 2)]), 4)
+
  # find point in the relative interior of the constraint set
  v1 <- vrep1[ , - c(1, 2)]
  x1 <- apply(v1, 2, function(x) qdq(qsum(x), as.character(length(x))))
  x1
 
  # non-redundant H-representation (here the same, in general different)
- hrep2 <- redundant(hrep1)$output
- identical(hrep1, hrep2)
+ rout <- redundant(hrep1)
+ names(rout)
+ hrep2 <- rout$output
+ # keep track of where nonnegativity constraints are now
+ nonneg.position <- rout$new.position[1:d]
+ nonneg.position
+ # only variables with nonneg.position != 0 can be zero somewhere in C
 
  # affine hull
  is.equality <- hrep2[ , 1] == "1"
@@ -85,4 +107,39 @@
  length(unique(foo.too)) == length(foo.too)
  length(unique(bar.too)) == length(bar.too)
  identical(sort(foo.too), sort(bar.too))
+
+ # now where are the nonnegativity constraints?
+ # we know where the are in hrep2
+ hrep2[nonneg.position, ]
+ # where are they in hrep4?
+ idx.ineq <- (1:nrow(hrep2))[! is.equality]
+ idx.ineq
+ i5 <- match(nonneg.position, idx.ineq)
+ i5 <- i5[!is.na(i5)]
+ amat[i5, ]
+ # do we buy this ?????
+ # have this many vertices
+ nrow(foo)
+ nrow(v5)
+ # and this many non-redundant inequality constraints in NC
+ nrow(amat)
+ length(bvec)
+ wtf <- matrix(NaN, nrow(foo), nrow(amat))
+ for (i in 1:nrow(foo))
+     for (j in 1:nrow(amat))
+         wtf[i, j] <- qsign(qmq(bvec[j],
+             qmatmult(amat[j, , drop = FALSE], t(v5[i, , drop = FALSE]))))
+ all(wtf >= 0)
+ # wtf
+ wtf.too <- list()
+ for (j in 1:nrow(amat)) {
+     fred <- foo[wtf[ , j] == 0, , drop = FALSE]
+     sally <- apply(fred == "0", 2, all)
+     wtf.too[[j]] <- seq(along = sally)[sally]
+ }
+ alfred.e.newman <- wtf.too[i5]
+ all(sapply(alfred.e.newman, length) == 1)
+ all(unlist(alfred.e.newman) ==
+     seq(along = nonneg.position)[nonneg.position > 0])
+
 
