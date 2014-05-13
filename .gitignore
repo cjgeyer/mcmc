@@ -13,3 +13,4 @@ debug.tex
 demo.tex
 morph.tex
 .build.timestamp
+*.bak

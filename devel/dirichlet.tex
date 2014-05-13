@@ -12,6 +12,7 @@
 \newcommand{\real}{\mathbb{R}}
 
 \newcommand{\set}[1]{\{\, #1 \,\}}
+\newcommand{\inner}[1]{\langle #1 \rangle}
 
 \begin{document}
 
@@ -208,6 +209,13 @@ the original coordinates (OC).  Our sampler runs in NC.  The output
 must be mapped via \eqref{eq:map} back to OC for presentation to the user
 (the OC are the only coordinates the user knows about).
 
+The choice of the point $x_V$ in \eqref{eq:map} is arbitrary.
+Any point in $\aff C$ would do, for example the (one and only) point
+in the V-representation of $\aff C$ computed in order to find the matrix
+$M$ in \eqref{eq:map}.  The virtue of the choice $x_V$ is that zero in
+NC maps to $x_V$ in OC, so we know that zero in NC is a point in the
+polytope and can start the Markov chain there.
+
 \subsection{Constraint Set in New Coordinates}
 
 In order to finish our description of $C$ we need to describe the inequality
@@ -246,7 +254,7 @@ Since we are using unnormalized densities, it does not matter which choice
 of Lebesgue measure on $\aff C$ (which choice of $M$) is used.
 We always get the same distribution after normalization.
 
-\subsection{Exact}
+\subsection{Exact Distribution}
 
 We now need to map the unnormalized density \eqref{eq:unnormalized-density}
 to the new coordinates.  Define $h_3$ by
@@ -256,7 +264,7 @@ to the new coordinates.  Define $h_3$ by
 Our problem is now to sample the distribution concentrated on $C_3$
 having unnormalized density $h_3$ with respect to Lebesgue measure.
 
-\subsection{Approximate} \label{sec:approximate}
+\subsection{Approximate Distribution} \label{sec:approximate}
 
 The normal approximation to the Dirichlet distribution with
 parameter vector $\alpha$ has unnormalized density
@@ -323,8 +331,8 @@ The R packages \texttt{polyapost} and \texttt{hitandrun} do this.
 This choice is very problematic, however because it has no relation
 to the problem at hand.  We see this in the map \eqref{eq:map} which
 is arbitrary (recall that only the column space of $M$ matters) but
-which affects how the unit ball in $\real^p$ maps into $\aff C$,
-which is what really matters.  (Spherical symmetry in $\aff C$ is not
+which affects how the unit ball in $\real^p$ maps into $\aff C$.
+(Spherical symmetry in $\aff C$ is not
 even well defined, but however one might define it, the definition
 should not be arbitrary, and the map \eqref{eq:map} is arbitrary,
 in the sense that if $M$ is changed but its column space is not changed,
@@ -381,7 +389,7 @@ are commented as such.  We would generate the alias tables exactly once,
 and generate one ``sample'' for each hit-and-run update we do.
 There is no problem in our stealing this code because R is free software
 (GPL version 2 or any later version) so we only need use a GPL-compatible
-licence for our software, which is required to be a CRAN package anyway.
+license for our software, which is required to be a CRAN package anyway.
 
 \subsubsection{Proposal given the Direction} \label{sec:proposal-uniform}
 
@@ -414,7 +422,7 @@ More generally, we are concerned that the hit-and-run proposals described
 in the preceding section pay no attention to the desired stationary
 distribution having unnormalized density $h_3$.
 
-So in this section we concoct a proposal that does pay (some attention)
+So in this section we concoct a proposal that does pay (some) attention
 to $h_3$.  Again let the current point be $w$ and the direction chosen $d$.
 Let $s_\text{low}$ and $s_\text{hig}$ be such that the segment of the line
 \eqref{eq:line} that is in $C_3$ is
@@ -450,7 +458,7 @@ is equal to zero, if there is one, and otherwise set $\alpha_\text{low} = 1$.
 Similarly, for $\alpha_\text{hig}$.
 
 We propose to use the proposal distribution having a transformed
-beta distribution.  Let $v$ be a
+beta distribution.  Let $u$ be a
 $\text{Beta}(\alpha_\text{low}, \alpha_\text{hig})$ random variate.
 Then we propose the point
 \begin{equation} \label{eq:u-to-y}
@@ -471,28 +479,37 @@ the ratio of $q_L(w, y)$ and $q_L(y, w)$.  Clearly everything cancels
 in the ratio except the part involving $u$.  If we solve \eqref{eq:u-to-y}
 for $u$ we get
 \begin{align*}
-   u & = \frac{y - w_\text{low}}{w_\text{hig} - w_\text{low}}
+   u
+   & =
+   \frac{\inner{y - w_\text{low}, d}}{\inner{w_\text{hig} - w_\text{low}, d}}
    \\
-   1 - u & = \frac{w_\text{hig} - y}{w_\text{hig} - w_\text{low}}
+   1 - u
+   & =
+   \frac{\inner{w_\text{hig} - y, d}}{\inner{w_\text{hig} - w_\text{low}, d}}
 \end{align*}
-and
+where the angle brackets denote inner product, and
 $$
    \frac{q_L(y, w)}{q_L(w, y)}
    =
-   \left( \frac{w - w_\text{low}}{y - w_\text{low}}
+   \left( \frac{\inner{w - w_\text{low}, d}}{\inner{y - w_\text{low}, d}}
    \right)^{\alpha_\text{low} - 1}
-   \left( \frac{w_\text{hig} - w}{w_\text{hig} - y}
+   \left( \frac{\inner{w_\text{hig} - w, d}}{\inner{w_\text{hig} - y, d}}
    \right)^{\alpha_\text{hig} - 1}
 $$
 and the Hastings ratio is
 \begin{equation} \label{eq:ratio-beta-hastings}
-   R = \frac{h_3(y) q_L(y, w)}{h_3(w) q_L(w, y)}
-   =
+\begin{split}
+   R
+   & =
+   \frac{h_3(y) q_L(y, w)}{h_3(w) q_L(w, y)}
+   \\
+   & =
    \frac{h_3(y)}{h_3(w)}
-   \left( \frac{w - w_\text{low}}{y - w_\text{low}}
+   \left( \frac{\inner{w - w_\text{low}, d}}{\inner{y - w_\text{low}, d}}
    \right)^{\alpha_\text{low} - 1}
-   \left( \frac{w_\text{hig} - w}{w_\text{hig} - y}
+   \left( \frac{\inner{w_\text{hig} - w, d}}{\inner{w_\text{hig} - y, d}}
    \right)^{\alpha_\text{hig} - 1}
+\end{split}
 \end{equation}
 
 \subsection{Independence Updates} \label{sec:independence}
@@ -566,20 +583,20 @@ We must assure $x_i > 0$,
 and ordinary computer arithmetic cannot guarantee that.
 Similarly, when we evaluate
 $$
-   \left( \frac{w - w_\text{low}}{y - w_\text{low}}
+   \left( \frac{\inner{w - w_\text{low}, d}}{\inner{y - w_\text{low}, d}}
    \right)^{\alpha_\text{low} - 1}
-   \left( \frac{w_\text{hig} - w}{w_\text{hig} - y}
+   \left( \frac{\inner{w_\text{hig} - w, d}}{\inner{w_\text{hig} - y, d}}
    \right)^{\alpha_\text{hig} - 1}
 $$
 in \eqref{eq:ratio-beta-hastings}, we must assure
 \begin{align*}
-   w - w_\text{low} & > 0
+   \inner{w - w_\text{low}, d} & > 0
    \\
-   y - w_\text{low} & > 0
+   \inner{y - w_\text{low}, d} & > 0
    \\
-   w_\text{hig} - w & > 0
+   \inner{w_\text{hig} - w, d} & > 0
    \\
-   w_\text{hig} - y & > 0
+   \inner{w_\text{hig} - y, d} & > 0
 \end{align*}
 and ordinary computer arithmetic cannot guarantee that.
 
