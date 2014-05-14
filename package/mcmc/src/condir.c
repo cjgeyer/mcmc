@@ -22,6 +22,7 @@ static double *save_mu = NULL;
 static double *save_cholSigma = NULL;
 static double *save_alphaCons = NULL;
 // alias tables for Walker's method of aliases
+static double *p = NULL;
 static double *q = NULL;
 static int *HL = NULL;
 
@@ -69,36 +70,45 @@ static void walker_ProbSampleReplace_setup()
             for (int m = 0; m < p; m++)
                 save_vert_diff[k + nvertdiff * m] = save_vert[i + nvert * m]
                     - save_vert[j + nvert * m];
+    p = Calloc(nvertdiff, double);
+    for (int k = 0; k < nvertdiff; k++) {
+        double sum = 0.0;
+        for (int m = 0; m < p; m++) {
+            double foo = save_vert_diff[k + nvertdiff * m];
+            sum += foo * foo;
+        }
+        p[k] = sqrt(sum);
+    }
+    double sum = 0.0;
+    for (int k = 0; k < nvertdiff; k++)
+        sum + = p[k];
+    for (int k = 0; k < nvertdiff; k++)
+        p[k] /= sum;
+
+    // walker_ProbSampleReplace(int n, double *p, int *a, int nans, int *ans)
+    // n is size of population (produces result between 1 and n)
+    // k is size of sample
+    // prob is probability vector (length n)
+    // ans is the vector of samples (length k), but we want just one at a time
+    // nans = k
+    // a is temporary storage (length k) ????
+
+    int *H = HL - 1; // is this undefined ???!!!
+    int *L = HL + n;
 }
 
 static void
 walker_ProbSampleReplace(int n, double *p, int *a, int nans, int *ans)
 {
-    double *q, rU;
+    double rU;
     int i, j, k;
-    int *HL, *H, *L;
-
-    if (!Walker_warn) {
-	Walker_warn = TRUE;
-	warning("Walker's alias method used: results are different from R < 2.2.0");
-    }
-
+    int *H, *L;
 
     /* Create the alias tables.
        The idea is that for HL[0] ... L-1 label the entries with q < 1
        and L ... H[n-1] label those >= 1.
        By rounding error we could have q[i] < 1. or > 1. for all entries.
      */
-    if(n <= SMALL) {
-	R_CheckStack2(n *(sizeof(int) + sizeof(double)));
-	/* might do this repeatedly, so speed matters */
-	HL = (int *) alloca(n * sizeof(int));
-	q = (double *) alloca(n * sizeof(double));
-    } else {
-	/* Slow enough anyway not to risk overflow */
-	HL = Calloc(n, int);
-	q = Calloc(n, double);
-    }
     H = HL - 1; L = HL + n;
     for (i = 0; i < n; i++) {
 	q[i] = p[i] * n;
