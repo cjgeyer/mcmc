@@ -34,12 +34,11 @@
  # to keep track of nonnegativity constraints, don't use makeH
  hrep1 <- rbind(cbind(0, b1, - a1), cbind(1, b2, - a2))
  dimnames(hrep1) <- NULL
- attr(hrep1, "representation") <- "H"
  hrep1 <- d2q(hrep1)
  hrep1
 
  # V-representation
- vrep1 <- scdd(hrep1)$output
+ vrep1 <- scdd(hrep1, representation = "H")$output
  # check that there are at least 2 vertices
  nrow(vrep1) >= 2
  apply(vrep1[ , - c(1, 2)], 2, qmin)
@@ -50,7 +49,7 @@
  x1 <- apply(v1, 2, function(x) qdq(qsum(x), as.character(length(x))))
  x1
 
- # non-redundant H-representation (here the same, in general different)
+ # non-redundant H-representation
  rout <- redundant(hrep1)
  names(rout)
  hrep2 <- rout$output

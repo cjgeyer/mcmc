@@ -18,9 +18,17 @@ UseMethod("condir")
 #            function(w) origin + basis %*% w
 #        that goes from new coordinates (NC) to original coordinates (OC)
 #    Amat and bvec, which define H-representation in NC
+#        constraints are Amat %*% w <= bvec
 #    V3, vertex set, which defines V-representation in NC
 #    mu and Gamma, mean vector and Cholesky factor of variance matrix
 #        of asymptotic normal distribution
+#    alpha, Dirichlet parameter vector
+#    alpha_cons, numeric vector the length of bvec (number of non-redundant
+#        inequality constraints).  For each constraint, at most one coordinate
+#        in OC is equal to zero for all x satisfying the constraint.
+#        If x_i = 0 for all x satisfying the j-th constraint, then we
+#        set alpha_cons[j] = alpha[i].  Otherwise, we set alpha_cons[j] = 1.
+
 condir.default <- function(obj, nbatch, blen = 1, nspac = 1,
     a1, b1, a2, b2, outfun, mixprob = rep(1 / 3, 3), debug = FALSE, ...)
 {
@@ -45,6 +53,9 @@ condir.default <- function(obj, nbatch, blen = 1, nspac = 1,
     stopifnot(length(nspac) == 1)
     stopifnot(round(nspac) == nspac)
     stopifnot(nspac > 0)
+    nbatch <- as.integer(round(nbatch))
+    blen <- as.integer(round(blen))
+    nspac <- as.integer(round(nspac))
 
     stopifnot(missing(a1) == missing(b1))
     if (! missing(a1)) {
@@ -115,11 +126,51 @@ condir.default <- function(obj, nbatch, blen = 1, nspac = 1,
     stopifnot(length(mixprob) == 3)
     stopifnot(mixprob > 0)
     stopifnot(all.equal(sum(mixprob), 1))
+    mixprob <- as.double(mixprob)
 
     stopifnot(is.logical(debug))
     stopifnot(length(debug) == 1)
 
-    hrep1 <- makeH(a1, b1, a2, b2)
+    hrep1 <- rbind(cbind(0, b1, - a1), cbind(1, b2, - a2))
+    dimnames(hrep1) <- NULL
+    vrep1 <- scdd(hrep1, representation = "H")$output
+    if (nrow(vrep1) == 0)
+        stop("empty constraint set")
+    if (nrow(vrep1) == 1)
+        stop("constraint set is single point")
+
+    # find point in the relative interior of the constraint set
+    v1 <- vrep1[ , - c(1, 2)]
+    origin <- apply(v1, 2, function(x) qdq(qsum(x), as.character(length(x))))
+
+    # non-redundant H-representation
+    rout <- redundant(hrep1)
+    hrep2 <- rout$output
+    # keep track of where nonnegativity constraints are now
+    nonneg.position <- rout$new.position[1:d]
+
+    # affine hull of constraint set
+    is.equality <- hrep2[ , 1] == "1"
+    hrep3 <- hrep2[is.equality, , drop = FALSE]
+    vrep3 <- scdd(hrep3, representation = "H")$output
+    # make invertible linear transformation R^p to aff C
+    is.point <- vrep3[ , 1] == "0" & vrep3[ , 2] == "1"
+    is.line <- vrep3[ , 1] == "1" & vrep3[ , 2] == "0"
+    if(! all(is.point | is.line))
+        stop("unexpected V-representation of affine hull of constraint set")
+    basis <- vrep3[is.line, , drop = FALSE]
+    basis <- basis[ , - c(1, 2), drop = FALSE]
+    basis <- t(basis)
+    # invertible linear transformation is
+    #     function(w) origin + basis %*% w
+    # maps NC to OC
+    p <- ncol(basis)
+
+
+
+
+    ########## REVISED DOWN TO HERE ##########
+
     hrep2 <- redundant(hrep1)$output
     # non-redundant equality constraints
     hrep3 <- hrep2[hrep2[ , 1] == "1", , drop = FALSE]
