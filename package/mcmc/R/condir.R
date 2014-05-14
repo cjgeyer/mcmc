@@ -141,7 +141,7 @@ condir.default <- function(obj, nbatch, blen = 1, nspac = 1,
 
     # find point in the relative interior of the constraint set
     v1 <- vrep1[ , - c(1, 2)]
-    origin <- apply(v1, 2, function(x) qdq(qsum(x), as.character(length(x))))
+    origin <- apply(v1, 2, function(x) qdq(qsum(x), d2q(length(x))))
 
     # non-redundant H-representation
     rout <- redundant(hrep1)
@@ -158,6 +158,10 @@ condir.default <- function(obj, nbatch, blen = 1, nspac = 1,
     is.line <- vrep3[ , 1] == "1" & vrep3[ , 2] == "0"
     if(! all(is.point | is.line))
         stop("unexpected V-representation of affine hull of constraint set")
+    if (sum(is.point) != 1)
+        stop("unexpected V-representation of affine hull of constraint set")
+    if (sum(is.line) != d - nrow(hrep3))
+        stop("unexpected V-representation of affine hull of constraint set")
     basis <- vrep3[is.line, , drop = FALSE]
     basis <- basis[ , - c(1, 2), drop = FALSE]
     basis <- t(basis)
@@ -166,91 +170,65 @@ condir.default <- function(obj, nbatch, blen = 1, nspac = 1,
     # maps NC to OC
     p <- ncol(basis)
 
+    # constraints in NC
+    hrep4 <- hrep2[! is.equality, , drop = FALSE]
+    b4 <- hrep4[ , 2]
+    a4 <- qneg(hrep4[ , - c(1, 2), drop = FALSE])
+    amat <- qmatmult(a4, basis)
+    bvec <- qmq(b4, qmatmult(a4, cbind(origin)))
 
+    # vertices in NC
+    hrep5 <- makeH(amat, bvec)
+    vrep5 <- scdd(hrep5)$output
+    vert <- vrep5[ , - c(1, 2)]
 
-
-    ########## REVISED DOWN TO HERE ##########
-
-    hrep2 <- redundant(hrep1)$output
-    # non-redundant equality constraints
-    hrep3 <- hrep2[hrep2[ , 1] == "1", , drop = FALSE]
-    # non-redundant inequality constraints
-    hrep4 <- hrep2[hrep2[ , 1] == "0", , drop = FALSE]
-
-    # V-representation for affine hull of constraint set
-    vrep3 <- scdd(hrep3, representation = "H")$output
-    is.line <- vrep3[ , 1] == "1" & vrep3[ , 2] == "0"
-    is.point <- vrep3[ , 1] == "0" & vrep3[ , 2] == "1"
-    if (! all(is.point | is.line))
-        stop("unexpected V-representation of affine hull of constraint set")
-    if (sum(is.point) != 1)
-        stop("unexpected V-representation of affine hull of constraint set")
-    if (sum(is.line) != d - nrow(hrep3))
-        stop("unexpected V-representation of affine hull of constraint set")
-
-    foo <- vrep3[ , - c(1, 2), drop = FALSE]
-    origin <- foo[is.point, ]
-    basis <- foo[is.line, , drop = FALSE]
-    basis <- t(basis)
-    # function(w) origin + basis %*% w
-    # maps NC to OC
-    # note: we do not agree with design doc (dirichlet.tex)
-    # which has origin a relative interior point of constraint set in OC
-    # see rip below for relative interior point in NC
-
-    amat <- qneg(hrep4[ , - c(1, 2), drop = FALSE])
-    bvec <- hrep4[ , 2]
-    bvec <- qmq(bvec, qmatmult(amat, cbind(origin)))
-    amat <- qmatmult(amat, basis)
-    # amat %*% w <= bvec
-    # is constraints expressed in NC
-
-    hrep5 <- cbind("0", bvec, qneg(amat))
-    vrep5 <- scdd(hrep5, representation = "H")$output
-    if (nrow(vrep5) == 0)
-        stop("empty constraint set")
-    is.point <- vrep5[ , 1] == "0" & vrep5[ , 2] == "1"
-    if (! all(is.point))
-        stop("Can't happen: unbounded constraint set")
-    if (nrow(vrep5) == 1)
-        stop("one-point constraint set")
-    v <- vrep5[ , - c(1, 2), drop = FALSE]
-    rip <- apply(v, 2, qsum)
-    rip <- qdq(rip, rep(as.character(nrow(v)), length(rip)))
-    # rip is relative interior point of constraint set in NC
-
+    # convert everything from rational to double
     origin <- q2d(origin)
     basis <- q2d(basis)
     bvec <- q2d(bvec)
     amat <- q2d(amat)
-    rip <- q2d(rip)
-    v <- q2d(v)
+    vert <- q2d(vert)
 
-    if (missing(outfun)) {
-        func2 <- NULL
-    } else if (is.function(outfun)) {
-        func2 <- function(state) {
-            userstate <- origin + as.numeric(basis %*% state)
-            outfun(userstate, ...)
-        }
-    } else {
-        stop("outfun must be function or missing")
-    }
-
+    # asymptotic normal distribution
     alpha <- as.double(obj)
     lambda <- alpha / sum(alpha)
     LambdaInv <- diag(1 / lambda)
     SigmaInv <- t(basis) %*% LambdaInv %*% basis
-    p <- nrow(SigmaInv)
     cholSigmaInv <- chol(SigmaInv)
     cholSigma <- backsolve(cholSigmaInv, diag(p))
     Sigma <- cholSigma %*% t(cholSigma)
     mu <- Sigma %*% t(basis) %*% cbind(lambda - origin)
 
-    ########## REVISED DOWN TO HERE ##########
+    # now where are the nonnegativity constraints?
+    # see condir-dev.R in the devel directory for checks that this works
+    nonneg.position.varb <- seq(along = nonneg.position)[nonneg.position != 0]
+    nonneg.position.cons <- nonneg.position[nonneg.position != 0]
+    idx.ineq <- (1:nrow(hrep2))[! is.equality]
+    i5 <- match(nonneg.position.cons, idx.ineq)
+    alpha.cons <- rep(1, nrow(amat))
+    alpha.cons[i5] <- alpha[nonneg.position.varb]
 
-    out <- condirHelperNC(obj, nbatch, blen, nspac,
-        amat, bvec, v, rip, func2, debug)
+    # outfun must map from NC to OC
+    if (missing(outfun)) {
+        func2 <- NULL
+        env2 <- NULL
+    } else if (is.function(outfun)) {
+        func2 <- function(state) {
+            userstate <- origin + as.numeric(basis %*% state)
+            outfun(userstate, ...)
+        }
+        env2 <- environment(fun = func2)
+    } else {
+        stop("outfun must be function or missing")
+    }
+
+    out.time <- system.time(
+    out <- .Call("condir", alpha, rep(0, p), nbatch, blen, nspac,
+        origin, basis, amat, bvec, vert, mu, CholSigma, alpha.cons,
+        mixprob, func2, env2, debug, PACKAGE = "mcmc")
+    )
+
+    ########## REVISED DOWN TO HERE ##########
 
     if (is.null(func2)) {
         foo <- out$batch

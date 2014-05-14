@@ -46,7 +46,7 @@
 
  # find point in the relative interior of the constraint set
  v1 <- vrep1[ , - c(1, 2)]
- x1 <- apply(v1, 2, function(x) qdq(qsum(x), as.character(length(x))))
+ x1 <- apply(v1, 2, function(x) qdq(qsum(x), d2q(length(x))))
  x1
 
  # non-redundant H-representation
@@ -107,15 +107,24 @@
  length(unique(bar.too)) == length(bar.too)
  identical(sort(foo.too), sort(bar.too))
 
- # now where are the nonnegativity constraints?
+ # now where are the nonnegativity constraints?  and which are which?
  # we know where the are in hrep2
- hrep2[nonneg.position, ]
+ nonneg.position
+ nonneg.position.varb <- seq(along = nonneg.position)[nonneg.position != 0]
+ nonneg.position.cons <- nonneg.position[nonneg.position != 0]
+ nonneg.position.varb
+ nonneg.position.cons
+ hrep2[nonneg.position.cons, ]
  # where are they in hrep4?
  idx.ineq <- (1:nrow(hrep2))[! is.equality]
  idx.ineq
- i5 <- match(nonneg.position, idx.ineq)
- i5 <- i5[!is.na(i5)]
+ i5 <- match(nonneg.position.cons, idx.ineq)
+ i5
  amat[i5, ]
+ # this says that variables
+ nonneg.position.varb
+ # correspond to NC constraints numbered
+ i5
  # do we buy this ?????
  # have this many vertices
  nrow(foo)
@@ -138,7 +147,6 @@
  }
  alfred.e.newman <- wtf.too[i5]
  all(sapply(alfred.e.newman, length) == 1)
- all(unlist(alfred.e.newman) ==
-     seq(along = nonneg.position)[nonneg.position > 0])
+ all(unlist(alfred.e.newman) == nonneg.position.varb)
 
 
