@@ -6,8 +6,8 @@
 #include "myutil.h"
 
 // global variables.  Yes, that means we are not cool by some definitions.
-static int d = 0;
-static int p = 0;
+static int dimOC = 0;
+static int dimNC = 0;
 static int ncons = 0;
 static int nvert = 0;
 static int nvertdiff = 0;
@@ -22,127 +22,208 @@ static double *save_mu = NULL;
 static double *save_cholSigma = NULL;
 static double *save_alphaCons = NULL;
 // alias tables for Walker's method of aliases
-static double *p = NULL;
-static double *q = NULL;
-static int *HL = NULL;
+static int walker_n = 0;
+static double *walker_q = NULL;
+static int *walker_j = NULL;
 
-static void transform(double NCstate, double *OCstate) {
-    if (d = 0 || p = 0 || save_origin = NULL || save_basis = NULL)
+static void transform(double *NCstate, double *OCstate) {
+    if (dimOC == 0 || dimNC == 0 || save_origin == NULL || save_basis == NULL)
         error("transform not initialized");
-    for (int i = 0; i < d; i++)
+    for (int i = 0; i < dimOC; i++)
         OCstate[i] = save_origin[i];
-    for (int j = 0, k = 0; j < p; j++)
-        for (int i = 0; i < d; i++, k++)
+    for (int j = 0, k = 0; j < dimNC; j++)
+        for (int i = 0; i < dimOC; i++, k++)
             OCstate[i] += save_basis[k] * NCstate[j];
 }
 
-static double lud(double *NCstate) {
-    if (d = 0 || save_alpha = NULL)
-        error("lud not initialized");
-    double OCstate[d];
+static double ludfun(double *NCstate) {
+    if (dimOC == 0 || save_alpha == NULL)
+        error("ludfun not initialized");
+    double OCstate[dimOC];
     transform(NCstate, OCstate);
-    for (int i = 0; i < d; i++)
+    for (int i = 0; i < dimOC; i++)
         if (OCstate[i] <= 0.0)
             return R_NegInf;
     double result = 0.0;
-    for (int i = 0; i < d; i++)
+    for (int i = 0; i < dimOC; i++)
         result += (save_alpha[i] - 1.0) * log(OCstate[i]);
-    if (R_finite(result))
-        return result;
-    error("log unnormalized density NaN or +Inf");
-    return R_NegInf; // Can't get here, of course; avoid GCC warning
+    if (result == R_PosInf)
+        error("log unnormalized density +Inf");
+    if (R_IsNaN(result))
+        error("log unnormalized density NaN");
+    return result;
 }
 
+static int is_feasible(double *NCstate) {
+    if (ncons == 0 || dimNC == 0 || save_amat == NULL | save_bvec == NULL)
+        error("is_feasible not initialized");
+    double product[ncons];
+    for (int j = 0, k = 0; j < dimNC; j++)
+        for (int i = 0; i < ncons; i++, k++)
+            product[i] += save_amat[k] * NCstate[j];
+    for (int i = 0; i < ncons; i++)
+        if (product[i] > save_bvec[i])
+            return 0;
+    return 1;
+}
 
-// ripped off from src/main/random.c in R 3.1.0
-static void walker_ProbSampleReplace_setup()
+// Walker's method of aliases
+//
+// sources
+//     Devroye (1986).  Non-Uniform Random Variate Generation.  Springer.
+//     Kronmal and Peterson (1979).  American Statistician, 33, 214-216.
+
+static void walker_teardown()
 {
-    if (nvert = 0 | p = 0 || save_vert = NULL)
-        error("walker_ProbSampleReplace_setup not initialized");
-    // following two statements are two instead of one
-    // to force multiplication before division
-    // in C parentheses in expressions do not force order of operations
-    nvertdiff = nvert * (nvert - 1);
-    nvertdiff /= 2;
-    save_vert_diff = Calloc(nvertdiff, double);
-    for (int i = 0, k = 0; i < nvert; i++)
-        for (int j = i + 1; j < nvert; j++, k++)
-            for (int m = 0; m < p; m++)
-                save_vert_diff[k + nvertdiff * m] = save_vert[i + nvert * m]
-                    - save_vert[j + nvert * m];
-    p = Calloc(nvertdiff, double);
-    for (int k = 0; k < nvertdiff; k++) {
-        double sum = 0.0;
-        for (int m = 0; m < p; m++) {
-            double foo = save_vert_diff[k + nvertdiff * m];
-            sum += foo * foo;
-        }
-        p[k] = sqrt(sum);
+    if (walker_n == 0 && walker_q == NULL && walker_j == NULL) {
+        return;
+    } else if (walker_n != 0 && walker_q != NULL && walker_j != NULL) {
+        Free(walker_q);
+        Free(walker_j);
+        walker_j = NULL; 
+        walker_q = NULL; 
+        walker_n = 0;
+        return;
+    } else {
+        error("walker_teardown: bad state");
     }
+}
+
+static void walker_setup(double *p, int n)
+{
+    if (n <= 0)
+        error("walker_setup: n not positive");
+
     double sum = 0.0;
-    for (int k = 0; k < nvertdiff; k++)
-        sum + = p[k];
-    for (int k = 0; k < nvertdiff; k++)
-        p[k] /= sum;
+    for (int i = 0; i < n; i++) {
+        // Rprintf("p[%d] = %f\n", i + 1, p[i]);
+        if (p[i] < 0.0)
+            error("walker_setup: p[%d] < 0.0", i + 1);
+        sum += p[i];
+    }
 
-    // walker_ProbSampleReplace(int n, double *p, int *a, int nans, int *ans)
-    // n is size of population (produces result between 1 and n)
-    // k is size of sample
-    // prob is probability vector (length n)
-    // ans is the vector of samples (length k), but we want just one at a time
-    // nans = k
-    // a is temporary storage (length k) ????
+    if (walker_n == 0 && walker_q == NULL && walker_j == NULL) {
+        walker_n = n;
+        walker_j = Calloc(n, int);
+        walker_q = Calloc(n, double);
+    } else if (walker_n != 0 && walker_q != NULL && walker_j != NULL) {
+        error("walker_setup: alias tables already set up ???");
+    } else {
+        error("walker_setup: bad state");
+    }
 
-    int *H = HL - 1; // is this undefined ???!!!
-    int *L = HL + n;
+    int *smaller = Calloc(n, int);
+    int *greater = Calloc(n, int);
+    int nsmaller = 0;
+    int ngreater = 0;
+
+    for (int i = 0; i < n; i++) {
+        double foo = p[i] / sum * n;
+        walker_q[i] = foo;
+        if (foo < 1.0) {
+            smaller[nsmaller++] = i;
+        } else {
+            greater[ngreater++] = i;
+        }
+    }
+    while (nsmaller > 0 && ngreater > 0) {
+        // Kronmal and Peterson assert that we do not need the test for
+        // ngreater > 0 because greater is always nonempty at the bottom
+        // of the loop, but this assumes infinite precision arithmetic;
+        // can have an index moved from greater to smaller when its q is
+        // >= 1 in infinite-precision arithmetic but < 1 n computer arithmetic
+        // if ngreater == 0 it must be the case that all ilow in smaller have
+        // q[ilow] nearly equal to 1.0, in which case we can consider them
+        // all in greater and quit
+        int ilow = smaller[nsmaller-1];
+        int ihig = greater[ngreater-1];
+        walker_j[ilow] = ihig;
+        walker_q[ihig] -= (1.0 - walker_q[ilow]);
+        if (walker_q[ihig] < 1.0) {
+            ngreater--;
+            smaller[nsmaller-1] = ihig;
+        } else {
+            nsmaller--;
+        }
+    }
+    Free(smaller);
+    Free(greater);
 }
 
-static void
-walker_ProbSampleReplace(int n, double *p, int *a, int nans, int *ans)
+static int walker_rand()
 {
-    double rU;
-    int i, j, k;
-    int *H, *L;
+    if (walker_n == 0 || walker_q == NULL || walker_j == NULL)
+        error("walker_rand: alias tables not properly set up");
 
-    /* Create the alias tables.
-       The idea is that for HL[0] ... L-1 label the entries with q < 1
-       and L ... H[n-1] label those >= 1.
-       By rounding error we could have q[i] < 1. or > 1. for all entries.
-     */
-    H = HL - 1; L = HL + n;
-    for (i = 0; i < n; i++) {
-	q[i] = p[i] * n;
-	if (q[i] < 1.) *++H = i; else *--L = i;
-    }
-    if (H >= HL && L < HL + n) { /* So some q[i] are >= 1 and some < 1 */
-	for (k = 0; k < n - 1; k++) {
-	    i = HL[k];
-	    j = *L;
-	    a[i] = j;
-	    q[j] += q[i] - 1;
-	    if (q[j] < 1.) L++;
-	    if(L >= HL + n) break; /* now all are >= 1 */
-	}
-    }
-    for (i = 0; i < n; i++) q[i] += i;
+    // use runif rather than unif_rand because it guarantees 0 < u < 1
+    double u = runif(0.0, 1.0);
+    int i = u * walker_n;
+    double v = runif(0.0, 1.0);
+    if (v <= walker_q[i])
+        return i;
+    else
+        return walker_j[i];
+}
 
-    /* generate sample */
-    for (i = 0; i < nans; i++) {
-	rU = unif_rand() * n;
-	k = (int) rU;
-	ans[i] = (rU < q[k]) ? k+1 : a[k]+1;
-    }
-    if(n > SMALL) {
-	Free(HL);
-	Free(q);
+// more global variables
+static SEXP outfun_func;
+static SEXP outfun_env;
+static int outfun_result_dimension;
+
+static void outfun_setup(SEXP func, SEXP rho, SEXP state)
+{
+    if (dimNC == 0 || dimOC == 0)
+        error("outfun_setup: not initialized");
+    if (LENGTH(state) != dimNC)
+        error("outfun_setup: state wrong dimension");
+    if (func == R_NilValue) {
+        outfun_func = R_NilValue;
+        outfun_env = R_NilValue;
+        outfun_result_dimension = dimOC;
+    } else if (isFunction(func) && isEnvironment(rho)) {
+        outfun_func = func;
+        outfun_env = rho;
+        outfun_result_dimension = LENGTH(eval(lang2(func, state), rho));
+    } else if (isFunction(func)) {
+        error("out_setup: argument \"rho\" must be environment");
+    } else {
+        error("out_setup: argument \"func\" must be function or NULL");
     }
 }
+
+static void outfun(double *state, double *result)
+{
+    if (isFunction(outfun_func)) {
+        SEXP sexp_state, sexp_result, call, foo;
+        PROTECT(sexp_state = allocVector(REALSXP, dimNC));
+        for (int i = 0; i < dimNC; i++)
+            REAL(sexp_state)[i] = state[i];
+        PROTECT(call = lang2(outfun_func, sexp_state));
+        PROTECT(sexp_result = eval(call, outfun_env));
+        if (! isNumeric(sexp_result))
+            error("outfun: result of function call must be numeric");
+        PROTECT(foo = coerceVector(sexp_result, REALSXP));
+        if (! isAllFinite(foo))
+            error("outfun returned vector with non-finite element");
+        if (LENGTH(foo) != outfun_result_dimension)
+            error("outfun return vector length changed from initial");
+        for (i = 0; i < outfun_result_dimension; i++)
+            result[i] = REAL(foo)[i];
+        UNPROTECT(4);
+    } else if (outfun_func == R_NilValue) {
+        transform(state, result);
+    } else {
+        error("outfun not initialized properly");
+    }
+}
+
+
+    /* REVISED DOWN TO HERE */
 
 void propose(SEXP state, SEXP proposal, SEXP amat, SEXP bvec,
     double *z, double *smax, double *smin, double *u);
 
 
-static int out_setup(SEXP func, SEXP rho, SEXP state);
 
 static void outfun(SEXP state, SEXP buffer);
 
@@ -155,12 +236,12 @@ SEXP condir(SEXP param, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
         error("argument \"param\" must be type double");
     if (! isReal(initial))
         error("argument \"initial\" must be type double");
-    if (! isInteger(nbatch))
-        error("argument \"nbatch\" must be type integer");
-    if (! isInteger(blen))
-        error("argument \"blen\" must be type integer");
-    if (! isInteger(nspac))
-        error("argument \"nspac\" must be type integer");
+    if (! IS_SCALAR(nbatch, INTSXP))
+        error("argument \"nbatch\" must be scalar integer");
+    if (! IS_SCALAR(blen, INTSXP))
+        error("argument \"blen\" must be scalar integer");
+    if (! IS_SCALAR(nspac, INTSXP))
+        error("argument \"nspac\" must be scalar integer");
     if (! isReal(origin))
         error("argument \"origin\" must be type double");
     if (! isReal(basis))
@@ -183,16 +264,16 @@ SEXP condir(SEXP param, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
         error("argument \"func2\" must be function or NULL");
     if (! (isEnvironment(rho2) | isNull(rho2)))
         error("argument \"rho2\" must be environment or NULL");
-    if (! isLogical(mydebug))
+    if (! IS_SCALAR(mydebug, LGLSXP))
         error("argument \"mydebug\" must be type logical");
 
     // assign to global variables
-    d = LENGTH(param);
-    p = LENGTH(initial);
+    dimOC = LENGTH(param);
+    dimNC = LENGTH(initial);
 
-    if (p <= 0)
+    if (dimNC <= 0)
         error("length(initial) not positive");
-    if (d <= p)
+    if (dimOC <= dimNC)
         error("must have length(param) > length(initial)");
 
     if (! isMatrix(basis))
@@ -204,11 +285,11 @@ SEXP condir(SEXP param, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
     if (! isMatrix(cholSigma))
         error("argument \"cholSigma\" must be matrix");
 
-    if (LENGTH(origin) != d)
+    if (LENGTH(origin) != dimOC)
         error("must have length(param) = length(origin)");
-    if (nrows(basis) != d)
+    if (nrows(basis) != dimOC)
         error("must have length(param) = nrow(basis)");
-    if (ncols(basis) != p)
+    if (ncols(basis) != dimNC)
         error("must have length(initial) = ncol(basis)");
 
     // assign to global variables
@@ -222,15 +303,15 @@ SEXP condir(SEXP param, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
 
     if (LENGTH(bvec) != ncons)
         error("must have length(bvec) = nrow(amat)");
-    if (ncols(amat) != p)
+    if (ncols(amat) != dimNC)
         error("must have ncol(amat) = ncol(basis)");
-    if (ncols(vert) != p)
+    if (ncols(vert) != dimNC)
         error("must have ncol(vert) = ncol(basis)");
-    if (LENGTH(mu) != p)
+    if (LENGTH(mu) != dimNC)
         error("must have length(mu) = ncol(basis)");
-    if (nrows(cholSigma) != p)
+    if (nrows(cholSigma) != dimNC)
         error("must have nrow(cholSigma) = ncol(basis)");
-    if (ncols(cholSigma) != p)
+    if (ncols(cholSigma) != dimNC)
         error("must have ncol(cholSigma) = ncol(basis)");
     if (LENGTH(alphaCons) != ncons)
         error("must have length(alphaCons) = nrow(amat)");
@@ -260,6 +341,19 @@ SEXP condir(SEXP param, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
     if (! isAllFinite(mixprob))
         error("all elements of \"mixprob\" must be finite");
 
+    int_nbatch = INTEGER(nbatch)[0];
+    int_blen = INTEGER(blen)[0];
+    int_nspac = INTEGER(nspac)[0];
+    int_debug = LOGICAL(mydebug)[0];
+
+    if (int_nbatch <= 0)
+        error("argument \"nbatch\" must be positive");
+    if (int_blen <= 0)
+        error("argument \"blen\" must be positive");
+    if (int_nspac <= 0)
+        error("argument \"nspac\" must be positive");
+
+    // assign to global variables
     save_alpha = REAL(param);
     save_origin = REAL(origin);
     save_basis = REAL(basis);
@@ -270,69 +364,48 @@ SEXP condir(SEXP param, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
     save_cholSigma = REAL(cholSigma);
     save_alphaCons = REAL(alphaCons);
 
-    // still to do
-    // check all(param > 0)
-    // check all(amat %*% initial <= bvec)
-    // check all(origin + basis %*% initial > 0)
-    // length(nbatch) == 1 && nbatch > 0
-    // length(blen) == 1 && blen > 0
-    // length(nspac) == 1 && nspac > 0
-    // all(mixprob > 0)
-    // sum(mixprob) == 1
+    for (int i = 0; i < dimOC; i++)
+        if (save_alpha[i] <= 0)
+            error("param not all strictly positive");
 
+    double *double_mixprob = REAL(mixprob);
+    for (int i = 0; i < 3; i++)
+        if (double_mixprob[i] < 0.0)
+            error("mixprob not all nonnegative");
+    {
+        double sum == 0;
+        for (int i = 0; i < 3; i++)
+            sum += double_mixprob[i];
+        if (fabs(sum - 1.0) > 1e-14)
+            error("mixprob does not sum to one");
+    }
+    // Warning: if we ever allow other than length 3 for mixprob this is FUBAR
+    double cumsum_mixprob[3];
+    cumsum_mixprob[0] = double_mixprob[0];
+    cumsum_mixprob[1] = double_mixprob[1] + cumsum_mixprob[9];
+    cumsum_mixprob[2] = 1.0;
 
+    if (! is_feasible(REAL(initial)))
+        stop("initial does not satisfy constraints");
+    double current_log_dens = ludfun(REAL(initial));
+    if (! R_finite(current_log_dens))
+        stop("ludfun(initial) infinite or NaN");
+
+    double state[dimNC];
+    double proposal[dimNC];
+    for (int i = 0; i < dimNC; i++)
+        state[i] = REAL(initial)[i];
 
     /* REVISED DOWN TO HERE */
 
-    int int_nbatch, int_blen, int_nspac, int_debug;
-    SEXP state, proposal;
-    int dim_state, dim_out;
+    int dim_out;
     SEXP result, resultnames, path, save_initial, save_final;
     double *batch_buffer;
     SEXP out_buffer;
 
-    double current_log_dens;
 
-    if (! isFunction(func1))
-        error("argument \"func1\" must be function");
-    if (! isEnvironment(rho1))
-        error("argument \"rho1\" must be environment");
 
-    if (! isNumeric(initial))
-        error("argument \"initial\" must be numeric");
-    if (! isNumeric(nbatch))
-        error("argument \"nbatch\" must be numeric");
-    if (! isNumeric(blen))
-        error("argument \"blen\" must be numeric");
-    if (! isNumeric(nspac))
-        error("argument \"nspac\" must be numeric");
-    if (! isNumeric(amat))
-        error("argument \"amat\" must be numeric");
-    if (! isNumeric(bvec))
-        error("argument \"bvec\" must be numeric");
 
-    if (! isLogical(debug))
-        error("argument \"debug\" must be logical");
-
-    int_nbatch = getScalarInteger(nbatch, "nbatch");
-    int_blen = getScalarInteger(blen, "blen");
-    int_nspac = getScalarInteger(nspac, "nspac");
-
-    int_debug = getScalarLogical(debug, "debug");
-
-    if (int_nbatch <= 0)
-        error("argument \"nbatch\" must be positive");
-    if (int_blen <= 0)
-        error("argument \"blen\" must be positive");
-    if (int_nspac <= 0)
-        error("argument \"nspac\" must be positive");
-
-    PROTECT(state = coerceVector(duplicate(initial), REALSXP));
-    if (! isAllFinite(state))
-        error("all elements of \"state\" must be finite");
-    dim_state = LENGTH(state);
-
-    PROTECT(proposal = allocVector(REALSXP, dim_state));
 
     dim_out = out_setup(func2, rho2, state);
     batch_buffer = (double *) R_alloc(dim_out, sizeof(double));
@@ -547,78 +620,5 @@ void propose(SEXP state, SEXP proposal, SEXP amat, SEXP bvec,
     *smax_out = smax;
     *smin_out = smin;
     *u_out = u;
-}
-
-static SEXP out_func;
-static SEXP out_env;
-static int out_option;
-static int out_dimension;
-static int out_state_dimension;
-#define OUT_FUNCTION   1
-#define OUT_INDEX      2
-#define OUT_IDENTITY   3
-
-static int out_setup(SEXP func, SEXP rho, SEXP state)
-{
-    out_state_dimension = LENGTH(state);
-
-    if (func == R_NilValue) {
-        out_option = OUT_IDENTITY;
-        out_dimension = out_state_dimension;
-        out_func = R_NilValue;
-        out_env = R_NilValue;
-    } else if (isFunction(func)) {
-        if (! isEnvironment(rho))
-            error("out_setup: argument \"rho\" must be environment");
-        out_option = OUT_FUNCTION;
-        out_func = func;
-        out_env = rho;
-        out_dimension = LENGTH(eval(lang2(func, state), rho));
-    } else {
-        error("out_setup: argument \"func\" must be function or NULL");
-    }
-    return out_dimension;
-}
-
-static void outfun(SEXP state, SEXP buffer)
-{
-    int j, k;
-
-    if (out_option == 0)
-        error("attempt to call outfun without setup");
-
-    if (LENGTH(state) != out_state_dimension)
-        error("outfun: state length different from initialization");
-    if (! isReal(buffer))
-        error("outfun: buffer must be real");
-    if (LENGTH(buffer) != out_dimension)
-        error("outfun: buffer length different from initialization");
-
-    switch (out_option) {
-        case OUT_IDENTITY:
-            for (j = 0; j < out_state_dimension; j++)
-                REAL(buffer)[j] = REAL(state)[j];
-            break;
-        case OUT_FUNCTION:
-            {
-                SEXP call, result, foo;
-
-                PROTECT(call = lang2(out_func, state));
-                PROTECT(result = eval(call, out_env));
-                if (! isNumeric(result))
-                    error("outfun: result of function call must be numeric");
-                PROTECT(foo = coerceVector(result, REALSXP));
-                if (! isAllFinite(foo))
-                    error("outfun returned vector with non-finite element");
-                if (LENGTH(foo) != out_dimension)
-                    error("outfun return vector length changed from initial");
-                for (k = 0; k < out_dimension; k++)
-                    REAL(buffer)[k] = REAL(foo)[k];
-                UNPROTECT(3);
-            }
-            break;
-        default:
-            error("bogus out option\n");
-    }
 }
 
