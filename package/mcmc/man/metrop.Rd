@@ -58,7 +58,7 @@ function always simulates a reversible, Harris ergodic Markov chain having
 the equilibrium distribution with this log unnormalized density.
 The chain is not guaranteed to be geometrically ergodic.  In fact it cannot
 be geometrically ergodic if the tails of the log unnormalized density are
-suficiently heavy.  The \code{\link{morph.metrop}} function deals with this
+sufficiently heavy.  The \code{\link{morph.metrop}} function deals with this
 situation.
 }
 \value{

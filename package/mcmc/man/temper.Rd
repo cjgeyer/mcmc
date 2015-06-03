@@ -20,7 +20,7 @@ temper(obj, initial, neighbors, nbatch, blen = 1, nspac = 1, scale = 1,
 }
 \arguments{
   \item{obj}{either an \R function or an object of class \code{"tempering"} from
-    a previous run.  If a function, should evalutate the log unnormalized
+    a previous run.  If a function, should evaluate the log unnormalized
     density \eqn{\log h(i, x)}{log h(i, x)} of the desired equilibrium
     distribution of the Markov chain for serial tempering (the same function
     is used for both serial and parallel tempering, see details below for
@@ -31,7 +31,7 @@ temper(obj, initial, neighbors, nbatch, blen = 1, nspac = 1, scale = 1,
     state for simulated tempering \eqn{(i, x)} is supplied as an \R vector
     \code{c(i, x)}; other arguments are arbitrary and taken from
     the \code{\dots} arguments of \code{temper}.  The log unnormalized density
-    functon should return \code{-Inf} for points of the state space having
+    function should return \code{-Inf} for points of the state space having
     probability zero.}
   \item{initial}{for serial tempering, a real vector \code{c(i, x)} as
     described above.  For parallel tempering, a real
@@ -110,7 +110,7 @@ at random between 1 and \eqn{k}, then an index \eqn{j} is chosen
 uniformly at random such that \code{neighbors[i, j] == TRUE}.  It then does
 does a Metropolis-Hastings update for swapping the states of the
 two components: interchanging \eqn{x_i}{x[i, ]} and \eqn{x_j}{x[j, ]}
-while perserving \eqn{h(x_1, \ldots, x_k)}{h(x[1], \dots, x[k])}.
+while preserving \eqn{h(x_1, \ldots, x_k)}{h(x[1], \dots, x[k])}.
 
 The initial state must satisfy \code{lud(initial, ...) > - Inf} for serial
 tempering or must satisfy \code{lud(initial[i, ], ...) > - Inf} for each
