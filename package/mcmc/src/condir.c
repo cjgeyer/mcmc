@@ -94,7 +94,7 @@ static void walker_setup(double *p, int n)
     if (n <= 0)
         error("walker_setup: n not positive");
 
-    double sum = 0.0;
+    register long double sum = 0.0;
     for (int i = 0; i < n; i++) {
         // Rprintf("p[%d] = %f\n", i + 1, p[i]);
         if (p[i] < 0.0)
@@ -104,6 +104,9 @@ static void walker_setup(double *p, int n)
 
     if (walker_n == 0 && walker_q == NULL && walker_j == NULL) {
         walker_n = n;
+        // important that calloc is used here because it guarantees that
+        // j is intialized to the vector of zeroes, which are valid indices
+        // so components of j that are never changed are still valid indices
         walker_j = Calloc(n, int);
         walker_q = Calloc(n, double);
     } else if (walker_n != 0 && walker_q != NULL && walker_j != NULL) {
@@ -382,7 +385,7 @@ SEXP condir(SEXP param, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
     // Warning: if we ever allow other than length 3 for mixprob this is FUBAR
     double cumsum_mixprob[3];
     cumsum_mixprob[0] = double_mixprob[0];
-    cumsum_mixprob[1] = double_mixprob[1] + cumsum_mixprob[9];
+    cumsum_mixprob[1] = double_mixprob[1] + cumsum_mixprob[0];
     cumsum_mixprob[2] = 1.0;
 
     if (! is_feasible(REAL(initial)))
@@ -397,6 +400,11 @@ SEXP condir(SEXP param, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
         state[i] = REAL(initial)[i];
 
     /* REVISED DOWN TO HERE */
+
+    // todo
+    // setup outfun
+    // setup differences of pairs of vertices matrix
+    // setup differences of pairs of vertices matrix
 
     int dim_out;
     SEXP result, resultnames, path, save_initial, save_final;

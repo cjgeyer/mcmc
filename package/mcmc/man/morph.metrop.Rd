@@ -53,7 +53,7 @@ morph.metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1,
   supplied log unnormalized density, \eqn{\log f_X}{log fX}.
   \code{morph.metrop} runs a Metropolis algorithm for \eqn{\log f_Y}{log
   fY} and transforms the resulting Markov chain into a Markov chain for
-  \eqn{f_X}{fX}.  The user accesible output components are the same as
+  \eqn{f_X}{fX}.  The user accessible output components are the same as
   those that come from \code{\link{metrop}}, see the documentation for
   \code{\link{metrop}} for details.
 
@@ -112,7 +112,7 @@ morph.metrop(obj, initial, nbatch, blen = 1, nspac = 1, scale = 1,
   returned by \code{\link{metrop}}, plus at least the following
   components:
   \item{morph}{the morph object used for the transformations.}
-  \item{morph.final}{the final state of the markov chain on the
+  \item{morph.final}{the final state of the Markov chain on the
     transformed scale.}
 }
 \examples{

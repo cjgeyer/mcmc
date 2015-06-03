@@ -118,8 +118,6 @@ condir.default <- function(obj, nbatch, blen = 1, nspac = 1,
         b2 <- 1
     }
 
-    # outfun gets checked later on
-
     stopifnot(is.numeric(mixprob))
     stopifnot(is.finite(mixprob))
     stopifnot(is.vector(mixprob))
@@ -130,6 +128,8 @@ condir.default <- function(obj, nbatch, blen = 1, nspac = 1,
 
     stopifnot(is.logical(debug))
     stopifnot(length(debug) == 1)
+
+    # outfun gets checked later on
 
     hrep1 <- rbind(cbind(0, b1, - a1), cbind(1, b2, - a2))
     dimnames(hrep1) <- NULL
