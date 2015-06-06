@@ -8,6 +8,12 @@ Maintainer: Charles J. Geyer <charlie@stat.umn.edu>
 Depends: R (>= 2.10.0)
 Suggests: xtable, Iso
 ByteCompile: TRUE
-Description: functions for Markov chain Monte Carlo (MCMC).
+Description: Simulates continuous distributions of random vectors using
+    Markov chain Monte Carlo (MCMC).  Users specify the distribution by an
+    R function that evaluates the log unnormalized density.  Algorithms
+    are random walk Metropolis algorithm (function metrop), simulated
+    tempering (function temper), and morphometric random walk Metropolis
+    (Johnson and Geyer, Annals of Statistics, 2012, function morph.metrop),
+    which achieves geometric ergodicity by change of variable.
 License: MIT + file LICENSE
 URL: http://www.stat.umn.edu/geyer/mcmc/
