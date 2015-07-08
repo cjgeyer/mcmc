@@ -6,6 +6,8 @@
  RNGkind("Marsaglia-Multicarry")
  set.seed(42)
 
+ options(digits = 3)
+
  n <- 100
  rho <- 0.5
  beta0 <- 0.25

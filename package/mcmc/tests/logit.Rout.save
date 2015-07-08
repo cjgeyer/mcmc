@@ -1,7 +1,7 @@
 
-R version 3.0.3 (2014-03-06) -- "Warm Puppy"
-Copyright (C) 2014 The R Foundation for Statistical Computing
-Platform: x86_64-unknown-linux-gnu (64-bit)
+R version 3.2.1 (2015-06-18) -- "World-Famous Astronaut"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -23,6 +23,8 @@ Type 'q()' to quit R.
 >  RNGkind("Marsaglia-Multicarry")
 >  set.seed(42)
 > 
+>  options(digits = 3)
+> 
 >  n <- 100
 >  rho <- 0.5
 >  beta0 <- 0.25
@@ -42,14 +44,14 @@ Call:
 glm(formula = y ~ x1 + x2, family = binomial())
 
 Deviance Residuals: 
-    Min       1Q   Median       3Q      Max  
--2.0636  -0.8205  -0.2457   0.8401   2.0699  
+   Min      1Q  Median      3Q     Max  
+-2.064  -0.821  -0.246   0.840   2.070  
 
 Coefficients:
             Estimate Std. Error z value Pr(>|z|)    
-(Intercept)  0.05986    0.24773   0.242 0.809046    
-x1           1.36824    0.38443   3.559 0.000372 ***
-x2           0.47601    0.31346   1.519 0.128864    
+(Intercept)   0.0599     0.2477    0.24  0.80905    
+x1            1.3682     0.3844    3.56  0.00037 ***
+x2            0.4760     0.3135    1.52  0.12886    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -57,7 +59,7 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
     Null deviance: 138.469  on 99  degrees of freedom
 Residual deviance:  99.293  on 97  degrees of freedom
-AIC: 105.29
+AIC: 105.3
 
 Number of Fisher Scoring iterations: 5
 
@@ -75,11 +77,11 @@ Number of Fisher Scoring iterations: 5
 >  out.nlm <- nlm(mlogl, coefficients(out), print.level = 2)
 iteration = 0
 Parameter:
-[1] 0.0598649 1.3682403 0.4760133
+[1] 0.0599 1.3682 0.4760
 Function Value
-[1] 49.64659
+[1] 49.6
 Gradient:
-[1] 8.235190e-06 5.499507e-06 6.082246e-06
+[1] 8.24e-06 5.50e-06 6.08e-06
 
 Relative gradient close to zero.
 Current iterate is probably solution.
@@ -108,17 +110,17 @@ Current iterate is probably solution.
 [1] 0.264
 > 
 >  apply(out.metro$batch, 2, mean)
-[1] 0.06080257 1.42304941 0.52634149
+[1] 0.0608 1.4230 0.5263
 >  var(out.metro$batch)
-            [,1]        [,2]        [,3]
-[1,]  0.06754522 -0.01079896  0.00989332
-[2,] -0.01079896  0.17579797 -0.06154632
-[3,]  0.00989332 -0.06154632  0.10482635
+         [,1]    [,2]     [,3]
+[1,]  0.06755 -0.0108  0.00989
+[2,] -0.01080  0.1758 -0.06155
+[3,]  0.00989 -0.0615  0.10483
 >  olbm(out.metro$batch, 25)
-              [,1]          [,2]          [,3]
-[1,]  4.538950e-04  0.0000947124 -1.922817e-05
-[2,]  9.471240e-05  0.0018397601 -6.447016e-04
-[3,] -1.922817e-05 -0.0006447016  9.088569e-04
+          [,1]      [,2]      [,3]
+[1,]  4.54e-04  9.47e-05 -1.92e-05
+[2,]  9.47e-05  1.84e-03 -6.45e-04
+[3,] -1.92e-05 -6.45e-04  9.09e-04
 > 
 >  saveseed <- .Random.seed
 >  out.metro <- metrop(logl, as.numeric(coefficients(out)), 1e2,
@@ -174,4 +176,4 @@ Current iterate is probably solution.
 > 
 > proc.time()
    user  system elapsed 
-  0.306   0.034   0.343 
+  0.532   0.028   0.551 

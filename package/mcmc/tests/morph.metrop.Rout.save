@@ -1,8 +1,7 @@
 
-R version 2.13.1 (2011-07-08)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: x86_64-pc-linux-gnu (64-bit)
+R version 3.2.1 (2015-06-18) -- "World-Famous Astronaut"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -22,7 +21,7 @@ Type 'q()' to quit R.
 > 
 > ###########################################################################
 > # basic functionality check, can morph.metro run?  Can we change the
-> # transformation.
+> # transformation?
 > set.seed(42)
 > obj <- morph.metrop(function(x) dt(x, df=3, log=TRUE),
 +                     100, 100, morph=morph(b=3))
@@ -44,13 +43,15 @@ Type 'q()' to quit R.
 > all.equal(class(obj), c("mcmc", "morph.metropolis"))
 [1] TRUE
 > all.equal(sort(names(obj)),
-+           sort(c("final", "morph.final", "outfun")))
-[1] "Lengths (4, 3) differ (string compare on first 3)"
-[2] "2 string mismatches"                              
-> all.equal(c(m$final, m$morph.final), c(m$inverse(10), 10))
-[1] "target is NULL, current is numeric"
++           sort(c("final", "morph", "morph.final", "outfun")))
+[1] TRUE
+> all.equal(c(obj$final, obj$morph.final), c(m$inverse(10), 10))
+[1] TRUE
 > all.equal(obj$outfun, outfun)
 [1] TRUE
 > all.equal(obj$morph, m)
 [1] TRUE
 > 
+> proc.time()
+   user  system elapsed 
+  0.384   0.024   0.401 

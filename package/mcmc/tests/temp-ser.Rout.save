@@ -1,8 +1,7 @@
 
-R version 2.13.1 (2011-07-08)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: x86_64-pc-linux-gnu (64-bit)
+R version 3.2.1 (2015-06-18) -- "World-Famous Astronaut"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -41,7 +40,7 @@ x1            0.3362     0.4256   0.790 0.429672
 x2            0.8475     0.4701   1.803 0.071394 .  
 x3            1.5143     0.4426   3.422 0.000622 ***
 ---
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
@@ -83,7 +82,6 @@ Number of Fisher Scoring iterations: 5
 > 
 >  ludfun <- function(state, log.pseudo.prior, ...) {
 +      stopifnot(is.numeric(state))
-+      stopifnot(length(state) == ncol(models) + 2)
 +      stopifnot(length(state) == ncol(models) + 2)
 +      icomp <- state[1]
 +      stopifnot(icomp == as.integer(icomp))
@@ -219,12 +217,24 @@ Number of Fisher Scoring iterations: 5
 > 
 >  ### check batch means
 > 
->  foo <- after[seq(1, niter) %% out$nspac == 0, ]
+>  my.xstate <- after[ , -1]
+>  foo <- my.xstate[seq(1, niter) %% out$nspac == 0, ]
 >  foo <- array(as.vector(foo), dim = c(out$blen, out$nbatch, dim(foo)[2]))
 >  foo <- apply(foo, c(2, 3), mean)
 >  all.equal(foo, out$batch)
-[1] "Attributes: < Component 1: Mean relative difference: 0.2 >"
-[2] "Numeric: lengths (125, 100) differ"                        
+[1] TRUE
+> 
+>  ### check ibatch means
+> 
+>  my.istate <- after[ , 1]
+>  my.istate.matrix <- matrix(0, length(my.istate), nrow(models))
+>  for (i in 1:nrow(my.istate.matrix))
++      my.istate.matrix[i, my.istate[i]] <- 1
+>  foo <- my.istate.matrix[seq(1, niter) %% out$nspac == 0, ]
+>  foo <- array(as.vector(foo), dim = c(out$blen, out$nbatch, dim(foo)[2]))
+>  foo <- apply(foo, c(2, 3), mean)
+>  all.equal(foo, out$ibatch)
+[1] TRUE
 > 
 >  ### check acceptance rates
 > 
@@ -363,3 +373,6 @@ Number of Fisher Scoring iterations: 5
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  5.196   0.036   5.232 

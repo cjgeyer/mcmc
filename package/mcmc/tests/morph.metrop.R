@@ -4,7 +4,7 @@ library(mcmc)
 
 ###########################################################################
 # basic functionality check, can morph.metro run?  Can we change the
-# transformation.
+# transformation?
 set.seed(42)
 obj <- morph.metrop(function(x) dt(x, df=3, log=TRUE),
                     100, 100, morph=morph(b=3))
@@ -24,7 +24,7 @@ m <- morph(p=3)
 obj <- .morph.unmorph(obj, m, outfun)
 all.equal(class(obj), c("mcmc", "morph.metropolis"))
 all.equal(sort(names(obj)),
-          sort(c("final", "morph.final", "outfun")))
-all.equal(c(m$final, m$morph.final), c(m$inverse(10), 10))
+          sort(c("final", "morph", "morph.final", "outfun")))
+all.equal(c(obj$final, obj$morph.final), c(m$inverse(10), 10))
 all.equal(obj$outfun, outfun)
 all.equal(obj$morph, m)

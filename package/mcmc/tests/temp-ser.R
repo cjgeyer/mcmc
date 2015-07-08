@@ -31,7 +31,6 @@
  ludfun <- function(state, log.pseudo.prior, ...) {
      stopifnot(is.numeric(state))
      stopifnot(length(state) == ncol(models) + 2)
-     stopifnot(length(state) == ncol(models) + 2)
      icomp <- state[1]
      stopifnot(icomp == as.integer(icomp))
      stopifnot(1 <= icomp && icomp <= nrow(models))
@@ -144,10 +143,22 @@
 
  ### check batch means
 
- foo <- after[seq(1, niter) %% out$nspac == 0, ]
+ my.xstate <- after[ , -1]
+ foo <- my.xstate[seq(1, niter) %% out$nspac == 0, ]
  foo <- array(as.vector(foo), dim = c(out$blen, out$nbatch, dim(foo)[2]))
  foo <- apply(foo, c(2, 3), mean)
  all.equal(foo, out$batch)
+
+ ### check ibatch means
+
+ my.istate <- after[ , 1]
+ my.istate.matrix <- matrix(0, length(my.istate), nrow(models))
+ for (i in 1:nrow(my.istate.matrix))
+     my.istate.matrix[i, my.istate[i]] <- 1
+ foo <- my.istate.matrix[seq(1, niter) %% out$nspac == 0, ]
+ foo <- array(as.vector(foo), dim = c(out$blen, out$nbatch, dim(foo)[2]))
+ foo <- apply(foo, c(2, 3), mean)
+ all.equal(foo, out$ibatch)
 
  ### check acceptance rates
 
