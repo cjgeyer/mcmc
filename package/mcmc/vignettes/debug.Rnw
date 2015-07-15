@@ -175,13 +175,15 @@ components
 \end{itemize}
 
 In a within-component update, one component say \texttt{j} is chosen for
-update.  The \emph{coproposal} is the vector passed to the log unnormalized
-density function, which is a vector of length \verb@d + 1@, the first
+update.  The \emph{coproposal} is the current value of the state for this
+component, which is a vector of length \verb@d + 1@, the first
 component of which is \texttt{j} and the rest of which is \verb@state[i, j, ]@
 if we are in iteration \texttt{i}.
 The \emph{proposal} is a similar vector, the first
 component of which is again \texttt{j} and the rest of which is a multivariate
 normal random vector centered at \verb@state[i, j, ]@.
+The coproposal is the current state; the proposal is the possible value
+(if accepted) of the state at the next time.
 
 In a swap update, two components say \texttt{j1} and \texttt{j2} are chosen for
 update.  Strictly, speaking the coproposal is the pair of vectors
