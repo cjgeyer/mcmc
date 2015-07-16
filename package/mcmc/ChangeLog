@@ -67,3 +67,6 @@
 
  0.9-3 move vignettes to vignettes directory
        changed LICENCE file yet again as per CRAN requirements
+
+ 0.9-4 cleaned up some tests
+       import from stats, as required by R-3.3.0

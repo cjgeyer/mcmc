@@ -1,6 +1,6 @@
 Package: mcmc
 Version: 0.9-4
-Date: 2015-07-03
+Date: 2015-07-16
 Title: Markov Chain Monte Carlo
 Author: Charles J. Geyer <charlie@stat.umn.edu> and Leif T. Johnson
      <ltjohnson@google.com>
@@ -17,4 +17,4 @@ Description: Simulates continuous distributions of random vectors using
     (Johnson and Geyer, Annals of Statistics, 2012, function morph.metrop),
     which achieves geometric ergodicity by change of variable.
 License: MIT + file LICENSE
-URL: http://www.stat.umn.edu/geyer/mcmc/
+URL: http://www.stat.umn.edu/geyer/mcmc/, https://github.com/cjgeyer/mcmc
