@@ -70,3 +70,7 @@
 
  0.9-4 cleaned up some tests
        import from stats, as required by R-3.3.0
+
+ 0.9-5 use registration of native routines described in Sections 5.4 and
+       6.15 of Writing R Extensions
+       add calls to cmpfun inside metrop and temper

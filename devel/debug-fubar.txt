@@ -1,0 +1,82 @@
+
+Apparently, some of the debug code in temper is wrong in 0.9-4
+
+From debug.Rnw
+
+When debug = TRUE and parallel = TRUE the output has the following debug
+components
+
+    which
+    unif.which
+    state
+    proposal
+    coproposal
+    log.hastings
+    unif.hastings
+    acceptd
+    norm
+    unif.choose
+
+When debug = TRUE and parallel = FALSE the output has the following debug
+components
+
+    which
+    unif.which
+    state
+    proposal
+    log.hastings
+    unif.hastings
+    acceptd
+    norm
+    unif.choose
+
+gcc -Wall -Wextra complains
+
+temper.c:796:29: warning: ‘debug_unif_choose’ may be used uninitialized ...
+temper.c:795:33: warning: ‘debug_norm’ may be used uninitialized ...
+temper.c:793:29: warning: ‘debug_acceptd’ may be used uninitialized ...
+temper.c:792:29: warning: ‘debug_unif_hastings’ may be used uninitialized ...
+temper.c:791:29: warning: ‘debug_log_hastings’ may be used uninitialized ...
+temper.c:667:33: warning: ‘debug_coproposal’ may be used uninitialized ...
+temper.c:849:17: warning: ‘ibatch’ may be used uninitialized ...
+
+Hmmmm.  ibatch isn't even debug (but is conditional?)
+
+Line 796 is inside if (is_debug) and else /* serial */
+         but we have debug_unif_choose in either case (line 307 or 309)
+         so is not used uninitialized
+Line 795 is inside if (is_debug) and else /* serial */
+         but we have debug_norm in either case (line 300)
+Line 793 is inside if (is_debug) and else /* serial */
+         but we have debug_acceptd in either case (line 294)
+Line 792 is inside if (is_debug) and else /* serial */
+         but we have debug_unif_hastings in either case (line 282)
+Line 791 is inside if (is_debug) and else /* serial */
+         but we have debug_log_hastings in either case (line 276)
+Line 667 is inside if (is_debug) and if (is_parallel)
+         and we do only have debug_coproposal in parallel case,
+         but we do have it this case (line 316)
+Line 849 is inside if (! is_parallel) and is not debug output
+         and it is allocated (when is_parallel is FALSE)
+         in line 249
+
+So none of these are bugs.
+
+Then scan-build (clang static analyzer) complains
+
+metrop.c:180:50: warning: Assigned value is garbage or undefined
+                         REAL(zpath)[lbase + lj] = z[lj];
+                                                 ^ ~~~~~
+temper.c:98:5: warning: Declared variable-length array (VLA) has negative size
+    double current_log_dens[ncomp];
+    ^~~~~~~~~~~~~~~~~~~~~~~ ~~~~~
+
+What about these?
+
+Line 180 of metrop: here z is not garbage.  It was set by propose
+         in line 151 of metrop, see 298-299 in propose
+
+Line 98 of temper: here ncomp is set in line 38 of temper and cannot
+         be negative.
+
+So none of these are bugs.

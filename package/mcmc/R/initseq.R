@@ -1,5 +1,5 @@
 initseq <- function(x) {
     stopifnot(is.numeric(x))
     stopifnot(is.finite(x))
-    .Call("initseq", x - mean(x), PACKAGE = "mcmc")
+    .Call(C_initseq, x - mean(x))
 }

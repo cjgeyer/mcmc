@@ -112,10 +112,63 @@ unnormalized density function and \code{outfun} to have only one argument
 specify any other information these functions need to use.  That too
 follows the R way.  But some people consider that bad programming practice.
 }
+\section{Philosophy of MCMC}{
+This function follows the philosophy of MCMC explained
+the introductory chapter of the
+\emph{Handbook of Markov Chain Monte Carlo} (Geyer, 2011).
+
+This function automatically does batch means in order to reduce
+the size of output and to enable easy calculation of Monte Carlo standard
+errors (MCSE), which measure error due to the Monte Carlo sampling (not
+error due to statistical sampling --- MCSE gets smaller when you run the
+computer longer, but statistical sampling variability only gets smaller
+when you get a larger data set).  All of this is explained in the package
+vignette \code{vignette("demo", "mcmc")} and in Section 1.10 of Geyer (2011).
+
+This function does not apparently
+do \dQuote{burn-in} because this concept does not actually help with MCMC
+(Geyer, 2011, Section 1.11.4) but the re-entrant property of this
+function does allow one to do \dQuote{burn-in} if one wants.
+Assuming \code{ludfun}, \code{start.value}, \code{scale}
+have been already defined
+and are, respectively, an R function coding the log unnormalized density
+of the target distribution, a valid state of the Markov chain,
+and a useful scale factor,
+\preformatted{
+out <- metrop(ludfun, start.value, nbatch = 1, blen = 1e5, scale = scale)
+out <- metrop(out, nbatch = 100, blen = 1000)
+}
+throws away a run of 100 thousand iterations before doing another run of
+100 thousand iterations that is actually useful for analysis, for example,
+\preformatted{
+apply(out$batch, 2, mean)
+apply(out$batch, 2, sd)
+}
+give estimates of posterior means and their MCSE assuming the batch length
+(here 1000) was long enough to contain almost all of the signifcant
+autocorrelation (see Geyer, 2011, Section 1.10, for more on MCSE).
+The re-entrant property of this function (the second run starts
+where the first one stops) assures that this is really \dQuote{burn-in}.
+
+The re-entrant property allows one to do very long runs without having to
+do them in one invocation of this function.
+\preformatted{
+out2 <- metrop(out)
+out3 <- metrop(out2)
+batch <- rbind(out$batch, out2$batch, out3$batch)
+}
+produces a result as if the first run had been three times as long.
+}
 \references{
 Tierney, L. (1994)
 Markov chains for exploring posterior distributions (with discussion).
 \emph{Annals of Statistics} \bold{22} 1701--1762.
+
+Geyer, C. J. (2011)
+Introduction to MCMC.
+In \emph{Handbook of Markov Chain Monte Carlo}. Edited by S. P. Brooks,
+A. E. Gelman, G. L. Jones, and X. L. Meng.
+Chapman & Hall/CRC, Boca Raton, FL, pp. 3--48.
 }
 \seealso{
 \code{\link{morph.metrop}}

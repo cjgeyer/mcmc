@@ -31,14 +31,18 @@ metrop.function <- function(obj, initial, nbatch, blen = 1,
 {
     if (! exists(".Random.seed")) runif(1)
     saveseed <- .Random.seed
+    obj <- cmpfun(obj)
     func1 <- function(state) obj(state, ...)
+    func1 <- cmpfun(func1)
     env1 <- environment(fun = func1)
     if (missing(outfun)) {
         func2 <- NULL
         env2 <- NULL
         outfun <- NULL
     } else if (is.function(outfun)) {
+        outfun <- cmpfun(outfun)
         func2 <- function(state) outfun(state, ...)
+        func2 <- cmpfun(func2)
         env2 <- environment(fun = func2)
     } else {
         func2 <- outfun
@@ -46,8 +50,8 @@ metrop.function <- function(obj, initial, nbatch, blen = 1,
     }
 
     out.time <- system.time(
-    out <- .Call("metrop", func1, initial, nbatch, blen, nspac,
-        scale, func2, debug, env1, env2, PACKAGE = "mcmc")
+    out <- .Call(C_metrop, func1, initial, nbatch, blen, nspac,
+        scale, func2, debug, env1, env2)
     )
     out$initial.seed <- saveseed
     out$final.seed <- .Random.seed

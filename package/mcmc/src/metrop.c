@@ -3,6 +3,7 @@
 #include <Rinternals.h>
 #include <Rmath.h>
 #include "myutil.h"
+#include "mcmc.h"
 
 static void proposal_setup(SEXP scale, int d);
 
@@ -172,8 +173,7 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
                      SEXP upath = VECTOR_ELT(result, 7);
                      SEXP zpath = VECTOR_ELT(result, 8);
                      SEXP apath = VECTOR_ELT(result, 9);
-                     int lj;
-                     for (lj = 0; lj < dim_state; lj++) {
+                     for (int lj = 0; lj < dim_state; lj++) {
                          REAL(spath)[lbase + lj] = REAL(state)[lj];
                          REAL(ppath)[lbase + lj] = REAL(proposal)[lj];
                          REAL(zpath)[lbase + lj] = z[lj];

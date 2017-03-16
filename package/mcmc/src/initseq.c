@@ -2,6 +2,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include "myutil.h"
+#include "mcmc.h"
 
 SEXP initseq(SEXP x)
 {

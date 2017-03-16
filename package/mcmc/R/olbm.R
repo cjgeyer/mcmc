@@ -12,14 +12,14 @@ olbm <- function(x, batch.length, demean = TRUE) {
     	mean <- double(p)
     	no.calc.mean <- FALSE
     }
-    out <- .C("olbm",
+    out <- .C(C_olbm,
     	x=x,
     	n=as.integer(n),
     	p=as.integer(p),
     	batch.length=as.integer(batch.length),
     	mean=as.double(mean),
     	var=matrix(as.double(0), p, p),
-    	no.calc.mean=as.logical(no.calc.mean), PACKAGE = "mcmc")
+    	no.calc.mean=as.logical(no.calc.mean))
     return(out$var)
 }
 

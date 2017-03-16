@@ -35,14 +35,18 @@ temper.function <- function(obj, initial, neighbors, nbatch, blen = 1,
 {
     if (! exists(".Random.seed")) runif(1)
     saveseed <- .Random.seed
+    obj <- cmpfun(obj)
     func1 <- function(state) obj(state, ...)
+    func1 <- cmpfun(func1)
     env1 <- environment(fun = func1)
     if (missing(outfun)) {
         func2 <- NULL
         env2 <- NULL
         outfun <- NULL
     } else if (is.function(outfun)) {
+        outfun <- cmpfun(outfun)
         func2 <- function(state) outfun(state, ...)
+        func2 <- cmpfun(func2)
         env2 <- environment(fun = func2)
     }
 
@@ -60,8 +64,8 @@ temper.function <- function(obj, initial, neighbors, nbatch, blen = 1,
     }
 
     out.time <- system.time(
-    out <- .Call("temper", func1, initial, neighbors, nbatch, blen, nspac,
-        scale, func2, debug, parallel, env1, env2, PACKAGE = "mcmc")
+    out <- .Call(C_temper, func1, initial, neighbors, nbatch, blen, nspac,
+        scale, func2, debug, parallel, env1, env2)
     )
     result <- structure(c(list(lud = obj, initial = initial,
         neighbors = neighbors, nbatch = nbatch, blen = blen, nspac = nspac,

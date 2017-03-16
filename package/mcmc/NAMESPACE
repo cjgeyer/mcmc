@@ -1,5 +1,5 @@
 
-useDynLib(mcmc)
+useDynLib(mcmc, .registration = TRUE, .fixes = "C_")
 
 export(metrop)
 export(morph)
@@ -18,3 +18,4 @@ S3method(temper, tempering)
 S3method(temper, "function")
 
 importFrom(stats, runif)
+importFrom(compiler, cmpfun)

@@ -3,6 +3,7 @@
 #include <Rinternals.h>
 #include <Rmath.h>
 #include "myutil.h"
+#include "mcmc.h"
 
 #ifdef BLEAT
 #include <stdio.h>

@@ -16,7 +16,7 @@
  Gamma[k] < 0
  Gamma[k] <- 0
 
- out <- .Call("initseq", x - mean(x))
+ out <- .Call(mcmc:::C_initseq, x - mean(x))
  names(out)
 
  all.equal(gamma[1], out$gamma0)

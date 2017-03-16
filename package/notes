@@ -1,2 +1,3 @@
-rm -f mcmc/src/*.{o,so,rds}
-R CMD check mcmc
+\rm -f mcmc_*.tar.gz # if there was version change
+R CMD build mcmc
+R CMD check mcmc_*.tar.gz

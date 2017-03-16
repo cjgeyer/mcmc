@@ -1,5 +1,6 @@
 
 #include <R.h>
+#include "mcmc.h"
 
 /* overlapping batch means for vector time series
 *
@@ -18,8 +19,8 @@
 #define X(I,J)    	x[(I) + n * (J)]
 #define VAR(I,J)    var[(I) + p * (J)]
 
-void olbm(double *x, long *nin, long *pin, long *lin, double *mean,
-    double *var, long *nocalcin)
+void olbm(double *x, int *nin, int *pin, int *lin, double *mean,
+    double *var, int *nocalcin)
 {
     int n = nin[0];
     int p = pin[0];

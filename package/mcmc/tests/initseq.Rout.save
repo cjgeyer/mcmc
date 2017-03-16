@@ -1,7 +1,7 @@
 
-R version 3.2.1 (2015-06-18) -- "World-Famous Astronaut"
-Copyright (C) 2015 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 3.3.3 (2017-03-06) -- "Another Canoe"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -34,7 +34,7 @@ Type 'q()' to quit R.
 [1] TRUE
 >  Gamma[k] <- 0
 > 
->  out <- .Call("initseq", x - mean(x))
+>  out <- .Call(mcmc:::C_initseq, x - mean(x))
 >  names(out)
 [1] "gamma0"    "Gamma.pos" "Gamma.dec" "Gamma.con" "var.pos"   "var.dec"  
 [7] "var.con"  
@@ -84,4 +84,4 @@ Iso 0.0-17
 > 
 > proc.time()
    user  system elapsed 
-  3.096   0.048   3.138 
+  0.688   0.016   0.695 
