@@ -162,7 +162,7 @@ throws away a run of 100 thousand iterations before doing another run of
 100 thousand iterations that is actually useful for analysis, for example,
 \preformatted{
 apply(out$batch, 2, mean)
-apply(out$batch, 2, sd)
+apply(out$batch, 2, sd) / sqrt(out$nbatch)
 }
 give estimates of posterior means and their MCSE assuming the batch length
 (here 1000) was long enough to contain almost all of the signifcant
@@ -247,7 +247,7 @@ acf(out$batch[ , 1], lag.max = 250)
 # looks like batch length of 250 is perhaps OK
 out <- metrop(out, blen = 250, nbatch = 100)
 apply(out$batch, 2, mean) # Monte Carlo estimates of means
-apply(out$batch, 2, sd) # Monte Carlo standard errors of above
+apply(out$batch, 2, sd) / sqrt(out$nbatch) # Monte Carlo standard errors
 t.test(out$accept.batch)$conf.int
 acf(out$batch[ , 1]) # appears that blen is long enough
 }

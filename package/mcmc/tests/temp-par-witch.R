@@ -5,6 +5,8 @@
 
  set.seed(42)
 
+ save.initial.seed <- .Random.seed
+
  d <- 3
  witch.which <- 1 - (1 / 2)^(1 / d) * (1 / 4)^(seq(0, 5) / d)
  witch.which
@@ -37,7 +39,7 @@
 
  thetas <- matrix(0, ncomp, d)
  out <- temper(ludfun, initial = thetas, neighbors = neighbors, nbatch = 50,
-     blen = 13, nspac = 7, scale = 0.3456789, parallel = TRUE)
+     blen = 13, nspac = 7, scale = 0.3456789, parallel = TRUE, debug = TRUE)
 
  names(out)
 
@@ -56,17 +58,17 @@
      return(as.numeric(bar))
  }
 
- out <- temper(out, outfun = outfun)
+ out2 <- temper(out, outfun = outfun)
 
- colMeans(out$batch)
- apply(out$batch, 2, sd) / sqrt(out$nbatch)
+ colMeans(out2$batch)
+ apply(out2$batch, 2, sd) / sqrt(out$nbatch)
 
  ### try again
 
- out <- temper(out, blen = 103, outfun = outfun)
+ out3 <- temper(out2, blen = 103)
 
- foo <- cbind(colMeans(out$batch),
-     apply(out$batch, 2, sd) / sqrt(out$nbatch))
+ foo <- cbind(colMeans(out3$batch),
+     apply(out3$batch, 2, sd) / sqrt(out$nbatch))
  colnames(foo) <- c("means", "MCSE")
  foo
 
