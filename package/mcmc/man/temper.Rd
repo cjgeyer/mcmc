@@ -4,42 +4,62 @@
 \alias{temper.tempering}
 \title{Simulated Tempering and Umbrella Sampling}
 \description{
-    Markov chain Monte Carlo for continuous random vectors using parallel
-    or serial simulated tempering, also called umbrella sampling.  For
-    serial tempering the state of the Markov chain is a pair \eqn{(i, x)},
+    Markov chain Monte Carlo (MCMC) for continuous random vectors using
+    parallel or serial tempering, the latter also called umbrella
+    sampling and simulated tempering.
+    The chain simulates \eqn{k} different distributions on the
+    same state space.  In parallel tempering, all the distributions are
+    simulated in each iteration.  In serial tempering, only one of the
+    distributions is simulated (a random one).  In parallel tempering,
+    the state is a \eqn{k \times p}{k by p} matrix, each row of which
+    is the state for one of the distributions.
+    In serial tempering the state of the Markov chain is a pair \eqn{(i, x)},
     where \eqn{i} is an integer between 1 and \eqn{k} and \eqn{x} is a vector
     of length \eqn{p}.  This pair is represented as a single real vector
-    \code{c(i, x)}.  For parallel tempering the state of the Markov chain
-    is vector of vectors \eqn{(x_1, \ldots, x_k)}{(x[1], \ldots, x[k])},
-    where each \code{x} is of length \eqn{p}.  This vector of vectors is
-    represented as a \eqn{k \times p}{k by p} matrix.
+    \code{c(i, x)}.  The variable \eqn{i} says which distribution \eqn{x}
+    is a simulation for.
 }
 \usage{
 temper(obj, initial, neighbors, nbatch, blen = 1, nspac = 1, scale = 1,
     outfun, debug = FALSE, parallel = FALSE, \dots)
+\method{temper}{function}(obj, initial, neighbors, nbatch,
+    blen = 1, nspac = 1, scale = 1,
+    outfun, debug = FALSE, parallel = FALSE, \dots)
+\method{temper}{tempering}(obj, initial, neighbors, nbatch,
+    blen = 1, nspac = 1, scale = 1,
+    outfun, debug = FALSE, parallel = FALSE, \dots)
 }
 \arguments{
-  \item{obj}{either an \R function or an object of class \code{"tempering"} from
-    a previous run.  If a function, should evaluate the log unnormalized
+  \item{obj}{either an \R function or an object of class \code{"tempering"}
+    from a previous run.
+
+    If a function, it should evaluate the log unnormalized
     density \eqn{\log h(i, x)}{log h(i, x)} of the desired equilibrium
     distribution of the Markov chain for serial tempering (the same function
-    is used for both serial and parallel tempering, see details below for
-    further explanation).  If an object, the log unnormalized density function
+    is used for both serial and parallel tempering, see Details below for
+    further explanation).
+
+    If an object of class \code{"tempering"},
+    the log unnormalized density function
     is \code{obj$lud}, and missing arguments of \code{temper} are
     obtained from the corresponding elements of \code{obj}.
+
     The first argument of the log unnormalized density function is the
-    state for simulated tempering \eqn{(i, x)} is supplied as an \R vector
-    \code{c(i, x)}; other arguments are arbitrary and taken from
+    is an \R vector \code{c(i, x)}, where \code{i} says which distribution
+    \code{x} is supposed to be a simulation for.
+    Other arguments are arbitrary and taken from
     the \code{\dots} arguments of \code{temper}.  The log unnormalized density
-    function should return \code{-Inf} for points of the state space having
+    function should return \code{-Inf} in regions of the state space having
     probability zero.}
   \item{initial}{for serial tempering, a real vector \code{c(i, x)} as
     described above.  For parallel tempering, a real
     \eqn{k \times p}{k by p} matrix as described above.  In either case,
-    the initial state of the Markov chain.}
+    the initial state of the Markov chain.
+    Ignored if \code{obj} has class \code{"tempering"}.}
   \item{neighbors}{a logical symmetric matrix of dimension \code{k}
     by \code{k}.  Elements that are \code{TRUE} indicate jumps
-    or swaps attempted by the Markov chain.}
+    or swaps attempted by the Markov chain.
+    Ignored if \code{obj} has class \code{"tempering"}.}
   \item{nbatch}{the number of batches.}
   \item{blen}{the length of batches.}
   \item{nspac}{the spacing of iterations that contribute to batches.}
@@ -64,7 +84,8 @@ temper(obj, initial, neighbors, nbatch, blen = 1, nspac = 1, scale = 1,
       indicating the current component are returned.}
   \item{debug}{if \code{TRUE} extra output useful for testing.}
   \item{parallel}{if \code{TRUE} does parallel tempering, if \code{FALSE} does
-      serial tempering.}
+      serial tempering.
+      Ignored if \code{obj} has class \code{"tempering"}.}
   \item{...}{additional arguments for \code{obj} or \code{outfun}.}
 }
 \details{
@@ -159,12 +180,17 @@ are supplied as additional arguments to \code{temper} and that works too.
 If \code{outfun} is a function, then both it and the log unnormalized
 density function can be defined without \ldots arguments \emph{if they
 have exactly the same arguments list} and that works fine.  Otherwise it
-doesn't work.  Start the definitions \code{ludfun <- function(state, foo)}
-and \code{outfun <- function(state, bar)} and you get an error about
-unused arguments.  Instead start the definitions
-\code{ludfun <- function(state, foo, \ldots)}
-and \code{outfun <- function(state, bar, \ldots)}, supply
-\code{foo} and \code{bar} as additional arguments to \code{temper},
+doesn't work.  Define these functions by
+\preformatted{
+ludfun <- function(state, foo)
+outfun <- function(state, bar)
+}
+and you get an error about unused arguments.  Instead define these functions by
+\preformatted{
+ludfun <- function(state, foo, \ldots)
+outfun <- function(state, bar, \ldots)
+}
+and supply \code{foo} and \code{bar} as additional arguments to \code{metrop},
 and that works fine.
 
 In short, the log unnormalized density function and \code{outfun} need
@@ -173,9 +199,9 @@ when \ldots is left out and sometimes it doesn't.
 
 Of course, one can avoid this whole issue by always defining the log
 unnormalized density function and \code{outfun} to have only one argument
-\code{state} and use global variables (objects in the R global environment) to
+\code{state} and use global variables (objects in the \R global environment) to
 specify any other information these functions need to use.  That too
-follows the R way.  But some people consider that bad programming practice.
+follows the \R way.  But some people consider that bad programming practice.
 }
 \examples{
 d <- 9

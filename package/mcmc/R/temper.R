@@ -6,14 +6,18 @@ UseMethod("temper")
 temper.tempering <- function(obj, initial, neighbors, nbatch, blen = 1,
     nspac = 1, scale = 1, outfun, debug = FALSE, parallel = FALSE, ...)
 {
-    if (missing(initial)) initial <- obj$final
-    if (missing(neighbors)) neighbors <- obj$neighbors
+    # like metrop, ignore initial argument
+    initial <- obj$final
+    # makes no (at least little?) sense to change neighbor structure
+    neighbors <- obj$neighbors
     if (missing(nbatch)) nbatch <- obj$nbatch
     if (missing(blen)) blen <- obj$blen
     if (missing(nspac)) nspac <- obj$nspac
     if (missing(scale)) scale <- obj$scale
     if (missing(debug)) debug <- obj$debug
-    if (missing(parallel)) parallel <- obj$parallel
+    # makes no sense to change from parallel to serial or vice versa
+    # size and shape of state wouldn't even be the same
+    parallel <- obj$parallel
     assign(".Random.seed", obj$final.seed, .GlobalEnv)
     if (missing(outfun)) {
         if (is.null(obj$outfun)) {
