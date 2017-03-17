@@ -1,0 +1,49 @@
+
+R version 3.3.3 (2017-03-06) -- "Another Canoe"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+> # new feature batching acceptance rates
+> 
+>  set.seed(42)
+> 
+>  library(mcmc)
+> 
+>  h <- function(x) if (all(x >= 0) && sum(x) <= 1) return(1) else return(-Inf)
+>  out <- metrop(h, rep(0, 5), nbatch = 100, blen = 100, scale = 0.1,
++      debug = TRUE)
+> 
+>  all.equal(out$accept, mean(out$accept.batch))
+[1] TRUE
+> 
+>  foo <- matrix(out$debug.accept, nrow = out$blen)
+>  bar <- colMeans(foo)
+>  all.equal(out$accept.batch, bar)
+[1] TRUE
+> 
+>  options(digits = 4) # try to keep insanity of computer arithmetic under control
+> 
+>  out$accept
+[1] 0.2257
+>  t.test(out$accept.batch)$conf.int
+[1] 0.2124 0.2390
+attr(,"conf.level")
+[1] 0.95
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  0.168   0.020   0.184 

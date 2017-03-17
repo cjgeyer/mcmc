@@ -22,12 +22,10 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
     SEXP state, proposal;
     int dim_state, dim_out;
     SEXP result, resultnames, acceptance_rate, path,
-        save_initial, save_final;
+        save_initial, save_final, acceptance_rate_batches;
     double *batch_buffer;
     SEXP out_buffer;
-    int ibatch, jbatch, ispac;
 
-    int i, k;
     double acceptances = 0.0;
     double tries = 0.0;
 
@@ -78,11 +76,11 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
     PROTECT(out_buffer = allocVector(REALSXP, dim_out));
 
      if (! int_debug) {
-         PROTECT(result = allocVector(VECSXP, 4));
-         PROTECT(resultnames = allocVector(STRSXP, 4));
+         PROTECT(result = allocVector(VECSXP, 5));
+         PROTECT(resultnames = allocVector(STRSXP, 5));
      } else {
-         PROTECT(result = allocVector(VECSXP, 10));
-         PROTECT(resultnames = allocVector(STRSXP, 10));
+         PROTECT(result = allocVector(VECSXP, 11));
+         PROTECT(resultnames = allocVector(STRSXP, 11));
      }
      PROTECT(acceptance_rate = allocVector(REALSXP, 1));
      SET_VECTOR_ELT(result, 0, acceptance_rate);
@@ -90,33 +88,39 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
      SET_VECTOR_ELT(result, 1, path);
      PROTECT(save_initial = duplicate(state));
      SET_VECTOR_ELT(result, 2, save_initial);
-     UNPROTECT(3);
+     /* cannot set final yet because we haven't got it yet
+        (final value at end of run).
+        See third to last statement of this function. */
+     PROTECT(acceptance_rate_batches = allocVector(REALSXP, int_nbatch));
+     SET_VECTOR_ELT(result, 4, acceptance_rate_batches);
+     UNPROTECT(4);
      SET_STRING_ELT(resultnames, 0, mkChar("accept"));
      SET_STRING_ELT(resultnames, 1, mkChar("batch"));
      SET_STRING_ELT(resultnames, 2, mkChar("initial"));
      SET_STRING_ELT(resultnames, 3, mkChar("final"));
+     SET_STRING_ELT(resultnames, 4, mkChar("accept.batch"));
      if (int_debug) {
          SEXP spath, ppath, gpath, upath, zpath, apath;
          int nn = int_nbatch * int_blen * int_nspac;
          PROTECT(spath = allocMatrix(REALSXP, dim_state, nn));
-         SET_VECTOR_ELT(result, 4, spath);
+         SET_VECTOR_ELT(result, 5, spath);
          PROTECT(ppath = allocMatrix(REALSXP, dim_state, nn));
-         SET_VECTOR_ELT(result, 5, ppath);
+         SET_VECTOR_ELT(result, 6, ppath);
          PROTECT(gpath = allocVector(REALSXP, nn));
-         SET_VECTOR_ELT(result, 6, gpath);
+         SET_VECTOR_ELT(result, 7, gpath);
          PROTECT(upath = allocVector(REALSXP, nn));
-         SET_VECTOR_ELT(result, 7, upath);
+         SET_VECTOR_ELT(result, 8, upath);
          PROTECT(zpath = allocMatrix(REALSXP, dim_state, nn));
-         SET_VECTOR_ELT(result, 8, zpath);
+         SET_VECTOR_ELT(result, 9, zpath);
          PROTECT(apath = allocVector(LGLSXP, nn));
-         SET_VECTOR_ELT(result, 9, apath);
+         SET_VECTOR_ELT(result, 10, apath);
          UNPROTECT(6);
-         SET_STRING_ELT(resultnames, 4, mkChar("current"));
-         SET_STRING_ELT(resultnames, 5, mkChar("proposal"));
-         SET_STRING_ELT(resultnames, 6, mkChar("log.green"));
-         SET_STRING_ELT(resultnames, 7, mkChar("u"));
-         SET_STRING_ELT(resultnames, 8, mkChar("z"));
-         SET_STRING_ELT(resultnames, 9, mkChar("debug.accept"));
+         SET_STRING_ELT(resultnames, 5, mkChar("current"));
+         SET_STRING_ELT(resultnames, 6, mkChar("proposal"));
+         SET_STRING_ELT(resultnames, 7, mkChar("log.green"));
+         SET_STRING_ELT(resultnames, 8, mkChar("u"));
+         SET_STRING_ELT(resultnames, 9, mkChar("z"));
+         SET_STRING_ELT(resultnames, 10, mkChar("debug.accept"));
      }
      namesgets(result, resultnames);
      UNPROTECT(1);
@@ -127,18 +131,19 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
      if (current_log_dens == R_NegInf)
          error("log unnormalized density -Inf at initial state");
 
-     for (ibatch = 0, k = 0; ibatch < int_nbatch; ibatch++) {
+     for (int ibatch = 0, k = 0; ibatch < int_nbatch; ibatch++) {
 
-         int j;
+         double acceptances_this_batch = 0.0;
+         double tries_this_batch = 0.0;
 
-         for (i = 0; i < dim_out; i++)
+         for (int i = 0; i < dim_out; i++)
              batch_buffer[i] = 0.0;
 
-         for (jbatch = 0; jbatch < int_blen; jbatch++) {
+         for (int jbatch = 0; jbatch < int_blen; jbatch++) {
 
              double proposal_log_dens;
 
-             for (ispac = 0; ispac < int_nspac; ispac++) {
+             for (int ispac = 0; ispac < int_nspac; ispac++) {
 
                  int accept;
                  double u = -1.0; /* impossible return from unif_rand() */
@@ -167,12 +172,12 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
                  if (int_debug) {
                      int l = ispac + int_nspac * (jbatch + int_blen * ibatch);
                      int lbase = l * dim_state;
-                     SEXP spath = VECTOR_ELT(result, 4);
-                     SEXP ppath = VECTOR_ELT(result, 5);
-                     SEXP gpath = VECTOR_ELT(result, 6);
-                     SEXP upath = VECTOR_ELT(result, 7);
-                     SEXP zpath = VECTOR_ELT(result, 8);
-                     SEXP apath = VECTOR_ELT(result, 9);
+                     SEXP spath = VECTOR_ELT(result, 5);
+                     SEXP ppath = VECTOR_ELT(result, 6);
+                     SEXP gpath = VECTOR_ELT(result, 7);
+                     SEXP upath = VECTOR_ELT(result, 8);
+                     SEXP zpath = VECTOR_ELT(result, 9);
+                     SEXP apath = VECTOR_ELT(result, 10);
                      for (int lj = 0; lj < dim_state; lj++) {
                          REAL(spath)[lbase + lj] = REAL(state)[lj];
                          REAL(ppath)[lbase + lj] = REAL(proposal)[lj];
@@ -187,23 +192,27 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
                  }
 
                  if (accept) {
-                     int jj;
-                     for (jj = 0; jj < dim_state; jj++)
+                     for (int jj = 0; jj < dim_state; jj++)
                          REAL(state)[jj] = REAL(proposal)[jj];
                      current_log_dens = proposal_log_dens;
                      acceptances++;
+                     acceptances_this_batch++;
                  }
                  tries++;
+                 tries_this_batch++;
              } /* end of inner loop (one iteration) */
 
              outfun(state, out_buffer);
-             for (j = 0; j < dim_out; j++)
+             for (int j = 0; j < dim_out; j++)
                  batch_buffer[j] += REAL(out_buffer)[j];
 
          } /* end of middle loop (one batch) */
 
-         for (j = 0; j < dim_out; j++, k++)
+         for (int j = 0; j < dim_out; j++, k++)
              REAL(path)[k] = batch_buffer[j] / int_blen;
+
+         REAL(acceptance_rate_batches)[ibatch] =
+             acceptances_this_batch / tries_this_batch;
 
      } /* end of outer loop */
 
@@ -259,9 +268,8 @@ static void proposal_setup(SEXP scale, int d)
         SEXP bar;
         PROTECT(bar = getAttrib(scale, R_DimSymbol));
         if (INTEGER(bar)[0] == d && INTEGER(bar)[1] == d) {
-            int i;
             scale_factor = (double *) R_alloc(d * d, sizeof(double));
-            for (i = 0; i < d * d; i++)
+            for (int i = 0; i < d * d; i++)
                 scale_factor[i] = REAL(foo)[i];
             scale_option = FULL;
         } else {
@@ -269,9 +277,8 @@ static void proposal_setup(SEXP scale, int d)
         }
         UNPROTECT(1);
     } else if (LENGTH(foo) == d) {
-        int i;
         scale_factor = (double *) R_alloc(d, sizeof(double));
-        for (i = 0; i < d; i++)
+        for (int i = 0; i < d; i++)
             scale_factor[i] = REAL(foo)[i];
         scale_option = DIAGONAL;
     } else if (LENGTH(foo) == 1) {
@@ -287,7 +294,6 @@ static void proposal_setup(SEXP scale, int d)
 static void propose(SEXP state, SEXP proposal, double *z)
 {
     int d = state_dimension;
-    int i, j, k;
 
     if (scale_option == 0)
         error("attempt to call propose without setup");
@@ -295,27 +301,27 @@ static void propose(SEXP state, SEXP proposal, double *z)
     if (LENGTH(state) != d || LENGTH(proposal) != d)
         error("State or proposal length different from initialization\n");
 
-    for (j = 0; j < d; j++)
+    for (int j = 0; j < d; j++)
         z[j] = norm_rand();
 
     switch (scale_option) {
         case CONSTANT:
-            for (j = 0; j < d; j++)
+            for (int j = 0; j < d; j++)
                 REAL(proposal)[j] = REAL(state)[j]
                     + scale_factor[0] * z[j];
             break;
         case DIAGONAL:
-            for (j = 0; j < d; j++)
+            for (int j = 0; j < d; j++)
                 REAL(proposal)[j] = REAL(state)[j]
                     + scale_factor[j] * z[j];
             break;
         case FULL:
-            for (j = 0; j < d; j++)
+            for (int j = 0; j < d; j++)
                 REAL(proposal)[j] = REAL(state)[j];
 
-            for (i = 0, k = 0; i < d; i++) {
+            for (int i = 0, k = 0; i < d; i++) {
                 double u = z[i];
-                for (j = 0; j < d; j++)
+                for (int j = 0; j < d; j++)
                     REAL(proposal)[j] += scale_factor[k++] * u;
             }
             break;
@@ -351,28 +357,31 @@ static int out_setup(SEXP func, SEXP rho, SEXP state)
         out_env = rho;
         out_dimension = LENGTH(eval(lang2(func, state), rho));
     } else if (isLogical(func)) {
-        int i;
         if (LENGTH(func) != out_state_dimension)
             error("is.logical(outfun) & (length(outfun) != length(initial))");
         out_option = OUT_INDEX;
         out_index = (int *) R_alloc(out_state_dimension, sizeof(int));
-        for (i = 0, out_dimension = 0; i < out_state_dimension; i++) {
+        out_dimension = 0;
+        for (int i = 0; i < out_state_dimension; i++) {
             out_index[i] = LOGICAL(func)[i];
             out_dimension += out_index[i];
         }
     } else if (isNumeric(func)) {
         SEXP foo;
-        int foolen, i;
         int foopos = 0;
         int fooneg = 0;
         PROTECT(foo = coerceVector(func, REALSXP));
-        foolen = LENGTH(foo);
-        for (i = 0; i < foolen; i++) {
+        int foolen = LENGTH(foo);
+        for (int i = 0; i < foolen; i++) {
             double foodble = REAL(foo)[i];
+            if (ISNAN(foodble))
+                error("NA or NaN index for outfun");
+            if (! R_FINITE(foodble))
+                error("-Inf or Inf index for outfun");
             int fooint = foodble;
-            int fooabs = fooint > 0 ? fooint : (- fooint);
+            int fooabs = fooint >= 0 ? fooint : (- fooint);
 
-            if (foodble == 0)
+            if (fooint == 0)
                 error("is.numeric(outfun) & any(outfun == 0)");
             if (foodble != fooint)
                 error("is.numeric(outfun) & any(outfun != as.integer(outfun))");
@@ -391,32 +400,34 @@ static int out_setup(SEXP func, SEXP rho, SEXP state)
         out_option = OUT_INDEX;
         out_index = (int *) R_alloc(out_state_dimension, sizeof(int));
         if (foopos > 0) {
-            for (i = 0; i < out_state_dimension; i++)
+            for (int i = 0; i < out_state_dimension; i++)
                 out_index[i] = FALSE;
-            for (i = 0; i < foolen; i++) {
+            for (int i = 0; i < foolen; i++) {
                  int fooint = REAL(foo)[i];
                  out_index[fooint - 1] = TRUE;
             }
         } else /* (fooneg > 0) */ {
-            for (i = 0; i < out_state_dimension; i++)
+            for (int i = 0; i < out_state_dimension; i++)
                 out_index[i] = TRUE;
-            for (i = 0; i < foolen; i++) {
+            for (int i = 0; i < foolen; i++) {
                  int fooint = REAL(foo)[i];
                  int fooabs = (- fooint);
                  out_index[fooabs - 1] = FALSE;
             }
         }
-        for (i = 0, out_dimension = 0; i < out_state_dimension; i++)
+        out_dimension = 0;
+        for (int i = 0; i < out_state_dimension; i++)
             out_dimension += out_index[i];
         UNPROTECT(1);
+    } else {
+        error("outfun must be NULL, a function, a numeric vector,"
+            " or a logical vector");
     }
     return out_dimension;
 }
 
 static void outfun(SEXP state, SEXP buffer)
 {
-    int j, k;
-
     if (out_option == 0)
         error("attempt to call outfun without setup");
 
@@ -429,11 +440,11 @@ static void outfun(SEXP state, SEXP buffer)
 
     switch (out_option) {
         case OUT_IDENTITY:
-            for (j = 0; j < out_state_dimension; j++)
+            for (int j = 0; j < out_state_dimension; j++)
                 REAL(buffer)[j] = REAL(state)[j];
             break;
         case OUT_INDEX:
-            for (j = 0, k = 0; j < out_state_dimension; j++)
+            for (int j = 0, k = 0; j < out_state_dimension; j++)
                 if (out_index[j])
                     REAL(buffer)[k++] = REAL(state)[j];
             break;
@@ -450,7 +461,7 @@ static void outfun(SEXP state, SEXP buffer)
                     error("outfun returned vector with non-finite element");
                 if (LENGTH(foo) != out_dimension)
                     error("outfun return vector length changed from initial");
-                for (k = 0; k < out_dimension; k++)
+                for (int k = 0; k < out_dimension; k++)
                     REAL(buffer)[k] = REAL(foo)[k];
                 UNPROTECT(3);
             }

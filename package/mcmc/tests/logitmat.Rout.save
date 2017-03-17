@@ -1,7 +1,6 @@
 
-R version 2.13.1 (2011-07-08)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R version 3.3.3 (2017-03-06) -- "Another Canoe"
+Copyright (C) 2017 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -76,10 +75,10 @@ Type 'q()' to quit R.
 >  out.metro <- metrop(logl, as.numeric(coefficients(out)), 1e2,
 +      scale = sally, debug = TRUE)
 >  names(out.metro)
- [1] "accept"       "batch"        "initial"      "final"        "current"     
- [6] "proposal"     "log.green"    "u"            "z"            "debug.accept"
-[11] "initial.seed" "final.seed"   "time"         "lud"          "nbatch"      
-[16] "blen"         "nspac"        "scale"        "debug"       
+ [1] "accept"       "batch"        "initial"      "final"        "accept.batch"
+ [6] "current"      "proposal"     "log.green"    "u"            "z"           
+[11] "debug.accept" "initial.seed" "final.seed"   "time"         "lud"         
+[16] "nbatch"       "blen"         "nspac"        "scale"        "debug"       
 > 
 >  niter <- out.metro$nbatch * out.metro$blen * out.metro$nspac
 >  niter == nrow(out.metro$current)
@@ -164,3 +163,6 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  0.340   0.028   0.359 
