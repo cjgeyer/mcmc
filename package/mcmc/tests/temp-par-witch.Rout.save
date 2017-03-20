@@ -1,7 +1,8 @@
 
-R version 3.3.3 (2017-03-06) -- "Another Canoe"
-Copyright (C) 2017 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R version 2.15.0 (2012-03-30)
+Copyright (C) 2012 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -21,8 +22,6 @@ Type 'q()' to quit R.
 >  options(digits=4) # avoid rounding differences
 > 
 >  set.seed(42)
-> 
->  save.initial.seed <- .Random.seed
 > 
 >  d <- 3
 >  witch.which <- 1 - (1 / 2)^(1 / d) * (1 / 4)^(seq(0, 5) / d)
@@ -55,31 +54,27 @@ Type 'q()' to quit R.
 +      return(- (d + 1) * log(2) - log1p(- (1 - bnd)^d))
 +  }
 > 
->  thetas <- runif(ncomp * d, min = -1, max = 1)
->  thetas <- matrix(thetas, ncomp, d)
+>  thetas <- matrix(0, ncomp, d)
 >  out <- temper(ludfun, initial = thetas, neighbors = neighbors, nbatch = 50,
-+      blen = 13, nspac = 7, scale = 0.3456789, parallel = TRUE, debug = TRUE)
++      blen = 13, nspac = 7, scale = 0.3456789, parallel = TRUE)
 > 
 >  names(out)
- [1] "lud"           "initial"       "neighbors"     "nbatch"       
- [5] "blen"          "nspac"         "scale"         "outfun"       
- [9] "debug"         "parallel"      "initial.seed"  "final.seed"   
-[13] "time"          "batch"         "acceptx"       "accepti"      
-[17] "initial"       "final"         "which"         "unif.which"   
-[21] "state"         "log.hastings"  "unif.hastings" "proposal"     
-[25] "acceptd"       "norm"          "unif.choose"   "coproposal"   
+ [1] "lud"          "initial"      "neighbors"    "nbatch"       "blen"        
+ [6] "nspac"        "scale"        "outfun"       "debug"        "parallel"    
+[11] "initial.seed" "final.seed"   "time"         "batch"        "acceptx"     
+[16] "accepti"      "initial"      "final"       
 > 
 >  out$acceptx
-[1] 0.6304 0.4744 0.4481 0.2904 0.6278 0.6667
+[1] 0.6336 0.4974 0.3245 0.6022 0.6130 0.5914
 > 
 >  out$accepti
        [,1]   [,2]   [,3]   [,4]   [,5]   [,6]
-[1,]     NA 0.7213 0.5699     NA     NA     NA
-[2,] 0.6768     NA 0.5238 0.4273     NA     NA
-[3,] 0.5421 0.6277     NA 0.5670 0.5204     NA
-[4,]     NA 0.2115 0.4821     NA 0.3750 0.4659
-[5,]     NA     NA 0.6016 0.4242     NA 1.0000
-[6,]     NA     NA     NA 0.3800 1.0000     NA
+[1,]     NA 0.7051 0.5497     NA     NA     NA
+[2,] 0.7523     NA 0.5547 0.6288     NA     NA
+[3,] 0.5794 0.5865     NA 0.5309 0.5476     NA
+[4,]     NA 0.6667 0.5506     NA 0.8272 0.6837
+[5,]     NA     NA 0.5439 0.8926     NA 0.8374
+[6,]     NA     NA     NA 0.8391 0.9023     NA
 > 
 >  ### check that have prob 1 / 2 for corners
 > 
@@ -92,30 +87,30 @@ Type 'q()' to quit R.
 +      return(as.numeric(bar))
 +  }
 > 
->  out2 <- temper(out, outfun = outfun)
+>  out <- temper(out, outfun = outfun)
 > 
->  colMeans(out2$batch)
-[1] 0.5369 0.4000 0.6277 0.6692 0.0800 0.2985
->  apply(out2$batch, 2, sd) / sqrt(out$nbatch)
-[1] 0.03797 0.04919 0.05434 0.05711 0.02085 0.05576
+>  colMeans(out$batch)
+[1] 0.54923 0.40923 0.39538 0.09692 0.12923 0.60000
+>  apply(out$batch, 2, sd) / sqrt(out$nbatch)
+[1] 0.03482 0.04817 0.05464 0.02856 0.02113 0.05131
 > 
 >  ### try again
 > 
->  out3 <- temper(out2, blen = 103)
+>  out <- temper(out, blen = 103, outfun = outfun)
 > 
->  foo <- cbind(colMeans(out3$batch),
-+      apply(out3$batch, 2, sd) / sqrt(out$nbatch))
+>  foo <- cbind(colMeans(out$batch),
++      apply(out$batch, 2, sd) / sqrt(out$nbatch))
 >  colnames(foo) <- c("means", "MCSE")
 >  foo
       means    MCSE
-[1,] 0.4926 0.01390
-[2,] 0.4682 0.02386
-[3,] 0.4126 0.04190
-[4,] 0.4858 0.04571
-[5,] 0.5551 0.04837
-[6,] 0.8398 0.03034
+[1,] 0.5231 0.01390
+[2,] 0.5361 0.02213
+[3,] 0.4905 0.03961
+[4,] 0.5652 0.04909
+[5,] 0.4056 0.05107
+[6,] 0.2450 0.05108
 > 
 > 
 > proc.time()
    user  system elapsed 
-  2.288   0.028   2.307 
+  4.316   0.036   4.452 

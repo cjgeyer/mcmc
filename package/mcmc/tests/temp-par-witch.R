@@ -37,8 +37,7 @@
      return(- (d + 1) * log(2) - log1p(- (1 - bnd)^d))
  }
 
- thetas <- runif(ncomp * d, min = -1, max = 1)
- thetas <- matrix(thetas, ncomp, d)
+ thetas <- matrix(0, ncomp, d)
  out <- temper(ludfun, initial = thetas, neighbors = neighbors, nbatch = 50,
      blen = 13, nspac = 7, scale = 0.3456789, parallel = TRUE, debug = TRUE)
 
