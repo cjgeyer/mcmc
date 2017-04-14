@@ -1,7 +1,6 @@
 
-R version 2.13.1 (2011-07-08)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R version 3.3.3 (2017-03-06) -- "Another Canoe"
+Copyright (C) 2017 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -41,7 +40,7 @@ x1            0.3362     0.4256   0.790 0.429672
 x2            0.8475     0.4701   1.803 0.071394 .  
 x3            1.5143     0.4426   3.422 0.000622 ***
 ---
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
@@ -108,13 +107,13 @@ Number of Fisher Scoring iterations: 5
 +      blen = 10, nspac = 5, scale = 0.56789, parallel = TRUE, debug = TRUE)
 > 
 >  names(out)
- [1] "lud"           "initial"       "neighbors"     "nbatch"       
- [5] "blen"          "nspac"         "scale"         "outfun"       
- [9] "debug"         "parallel"      "initial.seed"  "final.seed"   
-[13] "time"          "batch"         "acceptx"       "accepti"      
-[17] "initial"       "final"         "which"         "unif.which"   
-[21] "state"         "log.hastings"  "unif.hastings" "proposal"     
-[25] "acceptd"       "norm"          "unif.choose"   "coproposal"   
+ [1] "lud"           "neighbors"     "nbatch"        "blen"         
+ [5] "nspac"         "scale"         "outfun"        "debug"        
+ [9] "parallel"      "initial.seed"  "final.seed"    "time"         
+[13] "batch"         "acceptx"       "accepti"       "initial"      
+[17] "final"         "which"         "unif.which"    "state"        
+[21] "log.hastings"  "unif.hastings" "proposal"      "acceptd"      
+[25] "norm"          "unif.choose"   "coproposal"   
 > 
 >  ### check decision about within-component or jump/swap
 > 
@@ -378,3 +377,6 @@ Number of Fisher Scoring iterations: 5
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  1.376   0.008   1.376 

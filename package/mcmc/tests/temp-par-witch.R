@@ -1,4 +1,6 @@
 
+ if ((! exists("DEBUG")) || (! identical(DEBUG, TRUE))) DEBUG <- FALSE
+
  library(mcmc)
 
  options(digits=4) # avoid rounding differences
@@ -39,7 +41,7 @@
 
  thetas <- matrix(0, ncomp, d)
  out <- temper(ludfun, initial = thetas, neighbors = neighbors, nbatch = 50,
-     blen = 13, nspac = 7, scale = 0.3456789, parallel = TRUE, debug = TRUE)
+     blen = 13, nspac = 7, scale = 0.3456789, parallel = TRUE, debug = DEBUG)
 
  names(out)
 

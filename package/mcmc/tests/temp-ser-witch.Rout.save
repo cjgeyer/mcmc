@@ -1,7 +1,6 @@
 
-R version 2.13.1 (2011-07-08)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R version 3.3.3 (2017-03-06) -- "Another Canoe"
+Copyright (C) 2017 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -58,10 +57,10 @@ Type 'q()' to quit R.
 +      nbatch = 50, blen = 13, nspac = 7, scale = 0.3456789)
 > 
 >  names(out)
- [1] "lud"          "initial"      "neighbors"    "nbatch"       "blen"        
- [6] "nspac"        "scale"        "outfun"       "debug"        "parallel"    
-[11] "initial.seed" "final.seed"   "time"         "batch"        "acceptx"     
-[16] "accepti"      "initial"      "final"        "ibatch"      
+ [1] "lud"          "neighbors"    "nbatch"       "blen"         "nspac"       
+ [6] "scale"        "outfun"       "debug"        "parallel"     "initial.seed"
+[11] "final.seed"   "time"         "batch"        "acceptx"      "accepti"     
+[16] "initial"      "final"        "ibatch"      
 > 
 >  out$acceptx
 [1] 0.6388889 0.4385246 0.3631714 0.4885246 0.4709677 0.4735516
@@ -147,3 +146,6 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  2.740   0.028   2.762 

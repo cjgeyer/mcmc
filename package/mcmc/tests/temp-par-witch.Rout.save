@@ -1,8 +1,7 @@
 
-R version 2.15.0 (2012-03-30)
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+R version 3.3.3 (2017-03-06) -- "Another Canoe"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -17,11 +16,15 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > 
+>  if ((! exists("DEBUG")) || (! identical(DEBUG, TRUE))) DEBUG <- FALSE
+> 
 >  library(mcmc)
 > 
 >  options(digits=4) # avoid rounding differences
 > 
 >  set.seed(42)
+> 
+>  save.initial.seed <- .Random.seed
 > 
 >  d <- 3
 >  witch.which <- 1 - (1 / 2)^(1 / d) * (1 / 4)^(seq(0, 5) / d)
@@ -56,13 +59,13 @@ Type 'q()' to quit R.
 > 
 >  thetas <- matrix(0, ncomp, d)
 >  out <- temper(ludfun, initial = thetas, neighbors = neighbors, nbatch = 50,
-+      blen = 13, nspac = 7, scale = 0.3456789, parallel = TRUE)
++      blen = 13, nspac = 7, scale = 0.3456789, parallel = TRUE, debug = DEBUG)
 > 
 >  names(out)
- [1] "lud"          "initial"      "neighbors"    "nbatch"       "blen"        
- [6] "nspac"        "scale"        "outfun"       "debug"        "parallel"    
-[11] "initial.seed" "final.seed"   "time"         "batch"        "acceptx"     
-[16] "accepti"      "initial"      "final"       
+ [1] "lud"          "neighbors"    "nbatch"       "blen"         "nspac"       
+ [6] "scale"        "outfun"       "debug"        "parallel"     "initial.seed"
+[11] "final.seed"   "time"         "batch"        "acceptx"      "accepti"     
+[16] "initial"      "final"       
 > 
 >  out$acceptx
 [1] 0.6336 0.4974 0.3245 0.6022 0.6130 0.5914
@@ -87,19 +90,19 @@ Type 'q()' to quit R.
 +      return(as.numeric(bar))
 +  }
 > 
->  out <- temper(out, outfun = outfun)
+>  out2 <- temper(out, outfun = outfun)
 > 
->  colMeans(out$batch)
+>  colMeans(out2$batch)
 [1] 0.54923 0.40923 0.39538 0.09692 0.12923 0.60000
->  apply(out$batch, 2, sd) / sqrt(out$nbatch)
+>  apply(out2$batch, 2, sd) / sqrt(out$nbatch)
 [1] 0.03482 0.04817 0.05464 0.02856 0.02113 0.05131
 > 
 >  ### try again
 > 
->  out <- temper(out, blen = 103, outfun = outfun)
+>  out3 <- temper(out2, blen = 103)
 > 
->  foo <- cbind(colMeans(out$batch),
-+      apply(out$batch, 2, sd) / sqrt(out$nbatch))
+>  foo <- cbind(colMeans(out3$batch),
++      apply(out3$batch, 2, sd) / sqrt(out$nbatch))
 >  colnames(foo) <- c("means", "MCSE")
 >  foo
       means    MCSE
@@ -113,4 +116,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  4.316   0.036   4.452 
+  1.868   0.012   1.874 

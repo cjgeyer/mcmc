@@ -1,7 +1,7 @@
 
-R version 3.2.1 (2015-06-18) -- "World-Famous Astronaut"
-Copyright (C) 2015 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 3.3.3 (2017-03-06) -- "Another Canoe"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -107,13 +107,13 @@ Number of Fisher Scoring iterations: 5
 +      log.pseudo.prior = qux)
 > 
 >  names(out)
- [1] "lud"           "initial"       "neighbors"     "nbatch"       
- [5] "blen"          "nspac"         "scale"         "outfun"       
- [9] "debug"         "parallel"      "initial.seed"  "final.seed"   
-[13] "time"          "batch"         "acceptx"       "accepti"      
-[17] "initial"       "final"         "ibatch"        "which"        
-[21] "unif.which"    "state"         "log.hastings"  "unif.hastings"
-[25] "proposal"      "acceptd"       "norm"          "unif.choose"  
+ [1] "lud"           "neighbors"     "nbatch"        "blen"         
+ [5] "nspac"         "scale"         "outfun"        "debug"        
+ [9] "parallel"      "initial.seed"  "final.seed"    "time"         
+[13] "batch"         "acceptx"       "accepti"       "initial"      
+[17] "final"         "ibatch"        "which"         "unif.which"   
+[21] "state"         "log.hastings"  "unif.hastings" "proposal"     
+[25] "acceptd"       "norm"          "unif.choose"  
 > 
 >  apply(out$ibatch, 2, mean)
 [1] 0.776 0.170 0.000 0.006 0.024 0.010 0.004 0.010
@@ -375,4 +375,4 @@ Number of Fisher Scoring iterations: 5
 > 
 > proc.time()
    user  system elapsed 
-  5.196   0.036   5.232 
+  1.808   0.020   1.820 

@@ -71,7 +71,7 @@ temper.function <- function(obj, initial, neighbors, nbatch, blen = 1,
     out <- .Call(C_temper, func1, initial, neighbors, nbatch, blen, nspac,
         scale, func2, debug, parallel, env1, env2)
     )
-    result <- structure(c(list(lud = obj, initial = initial,
+    result <- structure(c(list(lud = obj,
         neighbors = neighbors, nbatch = nbatch, blen = blen, nspac = nspac,
         scale = scale, outfun = outfun, debug = debug, parallel = parallel,
         initial.seed = saveseed, final.seed = .Random.seed, time = out.time),
