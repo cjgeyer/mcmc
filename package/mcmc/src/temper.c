@@ -36,6 +36,8 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
     if (nrows(neighbors) != ncols(neighbors))
         error("argument \"neighbors\" must have same row and column dimension");
     int ncomp = nrows(neighbors);
+    if (ncomp <= 1)
+        error("must have at least two components");
     for (int i = 0; i < ncomp; i++)
         for (int j = 0; j < ncomp; j++)
             if (LOGICAL(neighbors)[i + ncomp * j] != LOGICAL(neighbors)[j + ncomp * i])
