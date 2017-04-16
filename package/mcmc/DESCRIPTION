@@ -14,7 +14,7 @@ Description: Simulates continuous distributions of random vectors using
     R function that evaluates the log unnormalized density.  Algorithms
     are random walk Metropolis algorithm (function metrop), simulated
     tempering (function temper), and morphometric random walk Metropolis
-    (Johnson and Geyer, 2012, <https://doi.org/10.1214/12-AOS1048>,
+    (Johnson and Geyer, 2012, <doi:10.1214/12-AOS1048>,
     function morph.metrop),
     which achieves geometric ergodicity by change of variable.
 License: MIT + file LICENSE
