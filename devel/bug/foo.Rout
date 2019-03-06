@@ -1,0 +1,183 @@
+
+R version 3.5.2 (2018-12-20) -- "Eggshell Igloo"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+> # use example from metrop help page
+> 
+> library("mcmc", lib.loc = "../../package/mcmc.Rcheck")
+> packageVersion("mcmc")
+[1] ‘0.9.6’
+> set.seed(42)
+> 
+> h <- function(x) if (all(x >= 0) && sum(x) <= 1) return(0) else return(-Inf)
+> out <- metrop(h, rep(0, 5), 1000)
+> out$accept
+[1] 0
+> # acceptance rate too low
+> out <- metrop(out, scale = 0.1)
+> t.test(out$accept.batch)$conf.int
+[1] 0.1952394 0.2467606
+attr(,"conf.level")
+[1] 0.95
+> # acceptance rate o. k. (about 25 percent)
+> 
+> # Now check that random numbers OK
+> 
+> out <- metrop(out, debug = TRUE)
+> names(out)
+ [1] "accept"       "batch"        "initial"      "final"        "accept.batch"
+ [6] "current"      "proposal"     "log.green"    "u"            "z"           
+[11] "debug.accept" "initial.seed" "final.seed"   "time"         "lud"         
+[16] "nbatch"       "blen"         "nspac"        "scale"        "debug"       
+> 
+> u <- out$u
+> u <- u[! is.na(u)]
+> length(u) == length(unique(u))
+[1] TRUE
+> 
+> z <- out$z
+> dim(z)
+[1] 1000    5
+> length(z) == length(unique(z))
+[1] TRUE
+> 
+> # try longer run?
+> out <- metrop(out, blen = 1000)
+> 
+> u <- out$u
+> u <- u[! is.na(u)]
+> length(u) == length(unique(u))
+[1] FALSE
+> u[duplicated(u)]
+[1] 0.6841277 0.8322727 0.5598184 0.1526256
+> seq(along = u)[duplicated(u)]
+[1] 120082 125717 158400 194958
+> 
+> z <- out$z
+> dim(z)
+[1] 1000000       5
+> length(z) == length(unique(z))
+[1] TRUE
+> 
+> # Looks OK
+> # Try example from vignette
+> 
+> rm(list = ls())
+> 
+> data(logit)
+> out <- glm(y ~ x1 + x2 + x3 + x4, data = logit, family = binomial, x = TRUE)
+> 
+> # use function factory pattern to avoid ... and global variables
+> 
+> lupost_factory <- function(x, y) function(beta) {
++     eta <- as.numeric(x %*% beta)
++     logp <- ifelse(eta < 0, eta - log1p(exp(eta)), - log1p(exp(- eta)))
++     logq <- ifelse(eta < 0, - log1p(exp(eta)), - eta - log1p(exp(- eta)))
++     logl <- sum(logp[y == 1]) + sum(logq[y == 0])
++     return(logl - sum(beta^2) / 8)
++ }
+> 
+> lupost <- lupost_factory(out$x, out$y)
+> 
+> beta.init <- as.numeric(coefficients(out))
+> 
+> out <- metrop(lupost, beta.init, 1e3)
+> out$accept
+[1] 0.019
+> # acceptance rate too low
+> out <- metrop(out, scale = 0.1)
+> out$accept
+[1] 0.725
+> out <- metrop(out, scale = 0.3)
+> out$accept
+[1] 0.34
+> out <- metrop(out, scale = 0.5)
+> out$accept
+[1] 0.153
+> out <- metrop(out, scale = 0.4)
+> t.test(out$accept.batch)$conf.int
+[1] 0.2211882 0.2748118
+attr(,"conf.level")
+[1] 0.95
+> # acceptance rate o. k. (about 25 percent)
+> 
+> # Now check that random numbers OK
+> 
+> out <- metrop(out, debug = TRUE)
+> names(out)
+ [1] "accept"       "batch"        "initial"      "final"        "accept.batch"
+ [6] "current"      "proposal"     "log.green"    "u"            "z"           
+[11] "debug.accept" "initial.seed" "final.seed"   "time"         "lud"         
+[16] "nbatch"       "blen"         "nspac"        "scale"        "debug"       
+> 
+> u <- out$u
+> u <- u[! is.na(u)]
+> length(u) == length(unique(u))
+[1] TRUE
+> 
+> z <- out$z
+> dim(z)
+[1] 1000    5
+> length(z) == length(unique(z))
+[1] TRUE
+> 
+> # try longer run?
+> out <- metrop(out, blen = 1000)
+> 
+> u <- out$u
+> u <- u[! is.na(u)]
+> length(u) == length(unique(u))
+[1] FALSE
+> u[duplicated(u)]
+ [1] 0.70289390 0.65096803 0.63641961 0.82967802 0.38743379 0.98920203
+ [7] 0.71896786 0.20370840 0.69353093 0.23638367 0.05904343 0.10012407
+[13] 0.98185709 0.07909208 0.83976187 0.61176480 0.79579300 0.26503501
+[19] 0.70865010 0.42654505 0.19212536 0.21908292 0.27406060 0.44507850
+[25] 0.50194803 0.35375476 0.92022990 0.98939158 0.59652635 0.24508084
+[31] 0.14724993 0.02185256 0.45420275 0.04332108 0.96763221 0.63640922
+[37] 0.94452241 0.03151040 0.66968984 0.42909047 0.84322866 0.14969619
+[43] 0.40609477 0.66204646 0.97057101 0.34488844 0.78409777 0.26004980
+[49] 0.89751196 0.14269999 0.20338746 0.15453042 0.07382440 0.69564066
+[55] 0.58298308 0.96586208 0.77163745 0.19111087 0.50405272 0.08491693
+[61] 0.85680906 0.32290495 0.53060772 0.47935409 0.26542740 0.31683552
+[67] 0.45010080 0.75329151 0.43744886 0.57890089 0.96588643 0.66277102
+[73] 0.61983341 0.80053136 0.70012680 0.88654143 0.03310549 0.28548513
+[79] 0.63655012 0.63424007 0.77458407 0.78473608 0.22251007 0.09057843
+[85] 0.19033356
+> seq(along = u)[duplicated(u)]
+ [1]  99993 118147 119756 132096 136010 171510 178591 196729 204156 216334
+[11] 228635 251358 252736 254422 255558 268643 295915 354783 369276 370477
+[21] 386633 405565 413735 414150 419280 421151 433811 468317 484104 490641
+[31] 503159 513636 526260 532511 533443 534891 550227 554834 567453 572489
+[41] 583408 589256 592340 598235 609993 610788 612363 623872 635228 638192
+[51] 638267 644833 650376 662024 666760 670653 680375 689870 693979 695855
+[61] 708067 743953 750321 751548 754463 756688 770242 772102 773587 781557
+[71] 792625 798738 800383 805247 812709 824368 831267 832678 852370 860194
+[81] 860891 871389 875918 876623 878759
+> 
+> z <- out$z
+> dim(z)
+[1] 1000000       5
+> length(z) == length(unique(z))
+[1] TRUE
+> 
+> 
+> proc.time()
+   user  system elapsed 
+ 52.970   0.320  53.262 
