@@ -131,6 +131,10 @@ unnormalized density function and \code{outfun} to have only one argument
 \code{state} and use global variables (objects in the \R global environment) to
 specify any other information these functions need to use.  That too
 follows the \R way.  But some people consider that bad programming practice.
+
+A third option is to define either of these functions using a function
+factory.  This is demonstrated in the vignette for this package named
+\code{demo}, which is shown by \code{vignette("demo", "mcmc")}.
 }
 \section{Philosophy of MCMC}{
 This function follows the philosophy of MCMC explained

@@ -38,7 +38,7 @@ A frequentist analysis for the problem is done by the following R statements
 library(mcmc)
 data(logit)
 out <- glm(y ~ x1 + x2 + x3 + x4, data = logit,
-    family = binomial(), x = TRUE)
+    family = binomial, x = TRUE)
 summary(out)
 @
 
@@ -260,13 +260,14 @@ then the diagnostic will probably say that the chain did not converge.
 
 <<label=metropolis-try-4>>=
 out <- metrop(out, nbatch = 100, blen = 100,
-    outfun = function(z, ...) c(z, z^2))
+    outfun = function(z) c(z, z^2))
 t.test(out$accept.batch)$conf.int
 out$time
 @
 
-We have added an argument \verb@outfun@ that gives the ``functional''
-of the state we want to average.  For this problem we are interested
+We have added an argument \verb@outfun@ that gives the functional
+of the Markov chain \citep[Section~1.6]{intro} we want to average.
+For this problem we are interested
 in both posterior mean and variance.  Mean is easy, just average the
 variables in question.  But variance is a little tricky.  We need to
 use the identity
@@ -277,10 +278,6 @@ to write variance as a function of two things that can be estimated
 by simple averages.  Hence we want to average the state itself and
 the squares of each component.  Hence our \verb@outfun@ returns
 \verb@c(z, z^2)@ for an argument (the state vector) \verb@z@.
-
-The \verb@...@ argument to \verb@outfun@ is required, since the
-function is also passed the other arguments (here \verb@x@ and \verb@y@)
-to \verb@metrop@.
 
 \subsection{Simple Means}
 
@@ -402,8 +399,6 @@ out$time
 and some nicer output, which is presented in three tables
 constructed from the R variables defined above
 using the R \verb@xtable@ command in the \verb@xtable@ library.
-
-First the posterior means,
 \begin{table}[ht]
 \caption{Posterior Means}
 \label{tab:mu}
@@ -420,7 +415,6 @@ print(xtable(foo, digits = rep(4, 6),
 @
 \end{center}
 \end{table}
-then the posterior variances (table on page~\pageref{tab:sigmasq}),
 \begin{table}[ht]
 \caption{Posterior Variances}
 \label{tab:sigmasq}
@@ -437,8 +431,6 @@ print(xtable(foo, digits = rep(4, 6),
 @
 \end{center}
 \end{table}
-and finally the posterior standard deviations
-(table on page~\pageref{tab:sigma}).
 \begin{table}[ht]
 \caption{Posterior Standard Deviations}
 \label{tab:sigma}
