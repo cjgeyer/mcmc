@@ -39,18 +39,14 @@ temper.function <- function(obj, initial, neighbors, nbatch, blen = 1,
 {
     if (! exists(".Random.seed")) runif(1)
     saveseed <- .Random.seed
-    obj <- cmpfun(obj)
     func1 <- function(state) obj(state, ...)
-    func1 <- cmpfun(func1)
     env1 <- environment(fun = func1)
     if (missing(outfun)) {
         func2 <- NULL
         env2 <- NULL
         outfun <- NULL
     } else if (is.function(outfun)) {
-        outfun <- cmpfun(outfun)
         func2 <- function(state) outfun(state, ...)
-        func2 <- cmpfun(func2)
         env2 <- environment(fun = func2)
     }
 

@@ -5,6 +5,7 @@
 \usepackage{graphics}
 \usepackage{amsmath}
 \usepackage{indentfirst}
+\usepackage{url}
 \usepackage[utf8]{inputenc}
 
 \DeclareMathOperator{\var}{var}
@@ -16,10 +17,9 @@
 
 <<foo,include=FALSE,echo=FALSE>>=
 options(keep.source = TRUE, width = 60)
-foo <- packageDescription("mcmc")
 @
 
-\title{MCMC Package Example (Version \Sexpr{foo$Version})}
+\title{MCMC Package Example (Version \Sexpr{packageVersion("mcmc")})}
 \author{Charles J. Geyer}
 \maketitle
 
@@ -48,20 +48,22 @@ frequentist, and we assume the prior distribution of the five parameters
 (the regression coefficients) makes them independent and identically
 normally distributed with mean 0 and standard deviation 2.
 
-The log unnormalized posterior (log likelihood plus log prior) density
+The log unnormalized posterior density (log likelihood plus log prior)
 for this model is calculated by
-the following R function (given the preceding data definitions)
+the following R function.  In order to avoid using either global variables
+or \verb@...@ arguments, we use the function factory pattern
+(\citealp[Section~10.3.1]{wickham};
+\citealp[Section~7.5, especially Subsection~7.5.4]{basic}).
 <<log.unnormalized.posterior>>=
-x <- out$x
-y <- out$y
-
-lupost <- function(beta, x, y) {
+lupost_factory <- function(x, y) function(beta) {
     eta <- as.numeric(x %*% beta)
     logp <- ifelse(eta < 0, eta - log1p(exp(eta)), - log1p(exp(- eta)))
     logq <- ifelse(eta < 0, - log1p(exp(eta)), - eta - log1p(exp(- eta)))
     logl <- sum(logp[y == 1]) + sum(logq[y == 0])
     return(logl - sum(beta^2) / 8)
 }
+
+lupost <- lupost_factory(out$x, out$y)
 @
 The tricky calculation of the log likelihood avoids overflow and catastrophic
 cancellation in calculation of $\log(p)$ and $\log(q)$ where
@@ -100,7 +102,8 @@ algorithm to simulate the posterior.
 <<metropolis-try-1>>=
 set.seed(42)    # to get reproducible results
 beta.init <- as.numeric(coefficients(out))
-out <- metrop(lupost, beta.init, 1e3, x = x, y = y)
+
+out <- metrop(lupost, beta.init, 1e3)
 names(out)
 out$accept
 @
@@ -147,13 +150,13 @@ tell beginners, and they are all right for some problems.
 
 Be that as it may, we try for 20\%.
 <<metropolis-try-2>>=
-out <- metrop(out, scale = 0.1, x = x, y = y)
+out <- metrop(out, scale = 0.1)
 out$accept
-out <- metrop(out, scale = 0.3, x = x, y = y)
+out <- metrop(out, scale = 0.3)
 out$accept
-out <- metrop(out, scale = 0.5, x = x, y = y)
+out <- metrop(out, scale = 0.5)
 out$accept
-out <- metrop(out, scale = 0.4, x = x, y = y)
+out <- metrop(out, scale = 0.4)
 out$accept
 @
 
@@ -161,7 +164,7 @@ Here the first argument to each instance of the \verb@metrop@ function is
 the output of a previous invocation.  The Markov chain continues where
 the previous run stopped, doing just what it would have done if it had
 kept going, the initial state and random seed being the final state and
-random seed of the previous invocation.  Everything stays the same
+final random seed of the previous invocation.  Everything stays the same
 except for the arguments supplied (here \verb@scale@).
 \begin{itemize}
 \item The argument \verb@scale@ controls the size of the Metropolis
@@ -181,10 +184,12 @@ worth anything at all).
 O.~K.  That does it for the acceptance rate.  So let's do a longer run
 and look at the results.
 <<label=metropolis-try-3>>=
-out <- metrop(out, nbatch = 1e4, x = x, y = y)
-out$accept
+out <- metrop(out, nbatch = 1e4)
+t.test(out$accept.batch)$conf.int
 out$time
 @
+Here we do a Monte Carlo confidence for the true unknown acceptance rate
+(what we would see with an infinite Monte Carlo sample size).
 
 Figure~\ref{fig:fig1} (page~\pageref{fig:fig1})
 shows the time series plot made by the R statement
@@ -220,14 +225,10 @@ acf(out$batch)
 As with any multiplot plot, these are a bit hard to read.  Readers are
 invited to make the separate plots to get a better picture.
 As with all ``diagnostic'' plots in MCMC, these don't ``diagnose''
-subtle problems.  As
-\begin{verbatim}
-http://www.stat.umn.edu/~charlie/mcmc/diag.html
-\end{verbatim}
-says
+subtle problems.
 \begin{quotation}
 The purpose of regression diagnostics is to find obvious, gross,
-embarrassing problems that jump out of simple plots.
+embarrassing problems that jump out of simple plots \citep{bogosity}.
 \end{quotation}
 The time series plots will show \emph{obvious} nonstationarity.
 They will not show \emph{nonobvious} nonstationarity.  They
@@ -245,12 +246,22 @@ working (has nearly reached equilibrium) and worthless otherwise.
 Thus batches of length 25 should be sufficient, but let's use
 length 100 to be safe.
 
+A more judicious discussion of asymptotics is found
+in \citet[Section~1.11.5]{intro}, which says
+\begin{quotation}
+Many [diagnostics] come with theorems, but the theorems never prove
+the property you really want a diagnostic to have. These theorems say
+that if the chain converges, then the diagnostic will probably say that
+the chain converged, but they do not say that if the chain pseudo-converges,
+then the diagnostic will probably say that the chain did not converge.
+\end{quotation}
+
 \section{Monte Carlo Estimates and Standard Errors}
 
 <<label=metropolis-try-4>>=
-out <- metrop(out, nbatch = 1e2, blen = 100,
-    outfun = function(z, ...) c(z, z^2), x = x, y = y)
-out$accept
+out <- metrop(out, nbatch = 100, blen = 100,
+    outfun = function(z, ...) c(z, z^2))
+t.test(out$accept.batch)$conf.int
 out$time
 @
 
@@ -380,8 +391,8 @@ So that's it.  The only thing left to do is a little more precision
 (the exam problem directed ``use a long enough run of your Markov chain
 sampler so that the MCSE are less than 0.01'')
 <<label=metropolis-try-5>>=
-out <- metrop(out, nbatch = 5e2, blen = 400, x = x, y = y)
-out$accept
+out <- metrop(out, nbatch = 500, blen = 400)
+t.test(out$accept.batch)$conf.int
 out$time
 <<metropolis-batch-too>>
 <<metropolis-mcse-mu>>
@@ -598,11 +609,34 @@ Geyer, C.~J. (1992).
 \newblock Practical Markov chain Monte Carlo (with discussion).
 \newblock \emph{Statistical Science}, 7, 473--511.
 
+\bibitem[Geyer(2006)]{bogosity}
+Geyer, C. J. (2006).
+\newblock On the bogosity of MCMC diagnostics.
+\newblock \url{http://users.stat.umn.edu/~geyer/mcmc/diag.html}.
+
+\bibitem[Geyer(2011)]{intro}
+Geyer, C. J. (2011).
+\newblock Introduction to Markov chain Monte Carlo.
+\newblock In \emph{Handbook of Markov Chain Monte Carlo}, edited by
+    Brooks, S., Gelman, A., Jones, G., and Meng, X.-L., pp.~3--48.
+\newblock Chapman \& Hall/CRC, Boca Raton, FL.
+
+\bibitem[Geyer(2018)]{basic}
+Geyer, C.~J. (2018).
+\newblock Stat 3701 lecture notes: Basics of R.
+\newblock \url{http://www.stat.umn.edu/geyer/3701/notes/basic.html}.
+
 \bibitem[Geyer and Thompson(1995)]{geyer-temp}
 Geyer, C.~J. and E.~A. Thompson (1995).
 \newblock Annealing Markov chain Monte Carlo with applications to
     ancestral inference.
 \newblock \emph{Journal of the American Statistical Association}, 90, 909--920.
+
+\bibitem[Wickham(2014)]{wickham}
+Wickham, H. (2014).
+\newblock \emph{Advanced R}.
+\newblock Chapman \& Hall/CRC, Boca Raton, FL.
+\newblock Also available on the web \url{http://adv-r.had.co.nz/}.
 
 \end{thebibliography}
 

@@ -1,12 +1,12 @@
 Package: mcmc
-Version: 0.9-5
-Date: 2017-04-15
+Version: 0.9-6
+Date: 2019-03-05
 Title: Markov Chain Monte Carlo
 Author: Charles J. Geyer <charlie@stat.umn.edu> and Leif T. Johnson
      <ltjohnson@google.com>
 Maintainer: Charles J. Geyer <charlie@stat.umn.edu>
 Depends: R (>= 3.0.2)
-Imports: stats, compiler
+Imports: stats
 Suggests: xtable, Iso
 ByteCompile: TRUE
 Description: Simulates continuous distributions of random vectors using

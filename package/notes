@@ -1,3 +1,8 @@
+# to add extra compiler warnings
+# note that file myMakevars must be a copy of aster/src/Makevars
+#     with extra stuff added
+export R_MAKEVARS_USER=`pwd`/myMakevars
+
 \rm -f mcmc_*.tar.gz # if there was version change
 R CMD build mcmc
 R CMD check mcmc_*.tar.gz

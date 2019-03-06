@@ -5,10 +5,6 @@
 #include "myutil.h"
 #include "mcmc.h"
 
-#ifdef BLEAT
-#include <stdio.h>
-#endif /* BLEAT */
-
 static void propose(SEXP coproposal, SEXP proposal, SEXP scale, double *z);
 
 static double logh(SEXP func, SEXP state, SEXP rho);
@@ -101,25 +97,17 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
     if (is_parallel) {
         SEXP fred;
         PROTECT(fred = allocVector(REALSXP, nx + 1));
+        // protected: fred
         for (int i = 0; i < ncomp; i++) {
             REAL(fred)[0] = i + 1;
             for (int j = 0; j < nx; j++)
                 REAL(fred)[j + 1] = REAL(initial)[i + ncomp * j];
             current_log_dens[i] = logh(func1, fred, rho1);
-#ifdef BLATHER
-            fprintf(stderr, "current_log_dens[%d] = %e\n", i, current_log_dens[i]);
-            for (int j = 0; j < nx; j++)
-                fprintf(stderr, "    state[%d, %d] = %e\n",
-                    i, j, REAL(initial)[i + ncomp * j]);
-            for (int j = 0; j <= nx; j++)
-                fprintf(stderr, "    fred[%d] = %e\n", j, REAL(fred)[j]);
-            fprintf(stderr, "    logh(func1, fred, rho1)) = %e\n",
-                        logh(func1, fred, rho1));
-#endif /* BLATHER */
             if (current_log_dens[i] == R_NegInf)
                 error("log unnormalized density -Inf at initial state");
         }
         UNPROTECT(1);
+        // protected: (nothing)
     } else /* serial */ {
         for (int i = 0; i < ncomp; i++)
             current_log_dens[i] = R_NaN;
@@ -136,8 +124,11 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
 
     SEXP state, proposal, coproposal;
     PROTECT(state = duplicate(initial));
+    // protected: state
     PROTECT(proposal = allocVector(REALSXP, nx + 1));
+    // protected: state, proposal
     PROTECT(coproposal = allocVector(REALSXP, nx + 1));
+    // protected: state, proposal, coproposal
 
     int nout;
     if (no_outfun) {
@@ -206,122 +197,277 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
     int len_result = len_result_regular;
     len_result += is_debug ? len_result_debug : 0;
 
-#ifdef BLEAT
-    fprintf(stderr, "len_result = %d\n", len_result);
-#endif /* BLEAT */
-
     SEXP result, resultnames, acceptx, accepti, batch, ibatch,
         save_initial, save_final, debug_which, debug_unif_which,
         debug_state, debug_coproposal, debug_proposal,
         debug_log_hastings, debug_unif_hastings, debug_acceptd,
         debug_norm, debug_unif_choose;
 
+    // shut up spurious gcc complaints about possibly uninitialized
+    ibatch = debug_which = debug_unif_which = debug_state = debug_coproposal =
+        debug_proposal = debug_log_hastings = debug_unif_hastings =
+        debug_acceptd = debug_norm = debug_unif_choose = R_NilValue;
+
     PROTECT(result = allocVector(VECSXP, len_result));
+    // protected: state, proposal, coproposal, result
     PROTECT(resultnames = allocVector(STRSXP, len_result));
+    // protected: state, proposal, coproposal, result, resultnames
     namesgets(result, resultnames);
     UNPROTECT(1);
+    // protected: state, proposal, coproposal, result
+    // indirectly protected (part of result): resultnames
 
     if (no_outfun && is_parallel)
         PROTECT(batch = alloc3DArray(REALSXP, int_nbatch, ncomp, nx));
     else
         PROTECT(batch = allocMatrix(REALSXP, int_nbatch, nout));
+    // protected: state, proposal, coproposal, result, batch
+    // indirectly protected (part of result): resultnames
     SET_VECTOR_ELT(result, 0, batch);
     SET_STRING_ELT(resultnames, 0, mkChar("batch"));
     UNPROTECT(1);
+    // protected: state, proposal, coproposal, result
+    // indirectly protected (part of result): resultnames, batch
 
     PROTECT(acceptx = allocVector(REALSXP, ncomp));
+    // protected: state, proposal, coproposal, result, acceptx
+    // indirectly protected (part of result): resultnames, batch
     SET_VECTOR_ELT(result, 1, acceptx);
     SET_STRING_ELT(resultnames, 1, mkChar("acceptx"));
     UNPROTECT(1);
+    // protected: state, proposal, coproposal, result
+    // indirectly protected (part of result): resultnames, batch, acceptx
 
     PROTECT(accepti = allocMatrix(REALSXP, ncomp, ncomp));
+    // protected: state, proposal, coproposal, result, accepti
+    // indirectly protected (part of result): resultnames, batch, acceptx
     SET_VECTOR_ELT(result, 2, accepti);
     SET_STRING_ELT(resultnames, 2, mkChar("accepti"));
     UNPROTECT(1);
+    // protected: state, proposal, coproposal, result
+    // indirectly protected (part of result): resultnames, batch, acceptx,
+    //            accepti
 
     PROTECT(save_initial = duplicate(initial));
+    // protected: state, proposal, coproposal, result, save_initial
+    // indirectly protected (part of result): resultnames, batch, acceptx,
+    //            accepti
     SET_VECTOR_ELT(result, 3, save_initial);
     SET_STRING_ELT(resultnames, 3, mkChar("initial"));
     UNPROTECT(1);
+    // protected: state, proposal, coproposal, result
+    // indirectly protected (part of result): resultnames, batch, acceptx,
+    //            accepti, save_initial
 
     SET_STRING_ELT(resultnames, 4, mkChar("final"));
     // at end need to duplicate state as save_final and copy to result[4]
 
     if (! is_parallel) {
         PROTECT(ibatch = allocMatrix(REALSXP, int_nbatch, ncomp));
+        // protected: state, proposal, coproposal, result, ibatch
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial
         SET_VECTOR_ELT(result, 5, ibatch);
         SET_STRING_ELT(resultnames, 5, mkChar("ibatch"));
         UNPROTECT(1);
+        // protected: state, proposal, coproposal, result
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, ibatch
     }
+    // protected: state, proposal, coproposal, result
+    // indirectly protected (part of result): resultnames, batch, acceptx,
+    //            accepti, save_initial, (if ! is_parallel) ibatch
 
     if (is_debug) {
 
         PROTECT(debug_which = allocVector(LGLSXP, niter));
+        // protected: state, proposal, coproposal, result, debug_which
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch
         SET_VECTOR_ELT(result, len_result_regular + 0, debug_which);
         SET_STRING_ELT(resultnames, len_result_regular + 0, mkChar("which"));
         UNPROTECT(1);
+        // protected: state, proposal, coproposal, result
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch
+        //            debug_which
 
         PROTECT(debug_unif_which = allocVector(REALSXP, niter));
+        // protected: state, proposal, coproposal, result, debug_unif_which
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch
+        //            debug_which
         SET_VECTOR_ELT(result, len_result_regular + 1, debug_unif_which);
         SET_STRING_ELT(resultnames, len_result_regular + 1,
             mkChar("unif.which"));
         UNPROTECT(1);
+        // protected: state, proposal, coproposal, result
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which
 
         if (is_parallel)
             PROTECT(debug_state = alloc3DArray(REALSXP, niter, ncomp, nx));
         else
             PROTECT(debug_state = allocMatrix(REALSXP, niter, nx + 1));
+        // if is_parallel debug_state is array of dimension (niter, ncomp, nx)
+        // otherwise (serial) it is matrix of dimension (niter, nx + 1)
+        //
+        // protected: state, proposal, coproposal, result, debug_state
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which
         SET_VECTOR_ELT(result, len_result_regular + 2, debug_state);
         SET_STRING_ELT(resultnames, len_result_regular + 2, mkChar("state"));
         UNPROTECT(1);
+        // protected: state, proposal, coproposal, result
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state
 
         PROTECT(debug_log_hastings = allocVector(REALSXP, niter));
+        // protected: state, proposal, coproposal, result, debug_log_hastings
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state
         SET_VECTOR_ELT(result, len_result_regular + 3, debug_log_hastings);
         SET_STRING_ELT(resultnames, len_result_regular + 3,
             mkChar("log.hastings"));
         UNPROTECT(1);
+        // protected: state, proposal, coproposal, result
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state,
+        //            debug_log_hastings
 
         PROTECT(debug_unif_hastings = allocVector(REALSXP, niter));
+        // protected: state, proposal, coproposal, result, debug_unif_hastings
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state,
+        //            debug_log_hastings
         SET_VECTOR_ELT(result, len_result_regular + 4, debug_unif_hastings);
         SET_STRING_ELT(resultnames, len_result_regular + 4,
             mkChar("unif.hastings"));
         UNPROTECT(1);
+        // protected: state, proposal, coproposal, result
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state,
+        //            debug_log_hastings, debug_unif_hastings
 
         PROTECT(debug_proposal = allocMatrix(REALSXP, niter, nx + 1));
+        // protected: state, proposal, coproposal, result, debug_proposal
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state,
+        //            debug_log_hastings, debug_unif_hastings
         SET_VECTOR_ELT(result, len_result_regular + 5, debug_proposal);
         SET_STRING_ELT(resultnames, len_result_regular + 5,
             mkChar("proposal"));
         UNPROTECT(1);
+        // protected: state, proposal, coproposal, result
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state,
+        //            debug_log_hastings, debug_unif_hastings, debug_proposal
 
         PROTECT(debug_acceptd = allocVector(LGLSXP, niter));
+        // protected: state, proposal, coproposal, result, debug_acceptd
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state,
+        //            debug_log_hastings, debug_unif_hastings, debug_proposal
         SET_VECTOR_ELT(result, len_result_regular + 6, debug_acceptd);
         SET_STRING_ELT(resultnames, len_result_regular + 6,
             mkChar("acceptd"));
         UNPROTECT(1);
+        // protected: state, proposal, coproposal, result
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state,
+        //            debug_log_hastings, debug_unif_hastings, debug_proposal
+        //            debug_acceptd
 
         PROTECT(debug_norm = allocMatrix(REALSXP, niter, nx));
+        // protected: state, proposal, coproposal, result, debug_norm
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state,
+        //            debug_log_hastings, debug_unif_hastings, debug_proposal
+        //            debug_acceptd
         SET_VECTOR_ELT(result, len_result_regular + 7, debug_norm);
         SET_STRING_ELT(resultnames, len_result_regular + 7,
             mkChar("norm"));
         UNPROTECT(1);
+        // protected: state, proposal, coproposal, result
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state,
+        //            debug_log_hastings, debug_unif_hastings, debug_proposal
+        //            debug_acceptd, debug_norm
 
         if (is_parallel)
             PROTECT(debug_unif_choose = allocMatrix(REALSXP, niter, 2));
         else
             PROTECT(debug_unif_choose = allocVector(REALSXP, niter));
+        // if is_parallel debug_unif_choose is matrix of dimension (niter, 2)
+        // if ! is_parallel (serial) debug_unif_choose is vector of length niter
+        //
+        // protected: state, proposal, coproposal, result, debug_unif_choose
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state,
+        //            debug_log_hastings, debug_unif_hastings, debug_proposal
+        //            debug_acceptd, debug_norm
         SET_VECTOR_ELT(result, len_result_regular + 8, debug_unif_choose);
         SET_STRING_ELT(resultnames, len_result_regular + 8,
             mkChar("unif.choose"));
         UNPROTECT(1);
+        // protected: state, proposal, coproposal, result
+        // indirectly protected (part of result): resultnames, batch, acceptx,
+        //            accepti, save_initial, (if ! is_parallel) ibatch,
+        //            debug_which, debug_unif_which, debug_state,
+        //            debug_log_hastings, debug_unif_hastings, debug_proposal
+        //            debug_acceptd, debug_norm, debug_unif_choose
 
         if (is_parallel) {
             PROTECT(debug_coproposal = allocMatrix(REALSXP, niter, nx + 1));
+            // protected: state, proposal, coproposal, result, debug_coproposal
+            // indirectly protected (part of result): resultnames, batch,
+            //            acceptx, accepti, save_initial,
+            //            (if ! is_parallel) ibatch, debug_which,
+            //            debug_unif_which, debug_state, debug_log_hastings,
+            //            debug_unif_hastings, debug_proposal debug_acceptd,
+            //            debug_norm, debug_unif_choose
             SET_VECTOR_ELT(result, len_result_regular + 9, debug_coproposal);
             SET_STRING_ELT(resultnames, len_result_regular + 9,
                 mkChar("coproposal"));
             UNPROTECT(1);
+            // protected: state, proposal, coproposal, result
+            // indirectly protected (part of result): resultnames, batch,
+            //            acceptx, accepti, save_initial,
+            //            (if ! is_parallel) ibatch, debug_which,
+            //            debug_unif_which, debug_state, debug_log_hastings,
+            //            debug_unif_hastings, debug_proposal debug_acceptd,
+            //            debug_norm, debug_unif_choose, debug_coproposal
         }
+        // protected: state, proposal, coproposal, result
+        // indirectly protected (part of result): resultnames, batch,
+        //            acceptx, accepti, save_initial,
+        //            (if ! is_parallel) ibatch, debug_which,
+        //            debug_unif_which, debug_state, debug_log_hastings,
+        //            debug_unif_hastings, debug_proposal debug_acceptd,
+        //            debug_norm, debug_unif_choose,
+        //            (if is_parallel) debug_coproposal
     }
+    // protected: state, proposal, coproposal, result
+    // indirectly protected (part of result): resultnames, batch, acceptx,
+    //            accepti, save_initial, (if ! is_parallel) ibatch,
+    //            (all the rest if is_debug) debug_which, debug_unif_which,
+    //            debug_state, debug_log_hastings, debug_unif_hastings,
+    //            debug_proposal debug_acceptd, debug_norm, debug_unif_choose,
+    //            (if is_parallel & if_debug) debug_coproposal
 
     // at this point, entire output structure (SEXP result) is set up, except
     // for aforementioned need to duplicate final state and put in result[4]
@@ -378,47 +524,13 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
 
             for (int ispac = 0; ispac < int_nspac; ispac++, iiter++) {
 
-#ifdef EXTRA_CHECK
-#ifdef WOOF
-                fprintf(stderr, "Check for validity of current_log_dens at top of inner loop\n");
-#endif /* WOOF */
-                if (is_parallel) {
-                    for (int i = 0; i < ncomp; i++) {
-                        REAL(proposal)[0] = i + 1;
-                        for (int j = 0; j < nx; j++)
-                            REAL(proposal)[j + 1] = REAL(state)[i + ncomp * j];
-#ifdef BLATHER
-            fprintf(stderr, "current_log_dens[%d] = %e\n", i, current_log_dens[i]);
-            for (int j = 0; j < nx; j++)
-                fprintf(stderr, "    state[%d, %d] = %e\n",
-                    i, j, REAL(state)[i + ncomp * j]);
-            for (int j = 0; j <= nx; j++)
-                fprintf(stderr, "    proposal[%d] = %e\n", j, REAL(proposal)[j]);
-            fprintf(stderr, "    logh(func1, proposal, rho1)) = %e\n",
-                        logh(func1, proposal, rho1));
-#endif /* BLATHER */
-                        if (current_log_dens[i] != logh(func1, proposal, rho1))
-                            error("current_log_dens[%d] bogus\n", i);
-                    }
-                } else /* serial */ {
-                    for (int j = 0; j <= nx; j++)
-                        REAL(proposal)[j] = REAL(state)[j];
-                    int i = REAL(proposal)[0] - 1;
-                    double my_actual_logh = logh(func1, proposal, rho1);
-                    double my_stored_logh = current_log_dens[i];
-#ifdef WOOF
-                    fprintf(stderr, "icomp = %d, stored logh = %e, actual logh = %e\n",
-                        i + 1, my_stored_logh, my_actual_logh);
-#endif /* WOOF */
-                    if (my_stored_logh != my_actual_logh)
-                        error("current_log_dens[%d] bogus\n", i);
-                }
-#endif /* EXTRA_CHECK */
-
                 if (is_debug) {
                     int len_state = is_parallel ? ncomp * nx : nx + 1;
-                    for (int j = 0; j < len_state; j++)
+                    for (int j = 0; j < len_state; j++) {
+                        // length(debug_state) = niter * len_state
+                        // regardless of whether is_parallel is TRUE or FALSE
                         REAL(debug_state)[iiter + niter * j] = REAL(state)[j];
+                    }
                 }
 
                 double my_unif_which = unif_rand();
@@ -455,23 +567,6 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         double my_coproposal_log_dens =
                             current_log_dens[my_i - 1];
 
-#ifdef EXTRA_CHECK
-                        if (my_coproposal_log_dens != logh(func1, coproposal, rho1)) {
-                            fprintf(stderr, "with-in component update (parallel)\n");
-                            error("saving logh didn't work right (coproposal)");
-                        }
-#endif /* EXTRA_CHECK */
-#ifdef BLEAT
-                        if (my_coproposal_log_dens == R_NegInf) {
-                            fprintf(stderr, "Oopsie #1!\n");
-                            fprintf(stderr, "    my_i = %d\n", my_i);
-                            fprintf(stderr, "    current_log_dens[my_i - 1] = %e\n", current_log_dens[my_i - 1]);
-                            fprintf(stderr, "    my_coproposal_log_dens = %e\n", my_coproposal_log_dens);
-                            for (int j = 0; j <= nx; j++)
-                                fprintf(stderr, "    coproposal[%d] = %e\n", j + 1, REAL(coproposal)[j]);
-                            fprintf(stderr, "    logh(coproposal) = %e\n", logh(func1, coproposal, rho1));
-                        }
-#endif /* BLEAT */
                         if (my_coproposal_log_dens == R_NegInf)
                             error("Can't happen: log density -Inf at current state");
 
@@ -494,14 +589,20 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                             for (int j = 0; j <= nx; j++)
                                 REAL(debug_proposal)[iiter + niter * j] =
                                     REAL(proposal)[j];
-                            for (int j = 0; j <= nx; j++)
+                            for (int j = 0; j <= nx; j++) {
+                                // since we are in blocks with is_parallel
+                                // and is_debug, R object debug_coproposal
+                                // is allocated
                                 REAL(debug_coproposal)[iiter + niter * j] =
                                     REAL(coproposal)[j];
+                            }
                             REAL(debug_log_hastings)[iiter] = my_log_hastings;
                             REAL(debug_unif_hastings)[iiter] = my_unif_hastings;
                             LOGICAL(debug_acceptd)[iiter] = my_accept;
                             for (int j = 0; j < nx; j++)
                                 REAL(debug_norm)[iiter + niter * j] = z[j];
+                            // because we are inside if (is_parallel) block
+                            // dim(debug_unif_choose) == c(niter, 2)
                             REAL(debug_unif_choose)[iiter] = unif_choose;
                             REAL(debug_unif_choose)[iiter + niter] = R_NaReal;
                         }
@@ -530,30 +631,14 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         double my_new_log_dens = logh(func1, proposal, rho1);
                         double my_old_log_dens = current_log_dens[my_i - 1];
 
-#ifdef BLEAT
-                        if (my_old_log_dens == R_NegInf) {
-                            fprintf(stderr, "Oopsie #2!\n");
-                        }
-#endif /* BLEAT */
                         if (my_old_log_dens == R_NegInf)
                             error("Can't happen: log density -Inf at current state");
-#ifdef EXTRA_CHECK
-                        if (my_old_log_dens != logh(func1, coproposal, rho1)) {
-                            fprintf(stderr, "with-in component update (serial)\n");
-                            error("saving logh didn't work right (coproposal)");
-                        }
-#endif /* EXTRA_CHECK */
 
                         double my_log_hastings =
                             my_new_log_dens - my_old_log_dens;
 
                         if (isnan(my_log_hastings) ||
                             (isinf(my_log_hastings) && my_log_hastings > 0)) {
-#ifdef WOOF
-                                fprintf(stderr, "my_old_log_dens = %e\n", my_old_log_dens);
-                                fprintf(stderr, "my_new_log_dens = %e\n", my_old_log_dens);
-                                fprintf(stderr, "my_i = %d\n", my_i);
-#endif /* WOOF */
                                 error("Can't happen: log hastings ratio +Inf or NaN\n");
                         }
 
@@ -573,6 +658,8 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                             LOGICAL(debug_acceptd)[iiter] = my_accept;
                             for (int j = 0; j < nx; j++)
                                 REAL(debug_norm)[iiter + niter * j] = z[j];
+                            // because we are in ! is_parallel block
+                            // length(debug_unif_choose) == niter
                             REAL(debug_unif_choose)[iiter] = R_NaReal;
                         }
 
@@ -609,10 +696,6 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         if (foo > my_i_neighbors) foo--;
 
                         int my_j = the_neighbors[my_i - 1][foo - 1] + 1;
-#ifdef BLEAT
-                        fprintf(stderr, "my_i = %d, my_i_neighbors = %d, foo = %d\n", my_i, my_i_neighbors, foo);
-                        fprintf(stderr, "(parallel) ncomp = %d, my_j = %d\n", ncomp, my_j);
-#endif /* BLEAT */
                         if (my_j <= 0 || my_j > ncomp)
                             error("Can't happen: my_j out of range");
 
@@ -624,40 +707,12 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         double my_coproposal_log_dens =
                             current_log_dens[my_i - 1];
 
-#ifdef EXTRA_CHECK
-                        if (my_coproposal_log_dens != logh(func1, coproposal, rho1)) {
-                            fprintf(stderr, "swap component update (parallel)\n");
-                            error("saving logh didn't work right (coproposal)");
-                        }
-#endif /* EXTRA_CHECK */
-#ifdef BLEAT
-                        if (my_coproposal_log_dens == R_NegInf) {
-                            fprintf(stderr, "Oopsie #3!\n");
-                            fprintf(stderr, "    my_i = %d\n", my_i);
-                            fprintf(stderr, "    current_log_dens[my_i - 1] = %e\n", current_log_dens[my_i - 1]);
-                            fprintf(stderr, "    my_coproposal_log_dens = %e\n", my_coproposal_log_dens);
-                            for (int j = 0; j <= nx; j++)
-                                fprintf(stderr, "    coproposal[%d] = %e\n", j + 1, REAL(coproposal)[j]);
-                            fprintf(stderr, "    logh(coproposal) = %e\n", logh(func1, coproposal, rho1));
-                        }
-#endif /* BLEAT */
                         if (my_coproposal_log_dens == R_NegInf)
                             error("Can't happen: log density -Inf at current state");
 
                         double my_proposal_log_dens =
                             current_log_dens[my_j - 1];
 
-#ifdef EXTRA_CHECK
-                        if (my_proposal_log_dens != logh(func1, proposal, rho1)) {
-                            fprintf(stderr, "swap component update (parallel)\n");
-                            error("saving logh didn't work right (proposal)");
-                        }
-#endif /* EXTRA_CHECK */
-#ifdef BLEAT
-                        if (my_proposal_log_dens == R_NegInf) {
-                            fprintf(stderr, "Oopsie #4!\n");
-                        }
-#endif /* BLEAT */
                         if (my_proposal_log_dens == R_NegInf)
                             error("Can't happen: log density -Inf at current state");
 
@@ -665,9 +720,13 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                             for (int j = 0; j <= nx; j++)
                                 REAL(debug_proposal)[iiter + niter * j] =
                                     REAL(proposal)[j];
-                            for (int j = 0; j <= nx; j++)
+                            for (int j = 0; j <= nx; j++) {
+                                // since we are in blocks with is_parallel
+                                // and is_debug, R object debug_coproposal
+                                // is allocated
                                 REAL(debug_coproposal)[iiter + niter * j] =
                                     REAL(coproposal)[j];
+                            }
                         }
 
                         // proposal and coproposal now saved and logh evaluated
@@ -735,12 +794,6 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         int my_j = the_neighbors[my_i - 1][foo - 1] + 1;
                         int my_j_neighbors = n_neighbors[my_j - 1];
 
-#ifdef BLEAT
-                        fprintf(stderr, "(serial) ncomp = %d, my_j = %d, my_i_neighbors = %d, foo = %d\n", ncomp, my_j, my_i_neighbors, foo);
-                        fprintf(stderr, "    unif_choose = %f\n", unif_choose);
-                        for (int j = 0; j < ncomp; j++)
-                            fprintf(stderr, "    LOGICAL(neighbors)[(my_i - 1) + ncomp * %d] = %d\n", j, LOGICAL(neighbors)[(my_i - 1) + ncomp * j]);
-#endif /* BLEAT */
                         if (my_j <= 0 || my_j > ncomp)
                             error("Can't happen: my_j out of range");
 
@@ -748,26 +801,8 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                         for (int j = 0; j < nx; j++)
                             REAL(proposal)[j + 1] = REAL(state)[j + 1];
 
-#ifdef WOOF
-                        fprintf(stderr, "got to here, about to call logh\n");
-                        fprintf(stderr, "    REAL(proposal)[0] = %e\n", REAL(proposal)[0]);
-#endif /* WOOF */
-
                         double my_new_log_dens = logh(func1, proposal, rho1);
                         double my_old_log_dens = current_log_dens[my_i - 1];
-#ifdef BLEAT
-                        if (my_old_log_dens == R_NegInf) {
-                            fprintf(stderr, "Oopsie #5!\n");
-                        }
-#endif /* BLEAT */
-#ifdef EXTRA_CHECK
-                        for (int j = 0; j <= nx; j++)
-                            REAL(coproposal)[j] = REAL(state)[j];
-                        if (my_old_log_dens != logh(func1, coproposal, rho1)) {
-                            fprintf(stderr, "swap component update (serial)\n");
-                            error("saving logh didn't work right (coproposal)");
-                        }
-#endif /* EXTRA_CHECK */
                         if (my_old_log_dens == R_NegInf)
                             error("Can't happen: log density -Inf at current state");
 
@@ -797,11 +832,6 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                                 REAL(debug_norm)[iiter + niter * j] = R_NaReal;
                             REAL(debug_unif_choose)[iiter] = unif_choose;
                         }
-
-#ifdef WOOF_WOOF
-                        fprintf(stderr, "unif_choose = %f, ", unif_choose);
-                        fprintf(stderr, "REAL(debug_unif_choose)[iiter] = %f\n", REAL(debug_unif_choose)[iiter]);
-#endif /* WOOF_WOOF */
 
                         if (my_accept) {
                             for (int j = 0; j <= nx; j++)
@@ -847,10 +877,11 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                     batch_buff[i] / int_blen;
 
         if (! is_parallel)
-            for (int i = 0; i < ncomp; i++)
+            for (int i = 0; i < ncomp; i++) {
+                // since we are in ! is_parallel block ibatch is allocated
                 REAL(ibatch)[kbatch + int_nbatch * i] =
                     ibatch_buff[i] / int_blen;
-
+            }
     } /* end of outer loop */
 
     for (int i = 0; i < ncomp; i++)
@@ -866,6 +897,13 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
     PutRNGstate();
 
     PROTECT(save_final = duplicate(state));
+    // protected: state, proposal, coproposal, result, save_final
+    // indirectly protected (part of result): resultnames, batch, acceptx,
+    //            accepti, save_initial, (if ! is_parallel) ibatch,
+    //            (all the rest if is_debug) debug_which, debug_unif_which,
+    //            debug_state, debug_log_hastings, debug_unif_hastings,
+    //            debug_proposal debug_acceptd, debug_norm, debug_unif_choose,
+    //            (if is_parallel & if_debug) debug_coproposal
     SET_VECTOR_ELT(result, 4, save_final);
     UNPROTECT(5);
 

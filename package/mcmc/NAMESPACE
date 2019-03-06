@@ -18,4 +18,3 @@ S3method(temper, tempering)
 S3method(temper, "function")
 
 importFrom(stats, runif)
-importFrom(compiler, cmpfun)

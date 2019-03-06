@@ -63,37 +63,63 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
     if (int_nspac <= 0)
         error("argument \"nspac\" must be positive");
 
-    PROTECT(state = coerceVector(duplicate(initial), REALSXP));
+    SEXP foompter;
+    PROTECT(foompter = duplicate(initial));
+    // protected: foompter
+    PROTECT(state = coerceVector(foompter, REALSXP));
+    // protected: foompter, state
     if (! isAllFinite(state))
         error("all elements of \"state\" must be finite");
     dim_state = LENGTH(state);
 
     PROTECT(proposal = allocVector(REALSXP, dim_state));
+    // protected: foompter, state, proposal
     proposal_setup(scale, dim_state);
 
     dim_out = out_setup(func2, rho2, state);
     batch_buffer = (double *) R_alloc(dim_out, sizeof(double));
     PROTECT(out_buffer = allocVector(REALSXP, dim_out));
+    // protected: foompter, state, proposal, out_buffer
 
      if (! int_debug) {
          PROTECT(result = allocVector(VECSXP, 5));
+         // protected: foompter, state, proposal, out_buffer, result
          PROTECT(resultnames = allocVector(STRSXP, 5));
+         // protected: foompter, state, proposal, out_buffer, result,
+         //            resultnames
      } else {
          PROTECT(result = allocVector(VECSXP, 11));
+         // protected: foompter, state, proposal, out_buffer, result
          PROTECT(resultnames = allocVector(STRSXP, 11));
+         // protected: foompter, state, proposal, out_buffer, result,
+         //            resultnames
      }
+     // same protected regardless of which choice in above if
      PROTECT(acceptance_rate = allocVector(REALSXP, 1));
+     // protected: foompter, state, proposal, out_buffer, result,
+     //            resultnames, acceptance_rate
      SET_VECTOR_ELT(result, 0, acceptance_rate);
      PROTECT(path = allocMatrix(REALSXP, dim_out, int_nbatch));
+     // protected: foompter, state, proposal, out_buffer, result,
+     //            resultnames, acceptance_rate, path
      SET_VECTOR_ELT(result, 1, path);
      PROTECT(save_initial = duplicate(state));
+     // protected: foompter, state, proposal, out_buffer, result,
+     //            resultnames, acceptance_rate, path, save_initial
      SET_VECTOR_ELT(result, 2, save_initial);
      /* cannot set final yet because we haven't got it yet
         (final value at end of run).
         See third to last statement of this function. */
      PROTECT(acceptance_rate_batches = allocVector(REALSXP, int_nbatch));
+     // protected: foompter, state, proposal, out_buffer, result,
+     //            resultnames, acceptance_rate, path, save_initial,
+     //            acceptance_rate_batches
      SET_VECTOR_ELT(result, 4, acceptance_rate_batches);
      UNPROTECT(4);
+     // protected: foompter, state, proposal, out_buffer, result,
+     //            resultnames
+     // indirectly protected (part of result): acceptance_rate, path,
+     //            save_initial, acceptance_rate_batches
      SET_STRING_ELT(resultnames, 0, mkChar("accept"));
      SET_STRING_ELT(resultnames, 1, mkChar("batch"));
      SET_STRING_ELT(resultnames, 2, mkChar("initial"));
@@ -103,18 +129,47 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
          SEXP spath, ppath, gpath, upath, zpath, apath;
          int nn = int_nbatch * int_blen * int_nspac;
          PROTECT(spath = allocMatrix(REALSXP, dim_state, nn));
+         // protected: foompter, state, proposal, out_buffer, result,
+         //            resultnames, spath
+         // indirectly protected (part of result): acceptance_rate, path,
+         //            save_initial, acceptance_rate_batches
          SET_VECTOR_ELT(result, 5, spath);
          PROTECT(ppath = allocMatrix(REALSXP, dim_state, nn));
+         // protected: foompter, state, proposal, out_buffer, result,
+         //            resultnames, spath, ppath
+         // indirectly protected (part of result): acceptance_rate, path,
+         //            save_initial, acceptance_rate_batches
          SET_VECTOR_ELT(result, 6, ppath);
          PROTECT(gpath = allocVector(REALSXP, nn));
+         // protected: foompter, state, proposal, out_buffer, result,
+         //            resultnames, spath, ppath, gpath
+         // indirectly protected (part of result): acceptance_rate, path,
+         //            save_initial, acceptance_rate_batches
          SET_VECTOR_ELT(result, 7, gpath);
          PROTECT(upath = allocVector(REALSXP, nn));
+         // protected: foompter, state, proposal, out_buffer, result,
+         //            resultnames, spath, ppath, gpath, upath
+         // indirectly protected (part of result): acceptance_rate, path,
+         //            save_initial, acceptance_rate_batches
          SET_VECTOR_ELT(result, 8, upath);
          PROTECT(zpath = allocMatrix(REALSXP, dim_state, nn));
+         // protected: foompter, state, proposal, out_buffer, result,
+         //            resultnames, spath, ppath, gpath, upath, zpath
+         // indirectly protected (part of result): acceptance_rate, path,
+         //            save_initial, acceptance_rate_batches
          SET_VECTOR_ELT(result, 9, zpath);
          PROTECT(apath = allocVector(LGLSXP, nn));
+         // protected: foompter, state, proposal, out_buffer, result,
+         //            resultnames, spath, ppath, gpath, upath, zpath, apath
+         // indirectly protected (part of result): acceptance_rate, path,
+         //            save_initial, acceptance_rate_batches
          SET_VECTOR_ELT(result, 10, apath);
          UNPROTECT(6);
+         // protected: foompter, state, proposal, out_buffer, result,
+         //            resultnames,
+         // indirectly protected (part of result): acceptance_rate, path,
+         //            save_initial, acceptance_rate_batches, spath, ppath,
+         //            gpath, upath, zpath, apath
          SET_STRING_ELT(resultnames, 5, mkChar("current"));
          SET_STRING_ELT(resultnames, 6, mkChar("proposal"));
          SET_STRING_ELT(resultnames, 7, mkChar("log.green"));
@@ -122,8 +177,17 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
          SET_STRING_ELT(resultnames, 9, mkChar("z"));
          SET_STRING_ELT(resultnames, 10, mkChar("debug.accept"));
      }
+     // protected: foompter, state, proposal, out_buffer, result,
+     //            resultnames,
+     // indirectly protected (part of result): acceptance_rate, path,
+     //            save_initial, acceptance_rate_batches, and (if debug)
+     //            spath, ppath, gpath, upath, zpath, apath
      namesgets(result, resultnames);
      UNPROTECT(1);
+     // protected: foompter, state, proposal, out_buffer, result,
+     // indirectly protected (part of result): acceptance_rate, path,
+     //            save_initial, acceptance_rate_batches, resultnames,
+     //            and (if debug) spath, ppath, gpath, upath, zpath, apath
 
      GetRNGstate();
 
@@ -221,9 +285,14 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
      REAL(acceptance_rate)[0] = acceptances / tries;
 
      PROTECT(save_final = coerceVector(state, REALSXP));
+     // protected: foompter, state, proposal, out_buffer, result,
+     //            save_final
+     // indirectly protected (part of result): acceptance_rate, path,
+     //            save_initial, acceptance_rate_batches, resultnames,
+     //            and (if debug) spath, ppath, gpath, upath, zpath, apath
      SET_VECTOR_ELT(result, 3, save_final);
 
-     UNPROTECT(5);
+     UNPROTECT(6);
      return result;
 }
 
@@ -355,7 +424,10 @@ static int out_setup(SEXP func, SEXP rho, SEXP state)
         out_option = OUT_FUNCTION;
         out_func = func;
         out_env = rho;
-        out_dimension = LENGTH(eval(lang2(func, state), rho));
+        SEXP foompter;
+        PROTECT(foompter = lang2(func, state));
+        out_dimension = LENGTH(eval(foompter, rho));
+        UNPROTECT(1);
     } else if (isLogical(func)) {
         if (LENGTH(func) != out_state_dimension)
             error("is.logical(outfun) & (length(outfun) != length(initial))");

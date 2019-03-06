@@ -74,3 +74,8 @@
  0.9-5 use registration of native routines described in Sections 5.4 and
        6.15 of Writing R Extensions
        add calls to cmpfun inside metrop and temper
+
+ 0.9-6 take out calls to cmpfun and requirement for R package compiler
+       (R now automagically does jit)
+
+       Fix problems found in CRAN static analysis

@@ -1,0 +1,287 @@
+MIME-Version: 1.0
+Date: Mon, 29 Oct 2018 08:51:48 -0500
+References: <cjgeyer/mcmc/issues/2@github.com>
+In-Reply-To: <cjgeyer/mcmc/issues/2@github.com>
+Message-ID: <CAKctRd1Svcq7FXbommim64ecOh6icnBLb8A9+M_FbxqzFtVCKw@mail.gmail.com>
+Subject: Re: [cjgeyer/mcmc] Sampler becomes stuck, repeating a single proposal
+ indefinitely (#2)
+From: Charles Geyer <charlie@stat.umn.edu>
+To: "cjgeyer/mcmc" <reply+00071dc0d7796f9462d82e78b91fbe682af5a8fb7d8572b892cf0000000117edd4c392a169ce1656dc57@reply.github.com>
+Content-Type: multipart/alternative; boundary="000000000000cd14ca05795e5e37"
+
+--000000000000cd14ca05795e5e37
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+No and I can't deal with it right now as I am in hospital but will take a
+look when I get out
+
+On Sun, Oct 28, 2018, 2:49 PM Robert Link <notifications@github.com> wrote:
+
+> I am seeing the following odd behavior. When I run the sampler, like so:
+>
+> out1 <- metrop(logpost, pv0, 10, scale=3Dmcmc_scale, debug=3DTRUE)
+>
+> I get a couple of good iterations, but then the sampler starts repeating
+> the same proposal over and over:
+>
+> out1$proposal
+>           [,1]      [,2]     [,3]      [,4]     [,5]     [,6]     [,7]   =
+  [,8]
+>  [1,] 3.073006 0.7735492 2.280427 0.2525763 2.127533 285.1648 1.125720 11=
+.24583
+>  [2,] 3.146012 0.5470985 2.260854 0.2051526 2.255066 285.3296 1.251440 12=
+.49165
+>  [3,] 3.219018 0.3206477 2.241281 0.1577288 2.382599 285.4944 1.377160 13=
+.73748
+>  [4,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12=
+.74362
+>  [5,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12=
+.74362
+>  [6,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12=
+.74362
+>  [7,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12=
+.74362
+>  [8,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12=
+.74362
+>  [9,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12=
+.74362
+> [10,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12=
+.74362
+>
+> You can see that starting with iteration 4, the proposal is the same ever=
+y
+> time.
+>
+> Restarting from the point where the last one left off gives me a one more
+> valid iteration, but the sampler quickly falls back into the same
+> repetitive behavior:
+>
+> out2 <- metrop(out1, pv0, 100, scale=3Dmcmc_scale, debug=3DTRUE)
+> out2$proposal
+>            [,1]      [,2]     [,3]      [,4]     [,5]     [,6]     [,7]  =
+   [,8]
+>   [1,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 1=
+2.74362
+>   [2,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>   [3,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>   [4,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>   [5,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>   [6,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>   [7,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>   [8,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>   [9,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>  [10,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>  [11,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>  [12,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>  [13,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+>  [14,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 1=
+2.14620
+> (...)
+>
+> The same proposal then gets repeated for all of the remaining iterations.
+>
+> I tried it one more time, starting from the end of the second run, and
+> this time it was a few iterations before the repetition began:
+>
+> out3 <- metrop(out2, pv0, 100, scale=3Dmcmc_scale, debug=3DTRUE)
+> out3$proposal[1:15,]
+>           [,1]      [,2]     [,3]        [,4]     [,5]     [,6]     [,7] =
+    [,8]
+>  [1,] 2.919562 0.5275253 2.213430  0.33268563 2.271547 286.5868 1.500605 =
+12.14620
+>  [2,] 3.127507 0.5089804 2.380828 -0.01134893 2.182718 286.1311 1.301835 =
+12.62126
+>  [3,] 3.100912 0.6157917 2.299748  0.24053632 2.345545 285.2590 1.331331 =
+12.22602
+>  [4,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+>  [5,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+>  [6,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+>  [7,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+>  [8,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+>  [9,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+> [10,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+> [11,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+> [12,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+> [13,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+> [14,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+> [15,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 =
+12.35563
+> (...)
+>
+> Presumably R's RNG is getting mangled somehow, but nothing in my code
+> touches anything related to the RNG. Do you have any idea what might be
+> causing this behavior?
+>
+> =E2=80=94
+> You are receiving this because you are subscribed to this thread.
+> Reply to this email directly, view it on GitHub
+> <https://github.com/cjgeyer/mcmc/issues/2>, or mute the thread
+> <https://github.com/notifications/unsubscribe-auth/AAcdwPaUUrh80QIJPMDQbU=
+Yv781uDhc8ks5upgpDgaJpZM4X-Jfn>
+> .
+>
+
+--000000000000cd14ca05795e5e37
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"auto">No and I can&#39;t deal with it right now as I am in hosp=
+ital but will take a look when I get out</div><br><div class=3D"gmail_quote=
+"><div dir=3D"ltr">On Sun, Oct 28, 2018, 2:49 PM Robert Link &lt;<a href=3D=
+"mailto:notifications@github.com">notifications@github.com</a>&gt; wrote:<b=
+r></div><blockquote class=3D"gmail_quote" style=3D"margin:0 0 0 .8ex;border=
+-left:1px #ccc solid;padding-left:1ex"><p>I am seeing the following odd beh=
+avior.  When I run the sampler, like so:</p>
+<pre><code>out1 &lt;- metrop(logpost, pv0, 10, scale=3Dmcmc_scale, debug=3D=
+TRUE)
+</code></pre>
+<p>I get a couple of good iterations, but then the sampler starts repeating=
+ the same proposal over and over:</p>
+<pre><code>out1$proposal
+          [,1]      [,2]     [,3]      [,4]     [,5]     [,6]     [,7]     =
+[,8]
+ [1,] 3.073006 0.7735492 2.280427 0.2525763 2.127533 285.1648 1.125720 11.2=
+4583
+ [2,] 3.146012 0.5470985 2.260854 0.2051526 2.255066 285.3296 1.251440 12.4=
+9165
+ [3,] 3.219018 0.3206477 2.241281 0.1577288 2.382599 285.4944 1.377160 13.7=
+3748
+ [4,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12.7=
+4362
+ [5,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12.7=
+4362
+ [6,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12.7=
+4362
+ [7,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12.7=
+4362
+ [8,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12.7=
+4362
+ [9,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12.7=
+4362
+[10,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12.7=
+4362
+</code></pre>
+<p>You can see that starting with iteration 4, the proposal is the same eve=
+ry time.</p>
+<p>Restarting from the point where the last one left off gives me a one mor=
+e valid iteration, but the sampler quickly falls back into the same repetit=
+ive behavior:</p>
+<pre><code>out2 &lt;- metrop(out1, pv0, 100, scale=3Dmcmc_scale, debug=3DTR=
+UE)
+out2$proposal
+           [,1]      [,2]     [,3]      [,4]     [,5]     [,6]     [,7]    =
+ [,8]
+  [1,] 3.079750 0.5285934 2.222736 0.3251265 2.038565 284.6061 1.331585 12.=
+74362
+  [2,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+  [3,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+  [4,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+  [5,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+  [6,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+  [7,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+  [8,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+  [9,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+ [10,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+ [11,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+ [12,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+ [13,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+ [14,] 2.919562 0.5275253 2.213430 0.3326856 2.271547 286.5868 1.500605 12.=
+14620
+(...)
+</code></pre>
+<p>The same proposal then gets repeated for all of the remaining iterations=
+.</p>
+<p>I tried it one more time, starting from the end of the second run, and t=
+his time it was a few iterations before the repetition began:</p>
+<pre><code>out3 &lt;- metrop(out2, pv0, 100, scale=3Dmcmc_scale, debug=3DTR=
+UE)
+out3$proposal[1:15,]
+          [,1]      [,2]     [,3]        [,4]     [,5]     [,6]     [,7]   =
+  [,8]
+ [1,] 2.919562 0.5275253 2.213430  0.33268563 2.271547 286.5868 1.500605 12=
+.14620
+ [2,] 3.127507 0.5089804 2.380828 -0.01134893 2.182718 286.1311 1.301835 12=
+.62126
+ [3,] 3.100912 0.6157917 2.299748  0.24053632 2.345545 285.2590 1.331331 12=
+.22602
+ [4,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+ [5,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+ [6,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+ [7,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+ [8,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+ [9,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+[10,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+[11,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+[12,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+[13,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+[14,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+[15,] 3.082407 0.5776736 2.419722  0.02403483 2.273197 286.0605 1.381725 12=
+.35563
+(...)
+</code></pre>
+<p>Presumably R&#39;s RNG is getting mangled somehow, but nothing in my cod=
+e touches anything related to the RNG.  Do you have any idea what might be =
+causing this behavior?</p>
+
+<p style=3D"font-size:small;color:#666">=E2=80=94<br>You are receiving this=
+ because you are subscribed to this thread.<br>Reply to this email directly=
+, <a href=3D"https://github.com/cjgeyer/mcmc/issues/2" target=3D"_blank" re=
+l=3D"noreferrer">view it on GitHub</a>, or <a href=3D"https://github.com/no=
+tifications/unsubscribe-auth/AAcdwPaUUrh80QIJPMDQbUYv781uDhc8ks5upgpDgaJpZM=
+4X-Jfn" target=3D"_blank" rel=3D"noreferrer">mute the thread</a>.<img src=
+=3D"https://ci6.googleusercontent.com/proxy/HKHTUJ2uIOkPqXCHtA0gxgV4jZ65Uwt=
+HDDBrKlvw0gGmnMvmpOx6ux0vIVIceOtS8Ws592IjMGaJ8QNMlh5A1NCQlSmHq3JReJNWcEjpPW=
+tYMU8ljk33HDXcVrFGJNlhXcv2j4QdiTa3zsGttFo351vn0vY-jw=3Ds0-d-e1-ft#https://g=
+ithub.com/notifications/beacon/AAcdwBwdM7l0o2XZgBAsd-xMvKdsw1nZks5upgpDgaJp=
+ZM4X-Jfn.gif" height=3D"1" width=3D"1" alt=3D""></p>
+
+</blockquote></div>
+
+--000000000000cd14ca05795e5e37--
