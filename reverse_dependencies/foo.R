@@ -1,8 +1,10 @@
 # clean
 foo <- list.files()
 bar <- grep("^foo\\.R", foo, invert = TRUE, value = TRUE)
-baz <- paste("rm -r", paste(bar, collapse = " "))
-system(baz)
+if (length(bar) > 0) {
+    baz <- paste("rm -r", paste(bar, collapse = " "))
+    system(baz)
+}
 # my package
 system("R CMD build ../package/mcmc")
 # doit

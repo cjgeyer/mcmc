@@ -188,7 +188,8 @@ out <- metrop(out, nbatch = 1e4)
 t.test(out$accept.batch)$conf.int
 out$time
 @
-Here we do a Monte Carlo confidence for the true unknown acceptance rate
+Here we do a Monte Carlo confidence interval
+for the true unknown acceptance rate
 (what we would see with an infinite Monte Carlo sample size).
 
 Figure~\ref{fig:fig1} (page~\pageref{fig:fig1})
@@ -457,7 +458,8 @@ seconds (on whatever computer it was run on).
 
 \section{New Variance Estimation Functions}
 
-A new function \texttt{initseq} estimates variances in the Markov chain
+R function \texttt{initseq} (added in version 0.6 of this package)
+estimates variances in the Markov chain
 central limit theorem (CLT) following the methodology introduced by
 \citet[Section~3.3]{practical}.  These methods only apply to scalar-valued
 functionals of
@@ -588,7 +590,273 @@ mean(x.batch) + c(-1, 1) * qnorm(0.975) * sqrt(bout$var.con / length(x.batch))
 is an asymptotic 95\% confidence interval for $\mu$.  Just divide by
 the relevant sample size.
 
+\appendix
+
+\section{Dot-dot-dot Versus Global Variables Versus Closures}
+
+This appendix deals with three ways to pass information to a function
+being passed to another R function (a higher-order function), for example when
+\begin{itemize}
+\item the function being passed is the objective function for an optimization
+    done by the higher-order function, which optimizes
+    (R function \texttt{optim} for example),
+\item the function being passed is the integrand for an integration
+    done by the higher-order function, which integrates
+    (R function \texttt{integrate} for example),
+\item the function being passed is the estimator of a parameter for a
+    bootstrap done by the higher-order function, which simulates
+    the (bootstrap approximation) of the sampling distribution of the
+    estimator (R function \texttt{boot} in R package \texttt{boot},
+    for example),
+\item the function being passed is the log unnormalized density function
+    for a simulation
+    done by the higher-order function, which simulates the distribution
+    having that unnormalized density
+    (R function \texttt{metrop} in this package for example),
+\end{itemize}
+These ways are
+\begin{itemize}
+\item using dot-dot-dot (R syntax \verb@...@),
+\item using global variables,
+\item using closures, also called the function factory pattern.
+\end{itemize}
+The main body of this vignette uses the third option.  This appendix
+explains them all and the virtues and vices of each.
+
+\subsection{Dot-dot-dot}
+
+The dot-dot-dot mechanism is fairly easy to use when only one function is passed
+to the higher-order function, but does require care and more work to use.
+It is even harder to deal with when more than one function is passed to
+the higher-order function.  R functions \texttt{metrop} and \texttt{temper} in
+this package can be passed two functions: the log unnormalized density
+function and the output function.
+
+\subsection{Only One Function Argument}
+
+Previous versions of this vignette used the dot-dot-dot mechanism everywhere.
+In those versions the log unnormalized density function was defined by
+<<log.unnormalized.posterior-dot-dot-dot>>=
+lupost <- function(beta, x, y) {
+     eta <- as.numeric(x %*% beta)
+     logp <- ifelse(eta < 0, eta - log1p(exp(eta)), - log1p(exp(- eta)))
+     logq <- ifelse(eta < 0, - log1p(exp(eta)), - eta - log1p(exp(- eta)))
+     logl <- sum(logp[y == 1]) + sum(logq[y == 0])
+     return(logl - sum(beta^2) / 8)
+}
+@
+rather than the way it is now done in the main text above.  Note that
+everything is the same in the two definitions except here we have
+\begin{verbatim}
+lupost <- function(beta, x, y) {
+\end{verbatim}
+where in the main text we now have
+\begin{verbatim}
+lupost_factory <- function(x, y) function(beta) {
+\end{verbatim}
+and then we have to execute the function factory \verb@lupost_factory@
+to make the \texttt{lupost} function.
+
+But the main difference is that R function \texttt{lupost}
+(the user written function specifying the log unnormalized posterior density)
+\begin{itemize}
+\item here has 3 arguments, \texttt{beta}, \texttt{x},
+    and \texttt{y}, and the latter two must be passed via the dot-dot-dot
+    mechanism, but
+\item there has 1 argument, \texttt{beta}, and it
+    just knows about \texttt{x} and \texttt{y} --- they are in its closure.
+\end{itemize}
+
+So to use this \texttt{lupost} function, we have to add arguments
+\texttt{x} and \texttt{y} to each call to R function \texttt{metrop}.
+For example
+<<metropolis-try-dot-dot-dot>>=
+out <- glm(y ~ x1 + x2 + x3 + x4, data = logit,
+    family = binomial, x = TRUE)
+x <- out$x
+y <- out$y
+
+out <- metrop(lupost, beta.init, 1e3, x = x, y = y)
+out$accept
+out <- metrop(out, scale = 0.1, x = x, y = y)
+out$accept
+out <- metrop(out, scale = 0.3, x = x, y = y)
+out$accept
+out <- metrop(out, scale = 0.5, x = x, y = y)
+out$accept
+out <- metrop(out, scale = 0.4, x = x, y = y)
+out$accept
+@
+and so forth.
+
+This method has the benefit that we do not have to explain function factories
+and has the drawback that we need to keep remembering to add
+\verb@x = x, y = y@ to each invocation of R function \texttt{metrop}.
+It is unclear to me which pattern is more mysterious to naive users.
+
+\subsection{More Than One Function Argument}
+
+The situation becomes more complicated (see the Warning section of the help
+pages for R functions \texttt{metrop} and \texttt{temper}) when more than
+one function argument is passed to the higher-order function.  Then
+\emph{they all must handle the \emph{same} dot-dot-dot arguments} whether
+or not they want them.
+
+So now we must define the output function as
+<<outfun-dot-dot-dot>>=
+outfun <- function(z, ...) c(z, z^2)
+@
+The \verb@...@ argument in the function signature is essential because
+this function is going to be passed dot-dot-dot arguments \texttt{x}
+and \texttt{y}, which it does not need and does not want, so it has to
+allow for them (and then not use them).
+
+Then we can continue
+<<outfun-try-dot-dot-dot>>=
+out <- metrop(out, nbatch = 100, blen = 100, outfun = outfun,
+    x = x, y = y)
+out$accept
+@
+and this works.  But we would have gotten an error about unused arguments
+if we had defined the output function without the dot-dot-dot as we did
+in the main text.
+
+Your humble author was himself confused about this for years and so doubts
+that naive R users will find it intuitive.
+
+\subsection{Global Variables}
+
+As every programmer knows global variables are easy to use and evil
+\citep{c2}.  They are part of the way of R (or perhaps part of one of
+the ways of R).  They are OK for ``very small or one-off programs'' \citep{c2}.
+If you are going to throw the code away after one use, fine.
+If you are going to give your code to other people or even use it
+yourself six months later (after you have long forgotten the details),
+then this method is evil and should be avoided.
+
+In this method we define both functions passed to the higher-order function
+without \verb@...@ and without using a function factory.  We already
+in the preceding section of this appendix defined R objects \texttt{x} and
+\texttt{y} as global variables (in the R global environment \verb@.GlobalEnv@).
+They are global variables and we use them as such, defining
+<<functions-global>>=
+lupost <- function(beta) {
+     eta <- as.numeric(x %*% beta)
+     logp <- ifelse(eta < 0, eta - log1p(exp(eta)), - log1p(exp(- eta)))
+     logq <- ifelse(eta < 0, - log1p(exp(eta)), - eta - log1p(exp(- eta)))
+     logl <- sum(logp[y == 1]) + sum(logq[y == 0])
+     return(logl - sum(beta^2) / 8)
+}
+outfun <- function(z) c(z, z^2)
+@
+Then the following works
+<<doit-global>>=
+out <- metrop(lupost, beta.init, 1e3)
+out$accept
+out <- metrop(out, scale = 0.1)
+out$accept
+out <- metrop(out, scale = 0.3)
+out$accept
+out <- metrop(out, scale = 0.5)
+out$accept
+out <- metrop(out, scale = 0.4)
+out$accept
+out <- metrop(out, nbatch = 100, blen = 100, outfun = outfun)
+out$accept
+@
+
+We get the best of both worlds.  We don't need \verb@x = x, y = y@
+and we don't need a function factory.
+
+But if we change the name of the global variables to say
+\texttt{modmat} and \texttt{resp} instead of \texttt{x} and \texttt{y},
+then our code breaks.  R function \texttt{lupost} is looking up
+global variables \texttt{x} and \texttt{y} \emph{under those names}
+not under any other names.  So your code using this method is rigid and brittle
+and probably unusable by others.
+
+Note that if we are using either of the other methods, renaming is no problem.
+Using dot-dot-dot we do
+\begin{verbatim}
+out <- metrop(out, scale = 0.1, x = modmat, y = resp)
+\end{verbatim}
+Using the function factory we do
+\begin{verbatim}
+lupost <- lupost_factory(modmat, resp)
+\end{verbatim}
+See Section~7.5.3 of \citet{basic} for more about this.
+
+\subsection{Function Factory}
+
+The terminology ``function factory pattern'' is apparently due to
+\citet[Section~10.3.1]{wickham}.  But it is just a special case about
+how closures work (in R and all other languages that have them).
+Compare
+<<fred>>=
+fred <- function(y) function(x) x + y
+fred(2)(3)
+@
+\citep[Section~6.5]{basic}) to
+<<currying>>=
+lupost_factory <- function(x, y) function(beta) {
+    eta <- as.numeric(x %*% beta)
+    logp <- ifelse(eta < 0, eta - log1p(exp(eta)), - log1p(exp(- eta)))
+    logq <- ifelse(eta < 0, - log1p(exp(eta)), - eta - log1p(exp(- eta)))
+    logl <- sum(logp[y == 1]) + sum(logq[y == 0])
+    return(logl - sum(beta^2) / 8)
+}
+lupost <- lupost_factory(x, y)
+lupost(beta.init)
+@
+We could also do the same calculation treating \verb@lupost_factory@
+as just an ordinary curried function, like R function \texttt{fred}
+in the preceding example,
+<<currying-too>>=
+lupost_factory(x, y)(beta.init)
+@
+
+So there is nothing mysterious about function factories.  They are just
+one particular use of
+the essence of functional programming (closures).
+If you really understand functional programming, then you must understand this.
+
+Long ago, when I switched from S to R,
+I would not have considered that being an ``knowledgeable user'' of R
+required knowledge of closures.  Now I do.  This is partly because other
+functional languages like Scheme, Javascript, F\#, Clojure, and Haskell
+have become
+very popular for general computer programming.  So now we want to emphasize
+that we can do in R what we can do in them.
+But it is also partly because I now understand more about functional
+programming.  I can now see that if you really understand closures,
+then you don't need most other features of these programming languages
+(including R).  Following \citet{crockford} we can say that all programming
+languages (including R) have their good parts and their bad parts and we
+should use the good features and avoid the bad features.  The best feature
+is closures.  Crockford calls this the best idea ever put in a programming
+language.  So we should use it a lot.
+
+If I were starting to write the \texttt{mcmc} package today, I might leave
+out the dot-dot-dot arguments of R functions \texttt{metrop},
+\texttt{morph.metrop}, and \texttt{temper}.  That would mean that
+users could not use the dot-dot-dot pattern.  They would be forced to
+use the function factory pattern or the global variables pattern.
+And if they had accepted that the global variables pattern is evil,
+then they would have to use the function factory pattern.
+(If you like the dot-dot-dot pattern, don't worry.  It is not going
+to be removed from this package.  Backward compatibility trumps everything.)
+
 \begin{thebibliography}{}
+
+\bibitem[C2 Wiki(2013)]{c2}
+C2 Wiki Contributors (2013).
+\newblock Global Variables Are Bad.
+\newblock \url{http://wiki.c2.com/?GlobalVariablesAreBad}.
+
+\bibitem[Crockford(2008)]{crockford}
+Crockford, D. (2008).
+\newblock \emph{JavaScript: The Good Parts}.
+\newblock O'Reilly, Sebastopol CA.
 
 \bibitem[Gelman et al.(1996)Gelman, Roberts, and Gilks]{grg}
 Gelman, A., G.~O. Roberts, and W.~R. Gilks (1996).

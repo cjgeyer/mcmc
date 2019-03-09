@@ -1,0 +1,18 @@
+
+For version 0.9-6
+
+This version was requested by CRAN to fix "additional issues" in file rchk
+about not enough PROTECT's in C called via .Call.  Those issues are (I hope)
+fixed.
+
+Also remove dependence on R package compiler.  (Now rely on JIT.)
+
+Also improve vignette.
+
+Reverse dependencies check has been run
+    library(tools); check_packages_in_dir(".", reverse = "all")
+and problems found are not my fault
+in CRAN package MCMCpack installed size is too big
+in CRAN package sizeMat the DESCRIPTION file says Imports: mcmc but
+    nothing is actually imported, so this shouldn't even be a reverse
+    dependency
