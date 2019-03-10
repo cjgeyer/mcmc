@@ -132,7 +132,7 @@ unnormalized density function and \code{outfun} to have only one argument
 specify any other information these functions need to use.  That too
 follows the \R way.  But some people consider that bad programming practice.
 
-A third option is to define either of these functions using a function
+A third option is to define either or both of these functions using a function
 factory.  This is demonstrated in the vignette for this package named
 \code{demo}, which is shown by \code{vignette("demo", "mcmc")}.
 }
@@ -169,7 +169,7 @@ apply(out$batch, 2, mean)
 apply(out$batch, 2, sd) / sqrt(out$nbatch)
 }
 give estimates of posterior means and their MCSE assuming the batch length
-(here 1000) was long enough to contain almost all of the signifcant
+(here 1000) was long enough to contain almost all of the significant
 autocorrelation (see Geyer, 2011, Section 1.10, for more on MCSE).
 The re-entrant property of this function (the second run starts
 where the first one stops) assures that this is really \dQuote{burn-in}.
@@ -196,7 +196,7 @@ little progress (because in most iterations it does not move) and that at
 very high acceptance rates the chain also makes little progress (because
 unless the log unnormalized density is nearly constant, very high acceptance
 rates can only be achieved by very small values of \code{scale} so the
-steps the chain takes are also very small.
+steps the chain takes are also very small).
 
 Even in the Gelman, et al. (1996) result, the optimal rate for spherical
 multivariate normal depends on dimension.  It is 44\% for \eqn{d = 1}
@@ -221,7 +221,7 @@ In \emph{Handbook of Markov Chain Monte Carlo}. Edited by S. P. Brooks,
 A. E. Gelman, G. L. Jones, and X. L. Meng.
 Chapman & Hall/CRC, Boca Raton, FL, pp. 3--48.
 
-Geyer, C. J. and Thompson, E. A. (1995).
+Geyer, C. J. and Thompson, E. A. (1995)
 Annealing Markov chain Monte Carlo with applications to ancestral inference.
 \emph{Journal of the American Statistical Association} \bold{90} 909--920.
 

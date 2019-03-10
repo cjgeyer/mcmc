@@ -168,7 +168,8 @@ That is, the initial state must have positive probability.
   \item{nspac}{the argument \code{nspac} or \code{obj$nspac}.}
   \item{outfun}{the argument \code{outfun} or \code{obj$outfun}.}
   Description of additional output when \code{debug = TRUE} can be
-  found in the vignette \code{debug} (\url{../doc/debug.pdf}).
+  found in the vignette \code{debug}, which is shown by
+  \code{vignette("debug", "mcmc")}.
 }
 \section{Warning}{
 If \code{outfun} is missing, then the log unnormalized
@@ -190,7 +191,7 @@ and you get an error about unused arguments.  Instead define these functions by
 ludfun <- function(state, foo, \ldots)
 outfun <- function(state, bar, \ldots)
 }
-and supply \code{foo} and \code{bar} as additional arguments to \code{metrop},
+and supply \code{foo} and \code{bar} as additional arguments to \code{temper},
 and that works fine.
 
 In short, the log unnormalized density function and \code{outfun} need
@@ -202,6 +203,66 @@ unnormalized density function and \code{outfun} to have only one argument
 \code{state} and use global variables (objects in the \R global environment) to
 specify any other information these functions need to use.  That too
 follows the \R way.  But some people consider that bad programming practice.
+
+A third option is to define either or both of these functions using a function
+factory.  This is demonstrated in the vignette for this package named
+\code{demo}, which is shown by \code{vignette("demo", "mcmc")}.
+}
+\section{Philosophy of MCMC}{
+This function follows the philosophy of MCMC explained
+the introductory chapter of the
+\emph{Handbook of Markov Chain Monte Carlo} (Geyer, 2011a)
+and in the chapter of that book on tempering and related subjects
+(Geyer, 2011b).
+See also the section on philosophy of \code{\link{metrop}}.
+}
+\section{Tuning}{
+The \code{scale} argument must be adjusted so that the acceptance rate
+for within-component proposals (component \code{acceptx} of the result
+returned by this function)
+is not too low or too high to get reasonable performance.
+The log unnormalized density function must be chosen so that the acceptance rate
+for jump/swap proposals (component \code{accepti} of the result
+returned by this function)
+is not too low or too high to get reasonable performance.
+The former is a vector and the latter is a matrix, and
+all these rates must be adjusted to be reasonable.
+
+The rates in in \code{accepti} are influenced by the number of components
+of the tempering mixture distribution, by what those components are (how
+far apart they are in some unspecified metric on probability distributions),
+and by the chosen normalizing constants for those distributions.
+
+For examples of tuning tempering, see Geyer (2011b) and also the vignette
+of this package shown by \code{vignette("bfst", "mcmc")}.
+The help for R function \code{\link{metrop}} also gives advice on tuning
+its sampler, which is relevant for tuning the \code{acceptx} rates.
+
+See also Geyer (1991) and Geyer and Thompson (1995) for the general
+theory of tuning parallel and serial tempering.
+}
+
+\references{
+Geyer, C. J. (1991)
+Markov chain Monte Carlo maximum likelihood.
+\emph{Computing Science and Statistics: Proc. 23rd Symp. Interface}, 156--163.
+\url{http://hdl.handle.net/11299/58440}.
+
+Geyer, C. J. (2011a)
+Introduction to MCMC.
+In \emph{Handbook of Markov Chain Monte Carlo}. Edited by S. P. Brooks,
+A. E. Gelman, G. L. Jones, and X. L. Meng.
+Chapman & Hall/CRC, Boca Raton, FL, pp. 3--48.
+
+Geyer, C. J. (2011b)
+Importance Sampling, Simulated Tempering, and Umbrella Sampling.
+In \emph{Handbook of Markov Chain Monte Carlo}. Edited by S. P. Brooks,
+A. E. Gelman, G. L. Jones, and X. L. Meng.
+Chapman & Hall/CRC, Boca Raton, FL, pp. 295--312.
+
+Geyer, C. J. and Thompson, E. A. (1995)
+Annealing Markov chain Monte Carlo with applications to ancestral inference.
+\emph{Journal of the American Statistical Association} \bold{90} 909--920.
 }
 \examples{
 d <- 9

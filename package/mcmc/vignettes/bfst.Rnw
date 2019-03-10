@@ -698,7 +698,7 @@ the algorithm.  The \texttt{temper} function is foolproof in the sense that
 if the log unnormalized density function written by the user
 (like our \texttt{ludfun}) is correct, then the ST Markov chain has the
 equilibrium distribution is supposed to have.  There is nothing the
-user can mess up except this user written function.  No analog of this
+user can mess up except this user-written function.  No analog of this
 for ``reversible jump'' chains is apparent (to your humble author).
 
 Two issues remain where the text above said ``see the discussion section for

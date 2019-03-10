@@ -53,7 +53,8 @@ for this model is calculated by
 the following R function.  In order to avoid using either global variables
 or \verb@...@ arguments, we use the function factory pattern
 (\citealp[Section~10.3.1]{wickham};
-\citealp[Section~7.5, especially Subsection~7.5.4]{basic}).
+\citealp[Section~7.5, especially Subsection~7.5.4]{basic};
+see also Appendix~\ref{sec:versus} below).
 <<log.unnormalized.posterior>>=
 lupost_factory <- function(x, y) function(beta) {
     eta <- as.numeric(x %*% beta)
@@ -593,6 +594,7 @@ the relevant sample size.
 \appendix
 
 \section{Dot-dot-dot Versus Global Variables Versus Closures}
+\label{sec:versus}
 
 This appendix deals with three ways to pass information to a function
 being passed to another R function (a higher-order function), for example when
