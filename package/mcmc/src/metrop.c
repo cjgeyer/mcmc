@@ -2,6 +2,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <Rmath.h>
+#include <R_ext/Utils.h>
 #include "myutil.h"
 #include "mcmc.h"
 
@@ -264,6 +265,9 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
                  }
                  tries++;
                  tries_this_batch++;
+
+                 R_CheckUserInterrupt();
+
              } /* end of inner loop (one iteration) */
 
              outfun(state, out_buffer);

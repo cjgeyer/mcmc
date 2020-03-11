@@ -2,6 +2,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <Rmath.h>
+#include <R_ext/Utils.h>
 #include "myutil.h"
 #include "mcmc.h"
 
@@ -844,6 +845,7 @@ SEXP temper(SEXP func1, SEXP initial, SEXP neighbors, SEXP nbatch,
                     }
                 }
 
+                R_CheckUserInterrupt();
              } /* end of inner loop (one iteration) */
 
             if (no_outfun) {

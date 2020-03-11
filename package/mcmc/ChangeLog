@@ -79,3 +79,5 @@
        (R now automagically does jit)
 
        Fix problems found in CRAN static analysis
+
+ 0.9-7 add calls to R_CheckUserInterrupt in C functions mcmc and temper
