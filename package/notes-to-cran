@@ -1,0 +1,12 @@
+This is a submission to get unorphaned and also to add calls
+R_CheckUserInterrupt(); in each iteration of long-running operations.
+
+The ## IGNORE_RDIFF_BEGIN and ## IGNORE_RDIFF_END put into two test
+files (initseq.R and logit.R) by the orphaner have been preserved in
+this submission (in fact those files are the same in R versions 0.9.6.1,
+the orphaned version, and in 0.9-7, this submission).
+AFAICS this is all the orphaner did except for changes to the DESCRIPTION
+file.
+
+All reverse dependencies check with only a note about one of them
+having too large installed size.

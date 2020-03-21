@@ -5,6 +5,7 @@ if (length(bar) > 0) {
     baz <- paste("rm -r", paste(bar, collapse = " "))
     system(baz)
 }
+list.files()
 # my package
 system("R CMD build ../package/mcmc")
 # doit

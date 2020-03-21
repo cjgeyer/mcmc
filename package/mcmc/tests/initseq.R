@@ -27,7 +27,9 @@
  Gamma.dec <- cummin(Gamma)
  all.equal(out$Gamma.dec, Gamma.dec)
  
+## IGNORE_RDIFF_BEGIN
 library(Iso)
+## IGNORE_RDIFF_END
  Gamma.con <- Gamma.dec[1] + cumsum(c(0, pava(diff(Gamma.dec))))
  all.equal(out$Gamma.con, Gamma.con)
 

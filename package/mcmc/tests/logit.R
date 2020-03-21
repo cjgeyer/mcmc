@@ -33,7 +33,9 @@
      return(- sum(log(p[y == 1])) - sum(log(1 - p[y == 0])))
  }
 
+## IGNORE_RDIFF_BEGIN
  out.nlm <- nlm(mlogl, coefficients(out), print.level = 2)
+## IGNORE_RDIFF_END
 
  logl <- function(beta) {
      if (length(beta) != 3) stop("length(beta) != 3")

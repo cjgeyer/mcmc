@@ -1,1 +1,1 @@
-PKG_CFLAGS=$(C_VISIBILITY) -W -Wall -Wextra
+PKG_CFLAGS=$(C_VISIBILITY) -Wall -Wextra

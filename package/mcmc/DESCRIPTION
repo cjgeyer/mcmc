@@ -1,6 +1,6 @@
 Package: mcmc
 Version: 0.9-7
-Date: 2020-03-09
+Date: 2020-03-20
 Title: Markov Chain Monte Carlo
 Author: Charles J. Geyer <charlie@stat.umn.edu> and Leif T. Johnson
      <ltjohnson@google.com>

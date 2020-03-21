@@ -1,6 +1,6 @@
 
-R version 3.3.3 (2017-03-06) -- "Another Canoe"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 3.6.3 (2020-02-29) -- "Holding the Windsock"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -51,8 +51,10 @@ Type 'q()' to quit R.
 >  all.equal(out$Gamma.dec, Gamma.dec)
 [1] TRUE
 >  
+> ## IGNORE_RDIFF_BEGIN
 > library(Iso)
-Iso 0.0-17
+Iso 0.0-18
+> ## IGNORE_RDIFF_END
 >  Gamma.con <- Gamma.dec[1] + cumsum(c(0, pava(diff(Gamma.dec))))
 >  all.equal(out$Gamma.con, Gamma.con)
 [1] TRUE
@@ -84,4 +86,4 @@ Iso 0.0-17
 > 
 > proc.time()
    user  system elapsed 
-  0.688   0.016   0.695 
+  0.513   0.027   0.529 
