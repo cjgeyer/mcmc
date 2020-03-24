@@ -1,3 +1,6 @@
+The main branch is morph (not master).  We will probably never go back
+to master being the main branch.
+
 This is the source tree for the R contributed package mcmc.
 The version for users is at CRAN (http://cran.r-project.org/package=mcmc)
 
