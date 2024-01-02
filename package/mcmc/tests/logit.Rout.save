@@ -1,6 +1,6 @@
 
-R version 3.6.3 (2020-02-29) -- "Holding the Windsock"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -20,7 +20,7 @@ Type 'q()' to quit R.
 > 
 >  library(mcmc)
 > 
->  RNGkind("Marsaglia-Multicarry")
+>  suppressWarnings(RNGkind("Marsaglia-Multicarry"))
 >  set.seed(42)
 > 
 >  options(digits = 3)
@@ -38,14 +38,11 @@ Type 'q()' to quit R.
 >  y <- as.numeric(runif(n) < p)
 > 
 >  out <- glm(y ~ x1 + x2, family = binomial())
+> ## IGNORE_RDIFF_BEGIN
 >  summary(out)
 
 Call:
 glm(formula = y ~ x1 + x2, family = binomial())
-
-Deviance Residuals: 
-   Min      1Q  Median      3Q     Max  
--2.064  -0.821  -0.246   0.840   2.070  
 
 Coefficients:
             Estimate Std. Error z value Pr(>|z|)    
@@ -63,6 +60,7 @@ AIC: 105.3
 
 Number of Fisher Scoring iterations: 5
 
+> ## IGNORE_RDIFF_END
 > 
 >  mlogl <- function(beta) {
 +      if (length(beta) != 3) stop("length(beta) != 3")
@@ -178,4 +176,4 @@ Current iterate is probably solution.
 > 
 > proc.time()
    user  system elapsed 
-  0.326   0.027   0.343 
+  0.300   0.027   0.321 

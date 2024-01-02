@@ -1,7 +1,6 @@
 
-R version 2.13.1 (2011-07-08)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R version 4.3.1 (2023-06-16) -- "Beagle Scouts"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -23,7 +22,7 @@ Type 'q()' to quit R.
 > 
 >  library(mcmc)
 > 
->  RNGkind("Marsaglia-Multicarry")
+>  suppressWarnings(RNGkind("Marsaglia-Multicarry"))
 >  set.seed(42)
 > 
 >  n <- 100
@@ -143,3 +142,6 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  0.301   0.027   0.321 

@@ -3,7 +3,7 @@
 
  library(mcmc)
 
- RNGkind("Marsaglia-Multicarry")
+ suppressWarnings(RNGkind("Marsaglia-Multicarry"))
  set.seed(42)
 
  options(digits = 3)
@@ -21,7 +21,9 @@
  y <- as.numeric(runif(n) < p)
 
  out <- glm(y ~ x1 + x2, family = binomial())
+## IGNORE_RDIFF_BEGIN
  summary(out)
+## IGNORE_RDIFF_END
 
  mlogl <- function(beta) {
      if (length(beta) != 3) stop("length(beta) != 3")

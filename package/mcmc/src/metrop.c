@@ -72,6 +72,8 @@ SEXP metrop(SEXP func1, SEXP initial, SEXP nbatch, SEXP blen, SEXP nspac,
     if (! isAllFinite(state))
         error("all elements of \"state\" must be finite");
     dim_state = LENGTH(state);
+    if (dim_state == 0)
+        error("argument \"initial\" must have nonzero length");
 
     PROTECT(proposal = allocVector(REALSXP, dim_state));
     // protected: foompter, state, proposal

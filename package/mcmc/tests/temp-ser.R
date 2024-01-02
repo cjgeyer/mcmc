@@ -7,7 +7,9 @@
  attach(foo)
 
  out <- glm(y ~ x1 + x2 + x3, family = binomial, x = TRUE)
+## IGNORE_RDIFF_BEGIN
  summary(out)
+## IGNORE_RDIFF_END
 
  modmat <- out$x
 

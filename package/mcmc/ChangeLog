@@ -81,3 +81,6 @@
        Fix problems found in CRAN static analysis
 
  0.9-7 add calls to R_CheckUserInterrupt in C functions mcmc and temper
+
+ 0.9-8 give intelligible error on zero length initial state vector
+       also change e-mail to geyer@umn.edu

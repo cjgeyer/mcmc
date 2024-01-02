@@ -3,7 +3,7 @@
 
  library(mcmc)
 
- RNGkind("Marsaglia-Multicarry")
+ suppressWarnings(RNGkind("Marsaglia-Multicarry"))
  set.seed(42)
 
  d <- 5

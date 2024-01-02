@@ -1,6 +1,6 @@
 
-R version 3.3.3 (2017-03-06) -- "Another Canoe"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 4.3.1 (2023-06-16) -- "Beagle Scouts"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -24,14 +24,11 @@ Type 'q()' to quit R.
 >  attach(foo)
 > 
 >  out <- glm(y ~ x1 + x2 + x3, family = binomial, x = TRUE)
+> ## IGNORE_RDIFF_BEGIN
 >  summary(out)
 
 Call:
 glm(formula = y ~ x1 + x2 + x3, family = binomial, x = TRUE)
-
-Deviance Residuals: 
-    Min       1Q   Median       3Q      Max  
--2.0371  -0.6337   0.2394   0.6685   1.9599  
 
 Coefficients:
             Estimate Std. Error z value Pr(>|z|)    
@@ -50,6 +47,7 @@ AIC: 94.439
 
 Number of Fisher Scoring iterations: 5
 
+> ## IGNORE_RDIFF_END
 > 
 >  modmat <- out$x
 > 
@@ -379,4 +377,4 @@ Number of Fisher Scoring iterations: 5
 > 
 > proc.time()
    user  system elapsed 
-  1.376   0.008   1.376 
+  1.293   0.035   1.317 
